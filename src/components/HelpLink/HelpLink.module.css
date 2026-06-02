@@ -1,0 +1,32 @@
+/**
+ * HelpLink — §5.3 of SWIFTUI_C2_action-controls.md (macOS only).
+ * The standard macOS "?" help button: a 22pt bordered circle with a `?` glyph.
+ */
+.helpLink {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--sui-color-quaternary-system-fill);
+  color: var(--sui-color-label);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font:
+    600 14px / 1 -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+.helpLink::before {
+  content: "?";
+}
+.helpLink:active {
+  background: color-mix(in srgb, var(--sui-color-label) 12%, transparent);
+}
+.helpLink:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.helpLink:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+}

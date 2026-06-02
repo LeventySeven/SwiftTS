@@ -1,0 +1,54 @@
+/* SwiftUI-web global base. Token variables come first, then a minimal reset
+   and the SwiftUI default text/background environment. */
+@import "../tokens/variables.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--sui-font-stack, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", Helvetica, Arial, sans-serif);
+  font-size: var(--sui-text-body-size, 17px);
+  line-height: var(--sui-text-body-lineHeight, 22px);
+  letter-spacing: var(--sui-text-body-tracking, -0.41px);
+  color: var(--sui-color-label, #000);
+  background: var(--sui-color-system-background, #fff);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+/* SwiftUI never shows a focus outline on tap; keyboard focus is opt-in per control. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Anchor-jump offset: the gallery header is sticky, so an `#id` jump would land
+   the target flush at viewport top and hide its title under the header. Push the
+   scroll anchor down by the header height. Scoped to section anchors (headings +
+   [data-anchor] section roots) via `:where()` (specificity 0) so it never
+   over-applies to every incidental `id` (inputs, list rows, ARIA-labelled nodes). */
+:where(section[id], article[id], [data-anchor][id], h1[id], h2[id], h3[id]) {
+  scroll-margin-top: 96px;
+}
+
+/* Honor reduced motion globally (mirrors accessibilityReduceMotion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

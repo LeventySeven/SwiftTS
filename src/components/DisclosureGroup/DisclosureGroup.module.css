@@ -1,0 +1,69 @@
+/**
+ * DisclosureGroup — SwiftUI Cluster C6 §7.
+ * Chevron 0°→90° rotation + content height-animation via grid-template-rows 0fr→1fr.
+ *
+ * Selectors wrapped in `:global { … }` so the literal `sui-*` names survive
+ * CSS-module hashing (navigation.module.css / controlSize.module.css convention).
+ */
+:global {
+  .sui-disclosure {
+    --sui-disclosure-indent: 28px;
+    --sui-collection-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sui-disclosure__header {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 11px 16px;
+    font-size: var(--sui-text-body-size);
+    line-height: var(--sui-text-body-lineHeight);
+    color: var(--sui-color-label);
+    cursor: pointer;
+  }
+
+  .sui-disclosure__chevron {
+    position: relative;
+    width: 7px;
+    height: 11px;
+    flex: 0 0 auto;
+    transition: transform 0.3s var(--sui-collection-spring);
+  }
+  .sui-disclosure__chevron::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 2px;
+    width: 7px;
+    height: 7px;
+    border-top: 2px solid var(--sui-color-tertiary-label);
+    border-right: 2px solid var(--sui-color-tertiary-label);
+    transform: rotate(45deg);
+  }
+  .sui-disclosure[data-expanded="true"] .sui-disclosure__chevron {
+    transform: rotate(90deg);
+  }
+
+  .sui-disclosure__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .sui-disclosure__content {
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    transition: grid-template-rows 0.3s var(--sui-collection-spring);
+    padding-left: var(--sui-disclosure-indent);
+  }
+  .sui-disclosure[data-expanded="true"] .sui-disclosure__content {
+    grid-template-rows: 1fr;
+  }
+  .sui-disclosure__content-inner {
+    min-height: 0; /* required for the 0fr→1fr collapse trick */
+  }
+}

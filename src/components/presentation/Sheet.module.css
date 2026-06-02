@@ -1,0 +1,74 @@
+/* Sheet — the slide-up bottom sheet (C8 §1). CSS-module-scoped class names.
+ * Metrics mirror the spec: corner radius 10pt, grabber 36×5pt, scrim 0.40. */
+
+.host {
+  position: absolute;
+  inset: 0;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+}
+.scrim[data-state="presented"] {
+  opacity: 1;
+}
+.scrim[data-interactive="true"] {
+  pointer-events: none;
+  background: transparent;
+  opacity: 0;
+}
+
+.card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* --detent-h resolved by the component: .medium=50%, .large=100%, etc. */
+  height: var(--sheet-detent-h, 50%);
+  max-height: 100%;
+  background: var(--sui-color-secondary-system-background, #f2f2f7);
+  /* presentationCornerRadius — system default 10pt top-left+top-right. */
+  border-top-left-radius: var(--sheet-radius, var(--sui-radius-sheet, 10px));
+  border-top-right-radius: var(--sheet-radius, var(--sui-radius-sheet, 10px));
+  box-shadow: 0 -1px 10px rgba(0, 0, 0, 0.12);
+  transform: translateY(100%);
+  touch-action: none; /* JS drag drives translateY */
+  will-change: transform;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.card[data-state="presented"] {
+  transform: translateY(0);
+}
+/* While dragging, the inline transform wins and transitions are suppressed. */
+.card[data-dragging="true"] {
+  transition: none !important;
+}
+
+.grabber {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 5px;
+  border-radius: 2.5px;
+  background: rgba(120, 120, 128, 0.4);
+  margin: 5px auto 0;
+}
+
+.content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .scrim {
+    transition: opacity 0.2s linear !important;
+  }
+}

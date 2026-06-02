@@ -1,0 +1,36 @@
+/* AsyncImage — load-from-URL with phases (C1 §7.3). */
+
+.asyncImage {
+  display: inline-block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* .empty / .failure default: neutral gray rounded placeholder (system fill). */
+.placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--sui-color-system-fill);
+  border-radius: var(--sui-radius-button-small);
+}
+
+/* .success default: cover-fit image with opacity fade-in (transaction). */
+.img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.img.loaded {
+  opacity: 1;
+}
+
+/* transaction:{animation:false} — no fade. */
+.img.noFade {
+  opacity: 1;
+  transition: none;
+}

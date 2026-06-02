@@ -1,0 +1,44 @@
+/**
+ * ControlSize metric variables — §0.2 of SWIFTUI_C2_action-controls.md.
+ *
+ * One `data-control-size` attribute on a control root re-sizes the whole control
+ * by re-binding these four custom props. `.regular` is the default; the others
+ * override. Metrics are INFERRED (iOS canon, spacing.md §5.2) — NOT in the
+ * swiftinterface. Selectors are `:global` so the attribute can sit on any
+ * component root regardless of CSS-module hashing.
+ */
+[data-control-size="regular"] {
+  --ctl-h: 34px;
+  --ctl-px: 14px;
+  --ctl-py: 7px;
+  --ctl-font: 17px;
+  --ctl-radius: 8px;
+}
+[data-control-size="mini"] {
+  --ctl-h: 24px;
+  --ctl-px: 8px;
+  --ctl-py: 3px;
+  --ctl-font: 11px;
+  --ctl-radius: 5px;
+}
+[data-control-size="small"] {
+  --ctl-h: 28px;
+  --ctl-px: 10px;
+  --ctl-py: 4px;
+  --ctl-font: 13px;
+  --ctl-radius: 6px;
+}
+[data-control-size="large"] {
+  --ctl-h: 50px;
+  --ctl-px: 20px;
+  --ctl-py: 12px;
+  --ctl-font: 17px;
+  --ctl-radius: 11px;
+}
+[data-control-size="extraLarge"] {
+  --ctl-h: 56px;
+  --ctl-px: 24px;
+  --ctl-py: 15px;
+  --ctl-font: 17px;
+  --ctl-radius: 12px;
+}

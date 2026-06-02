@@ -1,0 +1,86 @@
+/*
+ * SwiftUI `Text` — a leaf inline run of glyphs.
+ * Spec: teardowns/SWIFTUI_C1_content-primitives.md §1.7.
+ * Default is the `.body` text style; per-style overrides swap the 4-var bundle.
+ */
+.text {
+  font-family: var(--sui-font-default);
+  font-size: var(--sui-text-body-size); /* 17px default */
+  font-weight: var(--sui-text-body-weight); /* 400 */
+  line-height: var(--sui-text-body-lineHeight); /* 22px — absolute, never unitless */
+  letter-spacing: var(--sui-text-body-tracking); /* -0.41px */
+  color: var(--sui-color-label);
+  font-synthesis: none; /* never fake-bold/italic SF */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  margin: 0;
+}
+
+/* One utility block per Font.TextStyle — swaps the size/weight/lineHeight/tracking bundle. */
+.largeTitle {
+  font-size: var(--sui-text-largeTitle-size);
+  font-weight: var(--sui-text-largeTitle-weight);
+  line-height: var(--sui-text-largeTitle-lineHeight);
+  letter-spacing: var(--sui-text-largeTitle-tracking);
+}
+.title {
+  font-size: var(--sui-text-title-size);
+  font-weight: var(--sui-text-title-weight);
+  line-height: var(--sui-text-title-lineHeight);
+  letter-spacing: var(--sui-text-title-tracking);
+}
+.title2 {
+  font-size: var(--sui-text-title2-size);
+  font-weight: var(--sui-text-title2-weight);
+  line-height: var(--sui-text-title2-lineHeight);
+  letter-spacing: var(--sui-text-title2-tracking);
+}
+.title3 {
+  font-size: var(--sui-text-title3-size);
+  font-weight: var(--sui-text-title3-weight);
+  line-height: var(--sui-text-title3-lineHeight);
+  letter-spacing: var(--sui-text-title3-tracking);
+}
+.headline {
+  font-size: var(--sui-text-headline-size);
+  font-weight: var(--sui-text-headline-weight);
+  line-height: var(--sui-text-headline-lineHeight);
+  letter-spacing: var(--sui-text-headline-tracking);
+}
+.subheadline {
+  font-size: var(--sui-text-subheadline-size);
+  font-weight: var(--sui-text-subheadline-weight);
+  line-height: var(--sui-text-subheadline-lineHeight);
+  letter-spacing: var(--sui-text-subheadline-tracking);
+}
+.body {
+  font-size: var(--sui-text-body-size);
+  font-weight: var(--sui-text-body-weight);
+  line-height: var(--sui-text-body-lineHeight);
+  letter-spacing: var(--sui-text-body-tracking);
+}
+.callout {
+  font-size: var(--sui-text-callout-size);
+  font-weight: var(--sui-text-callout-weight);
+  line-height: var(--sui-text-callout-lineHeight);
+  letter-spacing: var(--sui-text-callout-tracking);
+}
+.footnote {
+  font-size: var(--sui-text-footnote-size);
+  font-weight: var(--sui-text-footnote-weight);
+  line-height: var(--sui-text-footnote-lineHeight);
+  letter-spacing: var(--sui-text-footnote-tracking);
+}
+.caption {
+  font-size: var(--sui-text-caption-size);
+  font-weight: var(--sui-text-caption-weight);
+  line-height: var(--sui-text-caption-lineHeight);
+  letter-spacing: var(--sui-text-caption-tracking);
+}
+.caption2 {
+  font-size: var(--sui-text-caption2-size);
+  font-weight: var(--sui-text-caption2-weight);
+  line-height: var(--sui-text-caption2-lineHeight);
+  letter-spacing: var(--sui-text-caption2-tracking);
+}

@@ -1,0 +1,108 @@
+/* SwiftUI C3 — TextField / SecureField shared chrome.
+ * Metrics from teardowns/SWIFTUI_C3_value-input.md §1.3 / §1.5.
+ * SecureField (§2.4) reuses every class here unchanged. */
+
+.textfield {
+  /* the bezel container */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font:
+    var(--sui-text-body-weight) var(--sui-text-body-size) / var(--sui-text-body-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  letter-spacing: var(--sui-text-body-tracking);
+  color: var(--sui-color-label);
+  box-sizing: border-box;
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  caret-color: var(--sui-color-tint);
+  outline: none;
+  padding: 0;
+  margin: 0;
+  /* axis=.vertical → <textarea>; kill native resize + scrollbars while auto-growing */
+  resize: none;
+  overflow: hidden;
+}
+
+.input::placeholder {
+  color: var(--sui-color-placeholder-text);
+  opacity: 1;
+}
+
+/* ---- .roundedBorder ---- */
+.roundedBorder {
+  padding: 7px 8px;
+  border-radius: 6px; /* radius.field, continuous fallback */
+  border: 1px solid var(--sui-color-separator);
+  background: var(--sui-color-secondary-system-background);
+  transition:
+    box-shadow 0.15s ease-out,
+    border-color 0.15s ease-out;
+}
+.roundedBorder[data-focused="true"] {
+  border-color: var(--sui-color-tint);
+  /* macOS focus ring */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+}
+
+/* ---- .plain / .automatic (iOS automatic == plain) ---- */
+.plain {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* ---- .squareBorder (macOS) — roundedBorder with sharp corners ---- */
+.squareBorder {
+  padding: 7px 8px;
+  border-radius: 0;
+  border: 1px solid var(--sui-color-separator);
+  background: var(--sui-color-secondary-system-background);
+  transition:
+    box-shadow 0.15s ease-out,
+    border-color 0.15s ease-out;
+}
+.squareBorder[data-focused="true"] {
+  border-color: var(--sui-color-tint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+}
+
+/* error state (DESIGNED — SwiftUI has no built-in error style; convention = red border) */
+.textfield[data-invalid="true"] {
+  border-color: var(--sui-color-system-red);
+}
+.textfield[data-disabled="true"] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* iOS while-editing clear button */
+.clear {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: none;
+  border-radius: 50%;
+  background: var(--sui-color-system-gray3);
+  color: var(--sui-color-secondary-system-background);
+  font-size: 11px;
+  line-height: 1;
+  cursor: default;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+/* leading visible label slot */
+.label {
+  flex: 0 0 auto;
+  color: var(--sui-color-label);
+}

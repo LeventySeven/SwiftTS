@@ -1,0 +1,133 @@
+/**
+ * Menu — §3.5 of SWIFTUI_C2_action-controls.md.
+ *
+ * Trigger = label + pull-down chevron (SF `chevron.up.chevron.down`). Popup =
+ * continuous-corner rounded rect (radius 13), regularMaterial blur background,
+ * hairline border, soft shadow, scale+fade in from the anchor (anim.snappy).
+ * Rows ≈ 44pt tall, 16px h-pad, destructive rows red. The frosted background is
+ * applied by the .sui-material class on the panel; this file owns geometry.
+ */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--sui-color-tint);
+  font:
+    400 17px / 1.294 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: -0.41px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.trigger:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.trigger:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.chevron {
+  font-size: 0.78em;
+  color: var(--sui-color-secondary-label);
+  flex: 0 0 auto;
+}
+
+.triggerIcon {
+  font-size: 1em;
+  flex: 0 0 auto;
+}
+
+/* the absolutely-positioned anchor wrapper */
+.anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.popup {
+  position: absolute;
+  z-index: 1000;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 250px;
+  padding: 6px 0;
+  margin: 0;
+  border-radius: 13px;
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  transform-origin: top center;
+  list-style: none;
+  overflow: hidden;
+  animation: sui-menu-in 0.25s
+    var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.8, 0.2, 1));
+}
+/* right-anchored variant (when the trigger sits on the trailing edge) */
+.popup[data-align="trailing"] {
+  left: auto;
+  right: 0;
+  transform-origin: top right;
+}
+
+@keyframes sui-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: start;
+  font:
+    400 17px / 1.294 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: -0.41px;
+  color: var(--sui-color-label);
+}
+.item:hover,
+.item:focus-visible,
+.item[data-active="true"] {
+  background: var(--sui-color-quaternary-system-fill);
+  outline: none;
+}
+.item:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.item[data-role="destructive"] {
+  color: var(--sui-color-system-red);
+}
+.itemIcon {
+  font-size: 1em;
+  flex: 0 0 auto;
+  color: inherit;
+}
+.itemTitle {
+  flex: 1 1 auto;
+}
+
+/* a hairline divider between item groups (SwiftUI Divider in a menu) */
+.divider {
+  height: 0.5px;
+  margin: 6px 0;
+  background: var(--sui-color-separator);
+  border: none;
+}

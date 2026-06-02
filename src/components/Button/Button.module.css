@@ -1,0 +1,164 @@
+/**
+ * Button — §1.5 of SWIFTUI_C2_action-controls.md.
+ *
+ * Always a native `<button type="button">` (focus / Space-Return / disabled / ARIA
+ * for free). Metrics key off the `--ctl-*` ControlSize vars (controls/controlSize).
+ * Token var names are the real ones from tokens/variables.css:
+ *   tint  → --sui-color-tint
+ *   red   → --sui-color-system-red
+ *   label → --sui-color-label
+ *   bordered fill → --sui-color-quaternary-system-fill
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--ctl-h, 34px);
+  padding: var(--ctl-py, 7px) var(--ctl-px, 14px);
+  font:
+    400 var(--ctl-font, 17px) / 1.294 -apple-system, "SF Pro Text", system-ui,
+    sans-serif;
+  letter-spacing: -0.41px;
+  border: none;
+  /* Continuous (squircle) corners — moderate height-based radius, NOT a pill.
+     `corner-shape: superellipse(...)` gives the Apple squircle on browsers that
+     support it (Chrome 139+/2025); everywhere else the plain `border-radius`
+     degrades to the visually-equivalent circular corner. */
+  border-radius: var(--ctl-radius, 8px);
+  corner-shape: superellipse(1.8);
+  cursor: pointer;
+  color: var(--sui-color-tint); /* default tint label */
+  background: transparent;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease,
+    background-color 0.12s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* press dim (plain / borderless / automatic-bare / link) */
+.button:active {
+  opacity: 0.75;
+}
+
+.button:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--ctl-radius, 8px);
+}
+
+/* ---- icon slot ---- */
+.icon {
+  font-size: 1em;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+/* ============================ styles ============================ */
+
+/* .bordered — tint @ ~15% (quaternary fill), tint label; pressed fill darkens */
+.button[data-style="bordered"] {
+  background: var(--sui-color-quaternary-system-fill);
+  color: var(--sui-color-tint);
+}
+.button[data-style="bordered"]:active {
+  background: color-mix(in srgb, var(--sui-color-tint) 25%, transparent);
+  opacity: 1;
+}
+
+/* .borderedProminent — solid tint fill, white label; pressed = darken (opacity stays 1) */
+.button[data-style="borderedProminent"] {
+  background: var(--sui-color-tint);
+  color: #fff;
+}
+.button[data-style="borderedProminent"]:active {
+  background: color-mix(in srgb, var(--sui-color-tint) 88%, black);
+  opacity: 1;
+}
+
+/* .plain — no fill, primary label color */
+.button[data-style="plain"] {
+  color: var(--sui-color-label);
+}
+
+/* .borderless — no fill, tint label */
+.button[data-style="borderless"] {
+  color: var(--sui-color-tint);
+}
+
+/* .link — tint label, underline on hover */
+.button[data-style="link"] {
+  color: var(--sui-color-tint);
+}
+.button[data-style="link"]:hover {
+  text-decoration: underline;
+}
+
+/* .glass / .glassProminent — Liquid Glass (iOS26); moderate continuous corner
+   (height-based `--ctl-radius`, squircle via `corner-shape` inherited from
+   .button), specular sheen. A full pill is opt-in via `.buttonBorderShape(.capsule)`.
+   The frosted layer comes from the .sui-material backdrop applied by the TSX. */
+.button[data-style="glass"] {
+  border-radius: var(--ctl-radius, 8px);
+  color: var(--sui-color-label);
+  background: var(--sui-material-regular-tint, rgba(245, 245, 245, 0.72));
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.25);
+}
+.button[data-style="glassProminent"] {
+  border-radius: var(--ctl-radius, 8px);
+  color: #fff;
+  background: var(--sui-color-tint);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+}
+.button[data-style="glass"]:active,
+.button[data-style="glassProminent"]:active {
+  opacity: 1;
+  filter: brightness(0.96);
+}
+
+/* ============================ roles ============================ */
+
+/* .destructive → red label (bordered/plain/borderless) */
+.button[data-role="destructive"] {
+  color: var(--sui-color-system-red);
+}
+/* .destructive + prominent → red FILL, white label */
+.button[data-role="destructive"][data-style="borderedProminent"] {
+  background: var(--sui-color-system-red);
+  color: #fff;
+}
+.button[data-role="destructive"][data-style="borderedProminent"]:active {
+  background: color-mix(in srgb, var(--sui-color-system-red) 88%, black);
+}
+/* .cancel → standard tint, emphasized (bold) — the "safe" default action */
+.button[data-role="cancel"] {
+  font-weight: 600;
+}
+
+/* ============================ border shape ============================ */
+/* .capsule → full pill (the only full-pill shape). A pill and a squircle pill
+   converge visually, but force a round corner so the ends are true semicircles. */
+.button[data-shape="capsule"] {
+  border-radius: 9999px;
+  corner-shape: round;
+}
+/* .roundedRectangle → explicit continuous rounded-rect (keeps the squircle). */
+.button[data-shape="roundedRectangle"] {
+  border-radius: var(--ctl-radius, 8px);
+}
+/* .circle → true circle (round corners, 1:1). */
+.button[data-shape="circle"] {
+  border-radius: 50%;
+  corner-shape: round;
+  aspect-ratio: 1;
+  padding: var(--ctl-py, 7px);
+  justify-content: center;
+}

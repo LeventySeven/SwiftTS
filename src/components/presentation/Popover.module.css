@@ -1,0 +1,39 @@
+/* Popover — anchored floating panel with arrow/caret (C8 §3). macOS-class chrome. */
+
+.popover {
+  position: absolute;
+  z-index: 1100;
+  pointer-events: auto;
+  opacity: 0;
+  transform: scale(0.95);
+}
+.popover[data-state="presented"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.panel {
+  border-radius: var(--sui-radius-menu, 10px);
+  background: var(--sui-material-regular-tint, rgba(245, 245, 245, 0.8));
+  backdrop-filter: blur(var(--sui-material-regular-blur, 20px))
+    saturate(var(--sui-material-regular-saturate, 1.8));
+  -webkit-backdrop-filter: blur(var(--sui-material-regular-blur, 20px))
+    saturate(var(--sui-material-regular-saturate, 1.8));
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+.arrow {
+  position: absolute;
+  width: 16px;
+  height: 9px;
+  background: var(--sui-material-regular-tint, rgba(245, 245, 245, 0.8));
+  backdrop-filter: blur(var(--sui-material-regular-blur, 20px))
+    saturate(var(--sui-material-regular-saturate, 1.8));
+  -webkit-backdrop-filter: blur(var(--sui-material-regular-blur, 20px))
+    saturate(var(--sui-material-regular-saturate, 1.8));
+  /* upward-pointing triangle; rotated per edge by the component. */
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}

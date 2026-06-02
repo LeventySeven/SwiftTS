@@ -1,0 +1,367 @@
+/*
+ * DatePicker / MultiDatePicker — SwiftUI Cluster C4 selection.
+ * RE'd from teardowns/SWIFTUI_C4_selection.md §2/§3.
+ *
+ * The load-bearing primitive is the .calendar grid (§2.5): repeat(7,1fr) grid,
+ * circular day cells, a tint-filled selection circle that scales in on a 0.3s
+ * spring, today = tint text, other-month = tertiaryLabel. Reused verbatim by the
+ * graphical DatePicker, the compact popover, and MultiDatePicker.
+ *
+ * Colors come exclusively from --sui-color-* tokens. The only literal is the
+ * KNOWN popover drop-shadow alpha (§2.4) for which there is no token.
+ */
+
+/* =========================================================================
+ * Calendar grid (§2.5) — the reference piece
+ * ======================================================================= */
+
+.calendar {
+  width: 100%;
+  max-width: 340px;
+  font-family: var(--sui-font-stack);
+  font-size: var(--sui-text-body-size);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* month/year header bar (§2.5 ①) */
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+}
+
+.title {
+  font-size: var(--sui-text-title3-size); /* ~20pt semibold (§2.5) */
+  font-weight: var(--sui-weight-semibold);
+  color: var(--sui-color-label);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-family: var(--sui-font-stack);
+}
+
+.titleChev {
+  width: 11px;
+  height: 7px;
+  color: var(--sui-color-tint);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.title[aria-expanded="true"] .titleChev {
+  transform: rotate(180deg);
+}
+
+.nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navBtn {
+  font-size: 22px; /* §2.5 chevrons 17–22pt */
+  color: var(--sui-color-tint);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+.navBtn:disabled {
+  color: var(--sui-color-tertiary-label);
+  cursor: default;
+}
+
+.navChevSvg {
+  width: 9px;
+  height: 16px;
+}
+
+/* weekday header row (§2.5 ②) */
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: var(--sui-text-caption-size); /* caption 11–12pt (§2.5) */
+  font-weight: var(--sui-weight-semibold);
+  color: var(--sui-color-secondary-label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.weekday {
+  padding: 4px 0;
+}
+
+/* the sliding track that holds month panes (horizontal month-slide, §2.5) */
+.track {
+  display: flex;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.pane {
+  flex: 0 0 100%;
+  width: 100%;
+}
+
+/* day grid (§2.5 ③) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.day {
+  aspect-ratio: 1;
+  min-height: 44px; /* §2.5 ~44×44pt tap area */
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--sui-color-label);
+  border-radius: 50%;
+  position: relative;
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+  z-index: 0;
+}
+
+/* the tint selection circle: scales in on a 0.3s spring (§2.5 behavior) */
+.day::before {
+  content: "";
+  position: absolute;
+  width: 34px; /* §2.5 ~34pt selection circle */
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  transform: scale(0.6);
+  transition:
+    transform 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+    background 0.2s;
+  z-index: -1;
+}
+
+/* today (unselected): tint number, no fill (§2.5) */
+.dayToday:not(.daySelected) {
+  color: var(--sui-color-tint);
+  font-weight: var(--sui-weight-semibold);
+}
+
+/* selected day: white number on a filled tint circle (§2.5) */
+.daySelected {
+  color: var(--sui-color-fixed-white);
+  font-weight: var(--sui-weight-semibold);
+}
+
+.daySelected::before {
+  background: var(--sui-color-tint);
+  transform: scale(1);
+}
+
+/* other-month days: dimmed (§2.5) */
+.dayOutside {
+  color: var(--sui-color-tertiary-label);
+}
+
+/* out-of-range (disabled by `in:`): tertiary + non-interactive (§2.5) */
+.dayDisabled {
+  color: var(--sui-color-tertiary-label);
+  cursor: default;
+  pointer-events: none;
+}
+
+.dayDisabled.daySelected {
+  color: var(--sui-color-fixed-white);
+}
+
+/* keyboard focus ring */
+.day:focus-visible {
+  outline: 2px solid var(--sui-color-tint);
+  outline-offset: -2px;
+}
+
+/* =========================================================================
+ * Month/year wheel mode — flipped from the title tap (§2.5)
+ * ======================================================================= */
+
+.monthYearMode {
+  display: flex;
+  gap: 8px;
+  height: 204px;
+}
+
+/* =========================================================================
+ * .compact — pill button + popover (§2.4)
+ * ======================================================================= */
+
+.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+  font-family: var(--sui-font-stack);
+}
+
+.compactLabel {
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+}
+
+.compactFields {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.pill {
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+  color: var(--sui-color-tint); /* §2.4 value text = tint */
+  background: var(--sui-color-tertiary-system-fill);
+  border: 0;
+  border-radius: 7px; /* §2.4 ~7pt continuous */
+  padding: 6px 11px;
+  cursor: pointer;
+  height: 34px; /* §2.4 pill height */
+  box-sizing: border-box;
+}
+
+.pill[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--sui-color-tint) 15%, transparent);
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  padding: 12px;
+  border-radius: 13px; /* §2.4 ~13pt corners */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18); /* KNOWN §2.4 shadow */
+  transform-origin: top center;
+  animation: sui-pop-in 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes sui-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.compact[data-disabled="true"] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* =========================================================================
+ * .field / .stepperField (macOS) — segmented numeric field (§2.7)
+ * ======================================================================= */
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 1px 6px;
+  border: 0.5px solid var(--sui-color-separator);
+  border-radius: 4px;
+  background: var(--sui-color-secondary-system-background);
+  font-family: var(--sui-font-stack);
+  font-size: var(--sui-text-body-size);
+  color: var(--sui-color-label);
+}
+
+.fieldSeg {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  width: 2ch;
+  text-align: center;
+  padding: 0;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.fieldSegWide {
+  width: 4ch;
+}
+
+.fieldSeg::-webkit-inner-spin-button,
+.fieldSeg::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fieldSeg:focus {
+  background: var(--sui-color-tint);
+  color: var(--sui-color-fixed-white);
+  border-radius: 3px;
+  outline: none;
+}
+
+.fieldSep {
+  color: var(--sui-color-secondary-label);
+  padding: 0 1px;
+}
+
+.stepper {
+  display: inline-flex;
+  flex-direction: column;
+  margin-left: 4px;
+}
+
+.stepperBtn {
+  border: 0.5px solid var(--sui-color-separator);
+  background: var(--sui-color-secondary-system-background);
+  color: var(--sui-color-label);
+  width: 16px;
+  height: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 8px;
+  line-height: 1;
+}
+
+.stepperBtn:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.stepperBtn:last-child {
+  border-radius: 0 0 4px 4px;
+  border-top: 0;
+}
+
+/* =========================================================================
+ * .wheel time/date drums (§2.6) — reuses Picker's wheel mechanism
+ * ======================================================================= */
+
+.wheelRow {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  align-items: stretch;
+  position: relative;
+  font-family: var(--sui-font-stack);
+}

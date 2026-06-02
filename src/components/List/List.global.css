@@ -1,0 +1,402 @@
+/**
+ * List / Section / Form family — SwiftUI Cluster C6 §3-4.
+ * This stylesheet IS the iOS Settings look. The four numbers that define it:
+ *   20pt card inset · 10pt card radius · 16pt content/separator inset · 35pt section gap.
+ * Shared by List, ListRow, Section, Form, FormRow (all paint .sui-list* classes).
+ *
+ * AUTHORING NOTE (load-bearing): this is a PLAIN GLOBAL stylesheet imported for
+ * side effects (`import "./List.global.css"`). Selectors are written bare
+ * (`.sui-list`, NOT `:global(.sui-list)` and NOT wrapped in a top-level
+ * `:global { … }` block). The nested-block form `:global { .x {} }` is SILENTLY
+ * DROPPED by this project's Turbopack pipeline (its rules never reach the page —
+ * verified live: 0 matching CSSRules on the gallery route), and the
+ * `:global(.x)` per-selector form is only valid inside a `.module.css`, where
+ * Turbopack then rejects it as an "impure" selector. A plain `.css`/`.global.css`
+ * imported into a client component IS emitted globally with its selectors
+ * verbatim — which is exactly what the cross-file literal `sui-list__*` class
+ * names need.
+ *
+ * NEVER hardcode a hex/metric — every color is a `--sui-color-*` token var and
+ * every metric a `--sui-list-*` / W1 typography var (tokens/variables.css).
+ */
+
+/* ================================================================ */
+/* List root                                                        */
+/* ================================================================ */
+.sui-list {
+  --sui-list-row-min-h: 44px;
+  --sui-list-side-inset: 20px; /* insetGrouped card margin */
+  --sui-list-content-inset: 16px; /* leading text + separator inset */
+  --sui-list-icon-size: 29px;
+  --sui-list-icon-gap: 12px;
+  --sui-list-card-radius: 10px;
+  --sui-list-section-gap: 35px;
+  --sui-list-row-vpad: 11px;
+  --sui-separator: var(--sui-color-separator);
+  --sui-separator-inset-text: calc(
+    var(--sui-list-content-inset) + var(--sui-list-icon-size) + var(--sui-list-icon-gap)
+  );
+  --sui-collection-spring: cubic-bezier(0.22, 1, 0.36, 1);
+
+  display: block;
+  box-sizing: border-box;
+  font-size: var(--sui-text-body-size);
+  font-weight: var(--sui-text-body-weight);
+  line-height: var(--sui-text-body-lineHeight);
+  letter-spacing: var(--sui-text-body-tracking);
+  color: var(--sui-color-label);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- page background per style ---- */
+.sui-list[data-style="plain"],
+.sui-list[data-style="inset"],
+.sui-list[data-style="sidebar"] {
+  background: var(--sui-color-system-background);
+}
+.sui-list[data-style="grouped"],
+.sui-list[data-style="insetGrouped"] {
+  background: var(--sui-color-system-grouped-background);
+}
+/* grouped / insetGrouped get top + bottom breathing room around the cards */
+.sui-list[data-style="grouped"],
+.sui-list[data-style="insetGrouped"] {
+  padding-top: var(--sui-list-section-gap);
+  padding-bottom: var(--sui-list-section-gap);
+}
+.sui-list[data-content-bg="hidden"] {
+  background: transparent;
+}
+
+/* ---- row-spacing override (listRowSpacing) ---- */
+.sui-list[data-row-spacing] .sui-list__row {
+  margin-bottom: var(--sui-list-row-spacing, 0);
+}
+
+/* ================================================================ */
+/* Section                                                          */
+/* ================================================================ */
+.sui-list__section {
+  position: relative;
+}
+/* gap between groups (grouped + insetGrouped) — first section's top gap is
+   provided by the list's own padding-top above, so only inter-section gap here */
+.sui-list[data-style="grouped"] .sui-list__section + .sui-list__section,
+.sui-list[data-style="insetGrouped"] .sui-list__section + .sui-list__section {
+  margin-top: var(--sui-list-section-spacing, var(--sui-list-section-gap));
+}
+
+/* ---- header / footer ---- */
+.sui-list__header {
+  font-size: var(--sui-text-footnote-size);
+  font-weight: var(--sui-text-footnote-weight);
+  line-height: 1.3;
+  letter-spacing: var(--sui-text-footnote-tracking);
+  color: var(--sui-color-secondary-label);
+  text-transform: uppercase;
+  padding: 0 var(--sui-list-content-inset) 6px;
+}
+.sui-list[data-style="insetGrouped"] .sui-list__header {
+  padding-left: calc(var(--sui-list-side-inset) + var(--sui-list-content-inset));
+  padding-right: calc(var(--sui-list-side-inset) + var(--sui-list-content-inset));
+}
+.sui-list__footer {
+  font-size: var(--sui-text-footnote-size);
+  font-weight: var(--sui-text-footnote-weight);
+  line-height: 1.35;
+  letter-spacing: var(--sui-text-footnote-tracking);
+  text-transform: none;
+  color: var(--sui-color-secondary-label);
+  padding: 7px var(--sui-list-content-inset) 0;
+}
+.sui-list[data-style="insetGrouped"] .sui-list__footer {
+  padding-left: calc(var(--sui-list-side-inset) + var(--sui-list-content-inset));
+  padding-right: calc(var(--sui-list-side-inset) + var(--sui-list-content-inset));
+}
+
+/* ---- card (grouped vs insetGrouped vs plain) ---- */
+.sui-list__card {
+  position: relative;
+  background: var(--sui-color-secondary-system-grouped-background);
+  overflow: hidden;
+}
+.sui-list[data-style="insetGrouped"] .sui-list__card {
+  margin: 0 var(--sui-list-side-inset);
+  border-radius: var(--sui-list-card-radius);
+}
+.sui-list[data-style="plain"] .sui-list__card,
+.sui-list[data-style="inset"] .sui-list__card,
+.sui-list[data-style="sidebar"] .sui-list__card {
+  background: var(--sui-color-system-background);
+}
+
+/* ================================================================ */
+/* Row                                                              */
+/* ================================================================ */
+.sui-list__row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sui-list-icon-gap);
+  min-height: var(--sui-list-row-min-h);
+  padding: var(--sui-list-row-vpad) var(--sui-list-content-inset);
+  color: var(--sui-color-label);
+  background: var(--sui-row-bg, transparent);
+  -webkit-tap-highlight-color: transparent;
+  cursor: default;
+  box-sizing: border-box;
+}
+
+/* interior separators only — none on the last row of a card */
+.sui-list__row:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: var(--sui-list-content-inset);
+  right: 0;
+  bottom: 0;
+  height: 0.5px;
+  background: var(--sui-row-separator-tint, var(--sui-separator));
+  transform: scaleY(0.5);
+  transform-origin: bottom;
+}
+/* with a leading icon/leading slot, the separator inset aligns under the text */
+.sui-list__row:has(.sui-list__icon):not(:last-child)::after,
+.sui-list__row:has(.sui-list__leading):not(:last-child)::after {
+  left: var(--sui-separator-inset-text);
+}
+/* listRowSeparator(.hidden) */
+.sui-list__row[data-separator="hidden"]::after {
+  display: none;
+}
+
+/* row content slots */
+.sui-list__leading {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+.sui-list__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sui-color-label);
+}
+.sui-list__value {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  text-align: right;
+  color: var(--sui-color-secondary-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* when a value precedes a trailing accessory there is a small gap before the
+   chevron; the row's flex `gap` already provides it, so nothing extra here. */
+.sui-list__trailing {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+/* a trailing accessory that follows a value should not re-claim the auto margin */
+.sui-list__value + .sui-list__trailing,
+.sui-list__value ~ .sui-list__chevron {
+  margin-left: 0;
+}
+.sui-list__icon {
+  width: var(--sui-list-icon-size);
+  height: var(--sui-list-icon-size);
+  border-radius: 6.5px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 17px;
+  line-height: 1;
+}
+.sui-list__chevron {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 13px;
+  position: relative;
+}
+.sui-list__chevron::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--sui-color-tertiary-label);
+  border-right: 2px solid var(--sui-color-tertiary-label);
+  border-radius: 0.5px;
+  transform: rotate(45deg);
+}
+
+/* trailing checkmark accessory (selected row) — tint blue ✓ */
+.sui-list__checkmark {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  position: relative;
+}
+.sui-list__checkmark::before {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 6px;
+  height: 11px;
+  border-right: 2px solid var(--sui-color-system-blue, var(--sui-color-tint));
+  border-bottom: 2px solid var(--sui-color-system-blue, var(--sui-color-tint));
+  transform: rotate(45deg);
+}
+
+/* states */
+.sui-list__row[data-tappable="true"] {
+  cursor: pointer;
+}
+.sui-list__row[data-tappable="true"]:active,
+.sui-list__row[data-selected="true"] {
+  background: var(--sui-color-system-gray4);
+}
+
+/* ---- EditMode: leading select circle + reorder grip ---- */
+.sui-list[data-edit="active"] .sui-list__row,
+.sui-list[data-edit="transient"] .sui-list__row {
+  padding-left: calc(var(--sui-list-content-inset) + 34px);
+}
+.sui-list__select {
+  position: absolute;
+  left: var(--sui-list-content-inset);
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sui-color-system-gray3);
+  box-sizing: border-box;
+}
+.sui-list__row[data-selected="true"] .sui-list__select {
+  background: var(--sui-color-system-blue, var(--sui-color-tint));
+  border-color: var(--sui-color-system-blue, var(--sui-color-tint));
+}
+.sui-list__row[data-selected="true"] .sui-list__select::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg);
+}
+.sui-list__grip {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 12px;
+  margin-left: 8px;
+  display: grid;
+  grid-template-rows: repeat(3, 2px);
+  gap: 3px;
+  align-content: center;
+}
+.sui-list__grip > span {
+  display: block;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--sui-color-tertiary-label);
+}
+
+/* ================================================================ */
+/* swipeActions                                                     */
+/* ================================================================ */
+.sui-list__swipe {
+  position: relative;
+  overflow: hidden;
+}
+/* the swipe wrapper sits inside a card row-stack; keep its own bottom hairline */
+.sui-list__swipe:not(:last-child) .sui-list__row::after {
+  /* the inner row keeps drawing its separator; nothing to override */
+}
+.sui-list__swipe-track {
+  position: relative;
+  z-index: 1;
+  background: var(--sui-color-secondary-system-grouped-background);
+  will-change: transform;
+}
+.sui-list[data-style="plain"] .sui-list__swipe-track,
+.sui-list[data-style="inset"] .sui-list__swipe-track,
+.sui-list[data-style="sidebar"] .sui-list__swipe-track {
+  background: var(--sui-color-system-background);
+}
+.sui-list__swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  z-index: 0;
+}
+.sui-list__swipe-actions[data-edge="trailing"] {
+  right: 0;
+  flex-direction: row;
+}
+.sui-list__swipe-actions[data-edge="leading"] {
+  left: 0;
+  flex-direction: row-reverse;
+}
+.sui-list__swipe-btn {
+  all: unset;
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  color: #fff;
+  font-size: var(--sui-text-body-size);
+  font-weight: var(--sui-text-body-weight);
+  letter-spacing: var(--sui-text-body-tracking);
+  background: var(--sui-swipe-tint, var(--sui-color-system-gray));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sui-list__swipe-btn[data-role="destructive"] {
+  background: var(--sui-swipe-tint, var(--sui-color-system-red));
+}
+
+/* ================================================================ */
+/* Form (label / control rows)                                      */
+/* ================================================================ */
+/* In a Form row the control sits at the trailing edge on the same line.
+   The label is flex:1 so the control is pushed right automatically; we still
+   pin the control to 0-shrink so it never gets squeezed. */
+.sui-list[data-form="true"] .sui-form__control {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* macOS .columns form — right-aligned label column + control column */
+.sui-form-columns {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 8px;
+  align-items: baseline;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+}
+.sui-form-columns .sui-form__label {
+  text-align: right;
+  color: var(--sui-color-label);
+}

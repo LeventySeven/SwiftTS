@@ -1,0 +1,98 @@
+/*
+ * SwiftUI `Gauge` — value within bounds, with markers.
+ * Spec: teardowns/SWIFTUI_C1_content-primitives.md §9.5.
+ */
+
+/* ── Circular (270° open-ring arc) ─────────────────────────────────────── */
+.circularWrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.circular {
+  width: 44px;
+  height: 44px;
+  display: block;
+}
+
+.circularTrack {
+  fill: none;
+  stroke: var(--sui-color-system-fill);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.circularProgress {
+  fill: none;
+  stroke: var(--sui-color-tint);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--sui-anim-bouncy-css, 0.4s ease);
+}
+
+.circularValue {
+  fill: var(--sui-color-label);
+  font-family: var(--sui-font-default);
+  font-size: var(--sui-text-caption-size);
+  font-weight: var(--sui-weight-medium);
+}
+
+.circularLabel {
+  color: var(--sui-color-secondary-label);
+  font-size: var(--sui-text-caption2-size);
+}
+
+/* ── Linear (track + capacity fill or indicator dot) ───────────────────── */
+.linearWrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.linearRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.boundLabel {
+  color: var(--sui-color-secondary-label);
+  font-size: var(--sui-text-caption2-size);
+  flex: 0 0 auto;
+}
+
+.linearTrack {
+  position: relative;
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sui-color-system-fill);
+}
+
+/* capacity style — fill from leading edge to value (battery look) */
+.linearFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--sui-color-tint);
+  transition: width var(--sui-anim-bouncy-css, 0.4s ease);
+}
+
+/* indicator style — a dot at the value position */
+.linearDot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sui-color-tint);
+  transform: translate(-50%, -50%);
+  transition: left var(--sui-anim-bouncy-css, 0.4s ease);
+}
+
+.linearTitle {
+  color: var(--sui-color-secondary-label);
+  font-size: var(--sui-text-caption-size);
+}

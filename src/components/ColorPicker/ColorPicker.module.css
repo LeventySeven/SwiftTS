@@ -1,0 +1,57 @@
+/* SwiftUI C3 — ColorPicker. Metrics from §6.2 / §6.4. */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.label {
+  flex: 1 1 auto;
+  color: var(--sui-color-label);
+  font:
+    var(--sui-text-body-weight) var(--sui-text-body-size) / var(--sui-text-body-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  letter-spacing: var(--sui-text-body-tracking);
+}
+
+.swatch {
+  position: relative;
+  width: 28px; /* iOS swatch ⌀28 */
+  height: 28px;
+  border-radius: 50%;
+  /* checkerboard for alpha, with the chosen color layered on top */
+  background:
+    var(--swatch),
+    conic-gradient(#bbb 25%, #fff 0 50%, #bbb 0 75%, #fff 0) 0 / 8px 8px;
+  box-shadow: inset 0 0 0 1px var(--sui-color-separator); /* visibility ring */
+  cursor: pointer;
+  overflow: hidden;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  opacity: 0; /* native picker, visually hidden */
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row[data-disabled="true"] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* macOS rectangular well variant */
+.mac .swatch {
+  width: 38px;
+  height: 22px;
+  border-radius: 5px;
+}

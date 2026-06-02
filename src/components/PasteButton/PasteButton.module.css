@@ -1,0 +1,39 @@
+/**
+ * PasteButton — §5.5 of SWIFTUI_C2_action-controls.md.
+ * A `.borderedProminent`-style filled button (tint fill, white label) — leading
+ * SF `doc.on.clipboard` + "Paste". Capsule/rounded; metrics off the ControlSize vars.
+ */
+.pasteButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sui-color-tint);
+  color: #fff;
+  border: none;
+  border-radius: var(--ctl-radius, 8px);
+  min-height: var(--ctl-h, 34px);
+  padding: var(--ctl-py, 7px) var(--ctl-px, 14px);
+  cursor: pointer;
+  font:
+    400 var(--ctl-font, 17px) / 1.294 -apple-system, "SF Pro Text", system-ui,
+    sans-serif;
+  letter-spacing: -0.41px;
+  -webkit-user-select: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.pasteButton:active {
+  background: color-mix(in srgb, var(--sui-color-tint) 88%, black);
+}
+.pasteButton:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.pasteButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+}
+.icon {
+  font-size: 1em;
+  flex: 0 0 auto;
+}

@@ -1,0 +1,22 @@
+/* LabeledContent — leading label + trailing value row (C15 §11.3). */
+
+.labeledContent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.label {
+  color: var(--sui-color-label);
+  min-width: 0;
+}
+
+/* Trailing value: secondary label color, pushed to the trailing edge. */
+.content {
+  color: var(--sui-color-secondary-label);
+  text-align: end;
+  min-width: 0;
+}

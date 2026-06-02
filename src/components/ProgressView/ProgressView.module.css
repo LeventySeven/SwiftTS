@@ -1,0 +1,128 @@
+/*
+ * SwiftUI `ProgressView` — determinate bar + indeterminate spinner.
+ * Spec: teardowns/SWIFTUI_C1_content-primitives.md §8.4.
+ */
+
+.container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.label {
+  text-align: center;
+}
+
+.currentValueLabel {
+  color: var(--sui-color-secondary-label);
+  text-align: center;
+}
+
+/* ── Indeterminate circular spinner — UIActivityIndicatorView clone ───────
+   8 tapered spokes, continuous clockwise rotation, fading lead→trail tail.
+   `--spin-size` is the wheel diameter (default 20pt, the iOS .medium size);
+   spoke geometry is derived from it so the look holds at any controlSize.   */
+.spinner {
+  --spin-size: 20px; /* iOS UIActivityIndicator default ≈ 20pt */
+  --spoke-w: calc(var(--spin-size) * 0.13); /* ≈ 2.6px @ 20 — stroke width */
+  --spoke-h: calc(var(--spin-size) * 0.27); /* ≈ 5.4px @ 20 — spoke length */
+  --spoke-r: calc(var(--spin-size) * 0.5 - var(--spoke-h)); /* tail inset */
+  position: relative;
+  width: var(--spin-size);
+  height: var(--spin-size);
+  color: var(--sui-color-secondary-label);
+  animation: sui-spin 0.9s linear infinite;
+}
+
+/* controlSize-driven sizing — mirrors the --ctl-h ladder (mini→extraLarge). */
+.spinner[data-control-size="mini"] {
+  --spin-size: 14px;
+}
+.spinner[data-control-size="small"] {
+  --spin-size: 16px;
+}
+.spinner[data-control-size="large"] {
+  --spin-size: 28px;
+}
+.spinner[data-control-size="extraLarge"] {
+  --spin-size: 36px;
+}
+
+.spoke {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--spoke-w);
+  height: var(--spoke-h);
+  margin-left: calc(var(--spoke-w) / -2);
+  background: currentColor;
+  border-radius: calc(var(--spoke-w) / 2); /* fully-rounded ends (capsule) */
+  /* anchor at wheel center, then push the spoke out to the rim along -Y */
+  transform-origin: 50% 0;
+  transform: rotate(var(--a, 0deg))
+    translateY(calc(-1 * (var(--spoke-r) + var(--spoke-h))));
+}
+
+/* 8 spokes at 45° increments; opacity fades lead→trail (1 → ~0.3, iOS tail). */
+.spoke:nth-child(1) {
+  --a: 0deg;
+  opacity: 1;
+}
+.spoke:nth-child(2) {
+  --a: 45deg;
+  opacity: 0.9;
+}
+.spoke:nth-child(3) {
+  --a: 90deg;
+  opacity: 0.78;
+}
+.spoke:nth-child(4) {
+  --a: 135deg;
+  opacity: 0.66;
+}
+.spoke:nth-child(5) {
+  --a: 180deg;
+  opacity: 0.54;
+}
+.spoke:nth-child(6) {
+  --a: 225deg;
+  opacity: 0.45;
+}
+.spoke:nth-child(7) {
+  --a: 270deg;
+  opacity: 0.38;
+}
+.spoke:nth-child(8) {
+  --a: 315deg;
+  opacity: 0.3;
+}
+
+@keyframes sui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+/* ── Determinate linear bar ────────────────────────────────────────────── */
+.linear {
+  width: 100%;
+  min-width: 120px;
+  height: 4px; /* ≈ 4pt track */
+  background: var(--sui-color-system-fill);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.linearFill {
+  height: 100%;
+  background: var(--sui-color-tint);
+  border-radius: 2px;
+  transition: width var(--sui-anim-smooth-css, 0.3s ease);
+}

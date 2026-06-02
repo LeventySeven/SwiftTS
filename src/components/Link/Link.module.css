@@ -1,0 +1,22 @@
+/*
+ * SwiftUI `Link` — tappable hyperlink.
+ * Spec: teardowns/SWIFTUI_C1_content-primitives.md §4.2.
+ * SwiftUI links are tint-colored and NOT underlined (unlike a web <a>).
+ */
+.link {
+  color: var(--sui-color-link);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.1s ease-out;
+}
+
+/* pressed flash — brief dim, matches plain-button highlight */
+.link:active {
+  opacity: 0.3;
+}
+
+.link[aria-disabled="true"] {
+  color: var(--sui-color-secondary-label);
+  pointer-events: none;
+  cursor: default;
+}

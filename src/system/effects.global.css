@@ -1,0 +1,270 @@
+/* =============================================================================
+ * effects.module.css — SwiftUI Cluster C12 (Materials & Visual Effects)
+ *
+ * Backdrop materials, vibrancy hierarchy, content filter/blend helpers, and the
+ * Liquid-Glass (iOS 26) approximation. All class names are GLOBAL (...)
+ * so `materialClass()` / `<Material>` can hand out stable, literal class strings
+ * that match the var system in tokens/variables.css.
+ *
+ * Numbers come from the W1 token vars (--sui-material-*). Light values live on
+ * :root in variables.css; the dark overrides are ALSO already in variables.css
+ * (both @media (prefers-color-scheme: dark) and [data-theme="dark"]), so this
+ * file NEVER hardcodes a tint — it only consumes the vars. The only literals
+ * here are the DESIGNED Liquid-Glass specular geometry, which has no token.
+ *
+ * Two render passes (the spec's central architectural fact):
+ *   - Materials/Glass read BEHIND the element  → backdrop-filter + tint background
+ *   - Content filters/blend read the element's OWN pixels → filter / mix-blend-mode
+ * They never share a CSS property, so a frosted panel with blurred content needs
+ * backdrop-filter on the panel AND filter on the inner content (two elements).
+ * ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+ * 1. Material backdrop surfaces — backdrop-filter: blur() saturate() + tint
+ *    One class per Material level; each binds the three per-leaf vars to the
+ *    shared --mat-* locals the base .sui-material rule consumes.
+ * -------------------------------------------------------------------------- */
+.sui-material {
+  position: relative; /* tint sits over the sampled backdrop, in normal flow */
+  background: var(--mat-tint);
+  -webkit-backdrop-filter: blur(var(--mat-blur)) saturate(var(--mat-sat));
+  backdrop-filter: blur(var(--mat-blur)) saturate(var(--mat-sat));
+  box-shadow: inset 0 0 0 0.5px var(--sui-material-rim); /* optional rim hairline */
+}
+
+.sui-material-ultraThin {
+  --mat-blur: var(--sui-material-ultraThin-blur);
+  --mat-sat: var(--sui-material-ultraThin-saturate);
+  --mat-tint: var(--sui-material-ultraThin-tint);
+}
+.sui-material-thin {
+  --mat-blur: var(--sui-material-thin-blur);
+  --mat-sat: var(--sui-material-thin-saturate);
+  --mat-tint: var(--sui-material-thin-tint);
+}
+.sui-material-regular {
+  --mat-blur: var(--sui-material-regular-blur);
+  --mat-sat: var(--sui-material-regular-saturate);
+  --mat-tint: var(--sui-material-regular-tint);
+}
+.sui-material-thick {
+  --mat-blur: var(--sui-material-thick-blur);
+  --mat-sat: var(--sui-material-thick-saturate);
+  --mat-tint: var(--sui-material-thick-tint);
+}
+.sui-material-ultraThick {
+  --mat-blur: var(--sui-material-ultraThick-blur);
+  --mat-sat: var(--sui-material-ultraThick-saturate);
+  --mat-tint: var(--sui-material-ultraThick-tint);
+}
+.sui-material-bar {
+  --mat-blur: var(--sui-material-bar-blur);
+  --mat-sat: var(--sui-material-bar-saturate);
+  --mat-tint: var(--sui-material-bar-tint);
+}
+
+/* Suppress the rim hairline when the surface opts out. */
+.sui-material-no-rim {
+  box-shadow: none;
+}
+
+/* MaterialActiveAppearance — macOS inactive-window dimming (§2).
+ * Keep tint alpha, kill the saturation pop, mute vibrancy. */
+.sui-material[data-active="inactive"] {
+  --mat-sat: 1;
+}
+.sui-material[data-active="inactive"] .sui-vibrant-primary {
+  opacity: 0.85;
+}
+.sui-material[data-active="inactive"] .sui-vibrant-secondary {
+  opacity: calc(0.5 * 0.7);
+}
+.sui-material[data-active="inactive"] .sui-vibrant-tertiary {
+  opacity: calc(0.25 * 0.7);
+}
+
+/* @supports fallback: browsers without backdrop-filter get the opaque-ish tint
+ * (no blur) so the surface still reads as a frosted scrim. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .sui-material {
+    background: var(--mat-tint);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * 2. Vibrancy hierarchy — foreground content placed ON a material.
+ *    Alpha-only by default (blend-on-text-over-glass is fragile cross-browser).
+ *    Dark-mode alpha deltas for secondary/quaternary are handled by re-declaring
+ *    under both dark selectors (the tokens file uses the same dual convention).
+ * -------------------------------------------------------------------------- */
+.sui-vibrant-primary {
+  color: var(--sui-color-label);
+  opacity: 1;
+}
+.sui-vibrant-secondary {
+  color: var(--sui-color-label);
+  opacity: 0.5;
+}
+.sui-vibrant-tertiary {
+  color: var(--sui-color-label);
+  opacity: 0.25;
+}
+.sui-vibrant-quaternary {
+  color: var(--sui-color-label);
+  opacity: 0.18;
+}
+.sui-vibrant-quinary {
+  color: var(--sui-color-label);
+  opacity: 0.1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sui-vibrant-secondary {
+    opacity: 0.55;
+  }
+  .sui-vibrant-quaternary {
+    opacity: 0.16;
+  }
+}
+[data-theme="dark"] .sui-vibrant-secondary {
+  opacity: 0.55;
+}
+[data-theme="dark"] .sui-vibrant-quaternary {
+  opacity: 0.16;
+}
+
+/* Opt-in true vibrancy: text picks up backdrop color via blend.
+ * overlay in Light, plus-lighter in Dark. */
+.sui-vibrant-blend {
+  mix-blend-mode: overlay;
+}
+@media (prefers-color-scheme: dark) {
+  .sui-vibrant-blend {
+    mix-blend-mode: plus-lighter;
+  }
+}
+[data-theme="dark"] .sui-vibrant-blend {
+  mix-blend-mode: plus-lighter;
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. Content filter / blend helpers (complement applyModifiers).
+ *    The actual `filter` string is built inline by buildFilterString() and set
+ *    via style; these classes carry only the structural bits.
+ * -------------------------------------------------------------------------- */
+.sui-fx {
+  /* filter / opacity / mix-blend-mode are set inline from props */
+}
+.sui-fx-animatable {
+  transition:
+    filter 0.2s ease,
+    opacity 0.2s ease;
+}
+
+/* .colorMultiply(_:) — no single CSS filter does per-channel multiply against an
+ * arbitrary color, so an ::after overlay does it (multiply blend over the host). */
+.sui-color-multiply {
+  position: relative;
+  isolation: isolate;
+}
+.sui-color-multiply::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--cm-color);
+  mix-blend-mode: multiply;
+}
+
+/* .blur(opaque:true) — keep edges opaque (no transparent bleed-in). */
+.sui-blur-opaque {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* compositingGroup / drawingGroup — flatten the subtree into one composite layer
+ * so an outer opacity/blend fades the group as a unit (no double-blend on
+ * overlaps). drawingGroup is a perf no-op for fidelity. */
+.sui-compositing-group {
+  isolation: isolate;
+}
+.sui-drawing-group {
+  isolation: isolate;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. Liquid Glass (iOS 26) — DESIGNED multi-layer approximation (§9.4).
+ *    Refractive lensing layer: blurred+saturated+brightened backdrop, low-alpha
+ *    white body, inset top specular highlight + bottom counter-light, drop
+ *    shadow, and a moving diagonal sheen (::before, screen blend).
+ *    The specular geometry has no token, so its literals live here (DESIGNED).
+ *    Default shape is a Capsule → border-radius: 9999px.
+ * -------------------------------------------------------------------------- */
+.sui-glass {
+  position: relative;
+  border-radius: 9999px; /* Capsule default; override per `in: shape` */
+  -webkit-backdrop-filter: blur(8px) saturate(1.5) brightness(1.08);
+  backdrop-filter: blur(8px) saturate(1.5) brightness(1.08);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.55),
+    /* top specular highlight */ inset 0 -1px 1px rgba(255, 255, 255, 0.12),
+    /* bottom counter-light  */ 0 4px 16px rgba(0, 0, 0, 0.18); /* drop shadow */
+}
+
+@media (prefers-color-scheme: dark) {
+  .sui-glass {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+[data-theme="dark"] .sui-glass {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Moving diagonal specular sheen. */
+.sui-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 40%
+  );
+  mix-blend-mode: screen;
+}
+
+/* .clear — more transparent dimming layer (media-rich backgrounds). */
+.sui-glass-clear {
+  -webkit-backdrop-filter: blur(4px) saturate(1.2) brightness(1.04);
+  backdrop-filter: blur(4px) saturate(1.2) brightness(1.04);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* .identity — passthrough, no glass. */
+.sui-glass-identity {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: transparent;
+  box-shadow: none;
+}
+.sui-glass-identity::before {
+  display: none;
+}
+
+/* .interactive() — react to touch/pointer: scale + brightness shift on press. */
+.sui-glass-interactive {
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+.sui-glass-interactive:active {
+  transform: scale(0.97);
+  filter: brightness(1.12);
+}

@@ -1,0 +1,49 @@
+/**
+ * SignInWithAppleButton — §6 of SWIFTUI_C2_action-controls.md.
+ * Apple-mandated visuals (must match exactly or App Review rejects): full-width
+ * rounded rect, leading Apple logo + label centered as a unit, SF Pro, min 44pt.
+ * Styles: .black / .white / .whiteOutline.
+ */
+.siwa {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0 16px;
+  font:
+    600 19px / 1 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.siwa[data-style="black"] {
+  background: #000;
+  color: #fff;
+  border: none;
+}
+.siwa[data-style="white"] {
+  background: #fff;
+  color: #000;
+  border: none;
+}
+.siwa[data-style="whiteOutline"] {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+}
+.siwa:active {
+  filter: brightness(0.92);
+}
+.siwa:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.appleLogo {
+  width: 1em;
+  height: 1.15em; /* the Apple glyph is slightly taller than wide */
+  flex: 0 0 auto;
+  fill: currentColor;
+}

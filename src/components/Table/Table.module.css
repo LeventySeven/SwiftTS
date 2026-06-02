@@ -1,0 +1,84 @@
+/**
+ * Table — SwiftUI Cluster C6 §9 (macOS/iPad multi-column data grid).
+ *
+ * Selectors wrapped in `:global { … }` so the literal `sui-*` names survive
+ * CSS-module hashing (navigation.module.css / controlSize.module.css convention).
+ */
+:global {
+  .sui-table {
+    --sui-table-header-h: 28px;
+    --sui-table-row-h: 28px;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: var(--sui-text-body-size);
+    color: var(--sui-color-label);
+  }
+
+  .sui-table thead th {
+    height: var(--sui-table-header-h);
+    text-align: left;
+    font-size: var(--sui-text-subheadline-size);
+    font-weight: 600;
+    color: var(--sui-color-secondary-label);
+    border-bottom: 0.5px solid var(--sui-color-separator);
+    padding: 0 8px;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    background: var(--sui-color-system-background);
+  }
+
+  .sui-table__sort {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sui-table__caret {
+    display: inline-block;
+    width: 8px;
+  }
+  .sui-table__caret[data-dir="asc"]::before {
+    content: "\25B2"; /* ▲ */
+    font-size: 8px;
+    color: var(--sui-color-secondary-label);
+  }
+  .sui-table__caret[data-dir="desc"]::before {
+    content: "\25BC"; /* ▼ */
+    font-size: 8px;
+    color: var(--sui-color-secondary-label);
+  }
+
+  .sui-table__row {
+    height: var(--sui-table-row-h);
+  }
+  .sui-table__row td {
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  .sui-table[data-style="inset"] .sui-table__row:nth-child(even) {
+    background: var(--sui-color-secondary-system-fill);
+  }
+
+  .sui-table[data-style="bordered"] td,
+  .sui-table[data-style="bordered"] th {
+    border: 0.5px solid var(--sui-color-separator);
+  }
+
+  .sui-table__row[data-tappable="true"] {
+    cursor: pointer;
+  }
+  .sui-table__row[data-selected="true"] {
+    background: var(--sui-color-tint);
+    color: #fff;
+  }
+  .sui-table__row[data-selected="true"] td {
+    color: #fff;
+  }
+
+  .sui-table[data-headers="hidden"] thead {
+    display: none;
+  }
+}

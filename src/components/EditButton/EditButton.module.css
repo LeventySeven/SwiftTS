@@ -1,0 +1,30 @@
+/**
+ * EditButton — §5.1 of SWIFTUI_C2_action-controls.md.
+ * A plain tint text button. Shows "Edit" when inactive, "Done" (semibold) when
+ * active — text is driven by `data-editing`.
+ */
+.editButton {
+  color: var(--sui-color-tint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font:
+    400 17px / 1.294 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: -0.41px;
+}
+.editButton:active {
+  opacity: 0.75;
+}
+.editButton:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.editButton[data-editing="true"] {
+  font-weight: 600; /* "Done" is semibold */
+}
+.editButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

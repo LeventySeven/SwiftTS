@@ -1,0 +1,19 @@
+/* GroupBox — titled rounded container (C15 §11.2, DefaultGroupBoxStyle). */
+
+.groupBox {
+  display: block;
+  background: var(--sui-color-secondary-system-fill);
+  border-radius: var(--sui-metric-control-regular-radius);
+  padding: 12px;
+}
+
+/* Bold (headline-weight) title row on top. */
+.label {
+  margin-bottom: 8px;
+  color: var(--sui-color-label);
+  font-weight: var(--sui-text-headline-weight, 600);
+}
+
+.content {
+  display: block;
+}

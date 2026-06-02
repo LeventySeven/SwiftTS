@@ -1,0 +1,490 @@
+/*
+ * Picker — SwiftUI Cluster C4 selection control.
+ * RE'd from teardowns/SWIFTUI_C4_selection.md §1.
+ *
+ * One headless control + a `style` prop that swaps the presentation layer,
+ * mirroring SwiftUI's PickerStyle protocol. Each sub-renderer's CSS lives here.
+ * Colors come exclusively from --sui-color-* tokens; the only literals are the
+ * KNOWN UIKit pill shadow alphas (§1.3) for which there is no token.
+ */
+
+/* =========================================================================
+ * .segmented — the high-fidelity UISegmentedControl (§1.3)
+ * ======================================================================= */
+
+.seg {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: 32px; /* §1.3 control height */
+  padding: 2px; /* §1.3 ~2pt track inset */
+  border-radius: 9px; /* §1.3 track corner 8–9pt continuous */
+  background: var(--sui-color-tertiary-system-fill);
+  font-family: var(--sui-font-stack);
+  isolation: isolate;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.segOpt {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-subheadline-size); /* 15/13-ish subheadline */
+  font-weight: var(--sui-weight-regular);
+  letter-spacing: var(--sui-text-subheadline-tracking);
+  line-height: 1;
+  white-space: nowrap;
+  /* font-weight cross-fade as selection moves */
+  transition: color 0.2s, font-weight 0.2s;
+}
+
+.segOpt[aria-selected="true"] {
+  font-weight: var(--sui-weight-semibold); /* §1.3 selected = SemiBold 600 */
+}
+
+/* pressed segment dims briefly (§1.3 states) */
+.segOpt:active {
+  opacity: 0.4;
+}
+
+.seg[data-disabled="true"] {
+  opacity: 0.35; /* §1.3 whole control disabled */
+  pointer-events: none;
+}
+
+/* thin vertical divider between adjacent segments, hidden next to the pill (§1.3) */
+.segOpt + .segOpt::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px; /* vertically inset ~8pt */
+  bottom: 8px;
+  width: 1px;
+  background: var(--sui-color-separator);
+  transform: translateX(-1px);
+  transition: opacity 0.2s;
+}
+
+/* hide the divider on the selected segment and the one right after it */
+.segOpt[data-adjacent-pill="true"]::before,
+.segOpt[aria-selected="true"]::before {
+  opacity: 0;
+}
+
+.segPill {
+  position: absolute;
+  z-index: 0;
+  top: 2px;
+  bottom: 2px;
+  /* equal-width slot: (100% − 2×2px inset) / count */
+  width: calc((100% - 4px) / var(--seg-count));
+  left: 2px;
+  transform: translateX(calc(var(--seg-index) * 100%));
+  border-radius: 7px; /* §1.3 pill corner 6–7pt continuous, nested */
+  background: var(--sui-seg-pill-bg, #ffffff);
+  /* KNOWN UIKit pill elevation (§1.3) — no token for these alphas */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+}
+
+/* dark-mode pill = elevated gray (§1.3) */
+:global([data-theme="dark"]) .seg {
+  --sui-seg-pill-bg: #636366;
+}
+@media (prefers-color-scheme: dark) {
+  .seg:not(:global([data-theme="light"]) .seg) {
+    --sui-seg-pill-bg: #636366;
+  }
+}
+
+/* =========================================================================
+ * .menu — button + popup (§1.4)
+ * ======================================================================= */
+
+.menuPicker {
+  position: relative;
+  display: inline-block;
+}
+
+.menuBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+  color: var(--sui-color-label);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.menuBtn[data-disabled="true"] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.menuChev {
+  width: 11px; /* §1.4 chevron 11pt */
+  height: 14px;
+  color: var(--sui-color-secondary-label);
+  flex: none;
+}
+
+.menuPopover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  min-width: 180px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 13px; /* §1.4 popover ~13pt continuous corners */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+  transform-origin: top left;
+  /* scale+fade from the anchor corner (§1.4) */
+  animation: sui-menu-in 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.menuRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+}
+
+.menuRow:hover {
+  background: var(--sui-color-tint);
+  color: var(--sui-color-fixed-white);
+}
+
+.menuCheck {
+  width: 17px; /* §1.4 checkmark 17pt */
+  height: 17px;
+  flex: none;
+  opacity: 0;
+  color: var(--sui-color-tint);
+}
+
+.menuRow[aria-selected="true"] .menuCheck {
+  opacity: 1;
+}
+
+.menuRow:hover .menuCheck {
+  color: var(--sui-color-fixed-white);
+}
+
+@keyframes sui-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =========================================================================
+ * .wheel — spinning drum (§1.5)
+ * ======================================================================= */
+
+.wheel {
+  position: relative;
+  height: 238px; /* §1.5 7 × 34pt */
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  /* barrel fade at top/bottom edges */
+  -webkit-mask: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+  mask: linear-gradient(transparent, #000 25%, #000 75%, transparent);
+  perspective: 1000px;
+  scrollbar-width: none;
+  user-select: none;
+}
+
+.wheel::-webkit-scrollbar {
+  display: none;
+}
+
+/* center selection band (§1.5) */
+.wheelBand {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 34px;
+  transform: translateY(-50%);
+  border-radius: 8px;
+  background: var(--sui-color-tertiary-system-fill);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* top/bottom spacer so first/last rows can center */
+.wheelPad {
+  height: 102px; /* (238 − 34)/2 = 102 */
+  flex: none;
+}
+
+.wheelRow {
+  height: 34px; /* §1.5 iOS standard row */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: center;
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+  color: var(--sui-color-label);
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+/* =========================================================================
+ * .inline — flat checklist (§1.6)
+ * ======================================================================= */
+
+.inline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inlineRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px; /* §1.6 44pt rows */
+  padding: 0 16px;
+  cursor: pointer;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: start;
+}
+
+.inlineRow + .inlineRow {
+  border-top: 0.5px solid var(--sui-color-separator);
+}
+
+.inlineCheck {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  opacity: 0;
+  color: var(--sui-color-tint);
+}
+
+.inlineRow[aria-selected="true"] .inlineCheck {
+  opacity: 1;
+}
+
+/* =========================================================================
+ * .palette — compact swatch row (§1.7)
+ * ======================================================================= */
+
+.palette {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px; /* even spacing between chips — clears the 2pt selection ring */
+  align-items: center;
+}
+
+/* ---- color swatch chip (§1.7): the chip IS the color, no inner text ---- */
+.paletteSwatch {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+  background: var(--sui-palette-swatch, var(--sui-color-tertiary-system-fill));
+  /* hairline so light swatches read on light backgrounds */
+  box-shadow: inset 0 0 0 0.5px var(--sui-color-separator);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.paletteSwatch:active {
+  transform: scale(0.92);
+}
+
+/* selected swatch: a 2pt ring in the swatch's own color, offset by a bg gap */
+.paletteSwatch[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--sui-color-secondary-system-grouped-background),
+    0 0 0 4px var(--sui-color-tint);
+}
+
+/* ---- text chip (no color): a readable pill that sizes to its label ---- */
+.paletteChip {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border-radius: 15px;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  background: var(--sui-color-tertiary-system-fill);
+  color: var(--sui-color-label);
+  box-sizing: border-box;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.paletteChipLabel {
+  font-size: var(--sui-text-subheadline-size);
+  font-family: var(--sui-font-stack);
+  font-weight: var(--sui-weight-regular);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.paletteChip[aria-checked="true"] {
+  background: color-mix(in srgb, var(--sui-color-tint) 18%, transparent);
+  box-shadow: inset 0 0 0 2px var(--sui-color-tint);
+  color: var(--sui-color-tint);
+}
+
+.paletteChip[aria-checked="true"] .paletteChipLabel {
+  font-weight: var(--sui-weight-semibold);
+}
+
+/* =========================================================================
+ * .navigationLink — drill-in row (§1.8)
+ * ======================================================================= */
+
+.navRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: start;
+  font-family: var(--sui-font-stack);
+}
+
+.navLabel {
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+}
+
+.navTrailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navValue {
+  color: var(--sui-color-secondary-label);
+  font-size: var(--sui-text-body-size);
+}
+
+.navChev {
+  width: 8px;
+  height: 13px; /* §1.8 chevron.right 13pt */
+  color: var(--sui-color-tertiary-label);
+  flex: none;
+}
+
+/* full-panel option list opened by a navigationLink tap */
+.navPanel {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--sui-color-system-background);
+  animation: sui-nav-push 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes sui-nav-push {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* =========================================================================
+ * .radioGroup (macOS) — vertical radios (§1.9)
+ * ======================================================================= */
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.radioRow {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* §1.9 6pt gap */
+  min-height: 22px; /* §1.9 rows ~22pt */
+  cursor: pointer;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+  font-family: var(--sui-font-stack);
+}
+
+.radioRing {
+  width: 16px; /* §1.9 ring 16pt */
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sui-color-secondary-label);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+}
+
+.radioRow[aria-checked="true"] .radioRing {
+  border-color: var(--sui-color-tint);
+}
+
+.radioDot {
+  width: 8px; /* §1.9 dot ~6–8pt */
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sui-color-tint);
+  transform: scale(0);
+  transition: transform 0.15s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.radioRow[aria-checked="true"] .radioDot {
+  transform: scale(1);
+}
+
+.radioGroup[data-disabled="true"] {
+  opacity: 0.35;
+  pointer-events: none;
+}

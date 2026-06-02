@@ -1,0 +1,82 @@
+/* SwiftUI C3 — TextEditor. Metrics from §3.3 / §3.5. */
+
+.texteditor {
+  position: relative;
+  display: flex;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.area {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 8px;
+  margin: 0;
+  color: var(--sui-color-label);
+  font:
+    var(--sui-text-body-weight) var(--sui-text-body-size) / var(--sui-text-body-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  letter-spacing: var(--sui-text-body-tracking);
+  caret-color: var(--sui-color-tint);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* contenteditable rich variant — same look as .area */
+.rich {
+  composes: area;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- .roundedBorder ---- */
+.roundedBorder {
+  border: 1px solid var(--sui-color-separator);
+  border-radius: 6px; /* radius.field */
+  background: var(--sui-color-system-background);
+  transition:
+    box-shadow 0.15s ease-out,
+    border-color 0.15s ease-out;
+}
+.roundedBorder[data-focused="true"] {
+  border-color: var(--sui-color-tint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+}
+
+/* ---- .plain / .automatic ---- */
+.plain {
+  border: none;
+  background: transparent;
+}
+
+/* solid editor background unless scrollContentBackground(.hidden) */
+.bg {
+  background: var(--sui-color-system-background);
+}
+.bgHidden {
+  background: transparent;
+}
+
+/* empty-state placeholder overlay (DESIGNED — SwiftUI has none) */
+.placeholder {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  pointer-events: none;
+  color: var(--sui-color-placeholder-text);
+  font:
+    var(--sui-text-body-weight) var(--sui-text-body-size) / var(--sui-text-body-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  letter-spacing: var(--sui-text-body-tracking);
+}
+.texteditor[data-empty="false"] .placeholder {
+  display: none;
+}
+
+.texteditor[data-disabled="true"] {
+  opacity: 0.3;
+  pointer-events: none;
+}

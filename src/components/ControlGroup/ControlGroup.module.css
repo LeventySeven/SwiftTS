@@ -1,0 +1,59 @@
+/**
+ * ControlGroup — §4.4 of SWIFTUI_C2_action-controls.md.
+ *
+ * Fuses its child controls into ONE segmented/bordered cluster: adjacent buttons
+ * share a background, hairline dividers between them, rounded OUTER corners only
+ * (inner edges square). One visual unit (one border, one shadow). `.palette` is a
+ * row of icon swatches; the selected cell gets a tint ring.
+ */
+.group {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: var(--ctl-radius, 8px);
+  overflow: hidden;
+  background: var(--sui-color-quaternary-system-fill);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+/* member controls lose their own chrome — the group supplies it */
+.group > * {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.group > * + * {
+  border-left: 0.5px solid var(--sui-color-separator);
+}
+
+/* optional group label (iOS16+) sits leading, secondary-label colored */
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-end: 8px;
+  color: var(--sui-color-secondary-label);
+  font:
+    400 13px / 1.2 -apple-system, "SF Pro Text", system-ui, sans-serif;
+}
+.labelRow {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---- palette: square icon swatches, selected cell gets a tint ring ---- */
+.group[data-style="palette"] {
+  padding: 4px;
+  gap: 4px;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.group[data-style="palette"] > * {
+  border-radius: 8px !important;
+}
+.group[data-style="palette"] > * + * {
+  border-left: none;
+}
+.group[data-style="palette"] > [aria-selected="true"] {
+  box-shadow: 0 0 0 2px var(--sui-color-tint) !important;
+}

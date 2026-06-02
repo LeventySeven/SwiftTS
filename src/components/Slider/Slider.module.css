@@ -1,0 +1,92 @@
+/* SwiftUI C3 — Slider. Exact metrics from §4.2 / §4.4. */
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 1;
+  box-sizing: border-box;
+}
+.slider[data-disabled="true"] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.minlabel,
+.maxlabel {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  color: var(--sui-color-label);
+  font:
+    var(--sui-text-body-weight) var(--sui-text-body-size) / var(--sui-text-body-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  letter-spacing: var(--sui-text-body-tracking);
+}
+
+.track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 4px; /* iOS track height */
+  border-radius: 2px;
+  background: var(--sui-color-system-gray5); /* unfilled */
+  cursor: pointer;
+  touch-action: none;
+}
+
+.fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--sui-color-tint); /* filled = systemBlue */
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  width: 28px; /* iOS knob ⌀28 */
+  height: 28px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0.5px 4px rgba(0, 0, 0, 0.12),
+    0 0 1px rgba(0, 0, 0, 0.04);
+  cursor: grab;
+}
+.track:active .thumb {
+  cursor: grabbing;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18);
+}
+.track:focus-visible {
+  outline: none;
+}
+.track:focus-visible .thumb {
+  box-shadow:
+    0 0.5px 4px rgba(0, 0, 0, 0.12),
+    0 0 0 3px color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+}
+
+.tick {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 1px;
+  height: 8px;
+  background: var(--sui-color-separator);
+}
+
+/* macOS knob variant: ⌀18 */
+.macos .thumb {
+  width: 18px;
+  height: 18px;
+}
+
+/* animate fill/thumb only on tap/programmatic changes, NOT during drag */
+.slider[data-animating="true"] .fill,
+.slider[data-animating="true"] .thumb {
+  transition:
+    left 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}

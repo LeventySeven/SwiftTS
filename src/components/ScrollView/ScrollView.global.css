@@ -1,0 +1,118 @@
+/**
+ * ScrollView — SwiftUI Cluster C6 §1.
+ * Pure clip + offset + indicators + scroll-snap. No row chrome.
+ *
+ * NOTE: this is a PLAIN global stylesheet (imported for side effects). Do NOT wrap
+ * rules in a `:global { … }` block — in a non-CSS-module file the Turbopack pipeline
+ * silently DROPS a top-level `:global{}` block (rules never emit). Author bare
+ * `.sui-*` selectors directly; they are already global here.
+ */
+.sui-scrollview {
+  --sui-scrollbar-thumb: color-mix(in srgb, var(--sui-color-label) 35%, transparent);
+  position: relative;
+  -webkit-overflow-scrolling: touch; /* iOS momentum */
+  overscroll-behavior: contain; /* rubber-band without page chaining */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--sui-scrollbar-thumb) transparent;
+}
+
+.sui-scrollview[data-axes="vertical"] {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sui-scrollview[data-axes="horizontal"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.sui-scrollview[data-axes="both"] {
+  overflow: auto;
+}
+
+.sui-scrollview[data-disabled="true"] {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* scrollIndicators(.hidden / .never) */
+.sui-scrollview[data-indicators="hidden"] {
+  scrollbar-width: none;
+}
+.sui-scrollview[data-indicators="hidden"]::-webkit-scrollbar {
+  display: none;
+}
+
+/* scrollClipDisabled(true) — let content bleed past the frame (carousel peek) */
+.sui-scrollview[data-clip="disabled"] {
+  overflow: visible;
+}
+
+/* Translucent capsule thumb (WebKit) to match the iOS/macOS indicator */
+.sui-scrollview::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.sui-scrollview::-webkit-scrollbar-thumb {
+  background: var(--sui-scrollbar-thumb);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.sui-scrollview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* contentMargins / _contentInsets */
+.sui-scrollview__content {
+  padding: var(--sui-content-margin, 0);
+}
+
+/* scrollTargetBehavior(.paging) — full-viewport snap */
+.sui-scrollview[data-snap="paging"] {
+  scroll-snap-type: var(--snap-axis, y) mandatory;
+}
+.sui-scrollview[data-snap="paging"] > .sui-scrollview__content > * {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* scrollTargetBehavior(.viewAligned) — snap to tagged subviews (scrollTargetLayout) */
+.sui-scrollview[data-snap="viewAligned"] {
+  scroll-snap-type: var(--snap-axis, x) proximity;
+}
+.sui-scrollview[data-snap="viewAligned"] .sui-snap-target {
+  scroll-snap-align: center;
+}
+.sui-scrollview[data-snap="viewAligned"][data-limit="always"] .sui-snap-target,
+.sui-scrollview[data-snap="viewAligned"][data-limit="alwaysByOne"] .sui-snap-target {
+  scroll-snap-stop: always;
+}
+
+/* refreshable: content springs down while a pull-to-refresh runs */
+.sui-scrollview[data-refreshing="true"] .sui-scrollview__content {
+  transform: translateY(56px);
+  transition: transform 0.3s var(--sui-collection-spring, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.sui-refresh__spinner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin-left: -15px;
+  border-radius: 50%;
+  border: 2.5px solid var(--sui-color-tertiary-label);
+  border-top-color: var(--sui-color-secondary-label);
+  opacity: var(--pull-progress, 0);
+  pointer-events: none;
+}
+.sui-scrollview[data-refreshing="true"] .sui-refresh__spinner {
+  opacity: 1;
+  animation: sui-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes sui-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

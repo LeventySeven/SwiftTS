@@ -1,0 +1,28 @@
+/**
+ * RenameButton — §5.2 of SWIFTUI_C2_action-controls.md.
+ * Label<Text,Image>: leading SF `pencil` + "Rename" title, tint-colored.
+ */
+.renameButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sui-color-tint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font:
+    400 17px / 1.294 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: -0.41px;
+}
+.renameButton:active {
+  opacity: 0.75;
+}
+.renameButton:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.icon {
+  font-size: 1em;
+  flex: 0 0 auto;
+}

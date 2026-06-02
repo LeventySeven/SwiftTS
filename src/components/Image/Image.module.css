@@ -1,0 +1,73 @@
+/*
+ * SwiftUI `Image` — raster asset / vector / SF Symbol.
+ * Spec: teardowns/SWIFTUI_C1_content-primitives.md §2.5.
+ */
+.image {
+  display: inline-block;
+}
+
+/* .resizable(resizingMode: .stretch) — fill the frame */
+.resizable {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+/* .resizable(resizingMode: .tile) — repeat at intrinsic size */
+.tile {
+  object-fit: none;
+  width: 100%;
+  height: 100%;
+}
+
+/* Interpolation.none / .low — control resampling crispness */
+.interpNone {
+  image-rendering: pixelated;
+}
+.interpLow {
+  image-rendering: crisp-edges;
+}
+
+/*
+ * SF Symbol slot — font-locked: 1em square, recolors via currentColor,
+ * baseline nudged like a native symbol next to text.
+ */
+.symbol {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: -0.125em;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+/* image-scale env (.small/.medium/.large) → scale the 1em box */
+.symbolScaleSmall {
+  font-size: 0.85em;
+}
+.symbolScaleLarge {
+  font-size: 1.2em;
+}
+
+/*
+ * Glyph-slot fallback for an unknown symbol name: a rounded monospace badge
+ * that preserves layout and surfaces the missing glyph during development.
+ */
+.glyphSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 1em;
+  height: 1.1em;
+  padding: 0 0.2em;
+  font-family: var(--sui-font-monospaced);
+  font-size: 0.62em;
+  line-height: 1;
+  color: var(--sui-color-secondary-label);
+  background: var(--sui-color-system-fill);
+  border-radius: 0.25em;
+  vertical-align: -0.1em;
+  overflow: hidden;
+  white-space: nowrap;
+}

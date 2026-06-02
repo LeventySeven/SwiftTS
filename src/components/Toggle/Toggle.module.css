@@ -1,0 +1,152 @@
+/**
+ * Toggle — §2.5 of SWIFTUI_C2_action-controls.md.
+ *
+ * Switch anatomy (INFERRED, UISwitch parity): track 51×31, radius 15.5 (capsule),
+ * knob 27 white circle, inset 2, travel = 51−27−4 = 20px. ON track = system green
+ * (default) or `--toggle-on` override; OFF = tertiary system fill.
+ *
+ * The knob slide easing is the baked `anim.snappy` spring table
+ * (`--sui-anim-snappy-css`, settling 0.697s); the track color cross-fades with the
+ * smooth spring. Real token var names from tokens/variables.css.
+ */
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font:
+    400 17px / 1.294 -apple-system, "SF Pro Text", system-ui, sans-serif;
+  letter-spacing: -0.41px;
+  color: var(--sui-color-label);
+}
+
+.toggle[aria-disabled="true"] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* leading icon next to the label */
+.labelIcon {
+  margin-inline-end: 6px;
+  font-size: 1em;
+}
+
+/* ============================ switch style ============================ */
+
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 51px;
+  height: 31px;
+  border-radius: 15.5px;
+  background: var(--sui-color-tertiary-system-fill); /* OFF */
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  /* color cross-fade ≈ anim.smooth */
+  transition: background-color var(--sui-anim-smooth-duration, 0.735s)
+    var(--sui-anim-smooth-css, ease) 0s;
+}
+
+.switch[aria-checked="true"] {
+  background: var(--toggle-on, var(--sui-color-system-green));
+}
+.switch[aria-checked="mixed"] {
+  background: var(--sui-color-secondary-system-fill);
+}
+
+/* the knob */
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.15),
+    0 1px 1px rgba(0, 0, 0, 0.16);
+  /* spring slide ≈ anim.snappy (0.697s settling) */
+  transition: transform var(--sui-anim-snappy-duration, 0.697s)
+    var(--sui-anim-snappy-css, ease) 0s;
+}
+.switch[aria-checked="true"]::after {
+  transform: translateX(20px); /* 51 − 27 − 2·2 = 20 */
+}
+
+/* mixed: centered short dash overlay */
+.switch[aria-checked="mixed"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--sui-color-secondary-label);
+  transform: translate(-50%, -50%);
+}
+
+.switch:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+}
+
+/* ============================ checkbox style (macOS) ============================ */
+
+.checkbox {
+  position: relative;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px; /* small continuous-ish squircle */
+  border: 1px solid var(--sui-color-system-gray3);
+  background: var(--sui-color-system-background);
+  cursor: pointer;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.checkbox[aria-checked="true"] {
+  background: var(--toggle-on, var(--sui-color-tint));
+  border-color: var(--toggle-on, var(--sui-color-tint));
+}
+.checkbox[aria-checked="mixed"] {
+  background: var(--toggle-on, var(--sui-color-tint));
+  border-color: var(--toggle-on, var(--sui-color-tint));
+}
+.checkbox .check {
+  width: 11px;
+  height: 11px;
+  opacity: 0;
+}
+.checkbox[aria-checked="true"] .check,
+.checkbox[aria-checked="mixed"] .check {
+  opacity: 1;
+}
+.checkbox:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sui-color-tint) 60%, transparent);
+  outline-offset: 2px;
+}
+
+/* the checkbox style lays label leading, box leading-adjacent (not space-between) */
+.toggle[data-style="checkbox"] {
+  justify-content: flex-start;
+  gap: 6px;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+.toggle[data-style="checkbox"] .label {
+  flex: 0 1 auto;
+}

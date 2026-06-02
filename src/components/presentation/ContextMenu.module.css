@@ -1,0 +1,93 @@
+/* ContextMenu — long-press menu + preview (C8 §6). */
+
+.host {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  opacity: 0;
+}
+.host[data-state="presented"] .backdrop {
+  opacity: 1;
+}
+
+.preview {
+  position: absolute;
+  border-radius: var(--sui-radius-alert, 14px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  transform: scale(0.9);
+  opacity: 0;
+  overflow: hidden;
+}
+.host[data-state="presented"] .preview {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.menu {
+  position: absolute;
+  min-width: 250px;
+  max-width: 320px;
+  border-radius: var(--sui-radius-menu, 13px);
+  overflow: hidden;
+  padding: 0;
+  background: var(--sui-material-regular-tint, rgba(245, 245, 245, 0.85));
+  backdrop-filter: blur(var(--sui-material-regular-blur, 20px))
+    saturate(var(--sui-material-regular-saturate, 1.8));
+  -webkit-backdrop-filter: blur(var(--sui-material-regular-blur, 20px))
+    saturate(var(--sui-material-regular-saturate, 1.8));
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  transform-origin: top center;
+  transform: scale(0.9);
+  opacity: 0;
+}
+.host[data-state="presented"] .menu {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  font: 400 17px -apple-system, system-ui, sans-serif;
+  color: var(--sui-color-label, #000);
+  cursor: pointer;
+  text-align: left;
+}
+.row + .row {
+  border-top: 0.5px solid rgba(60, 60, 67, 0.2);
+}
+.row[data-role="destructive"] {
+  color: var(--sui-color-system-red, #ff3b30);
+}
+.row:active,
+.row:hover {
+  background: rgba(120, 120, 128, 0.2);
+}
+
+.divider {
+  height: 0.5px;
+  background: var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .preview,
+  .menu {
+    transition: opacity 0.2s linear !important;
+  }
+}
