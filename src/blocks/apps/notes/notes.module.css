@@ -1,0 +1,535 @@
+/* =============================================================================
+ * notes.module.css — the macOS Apple Notes app template.
+ *
+ * Three-column AppKit layout (FOLDERS sidebar · NOTES list · EDITOR) wrapped in a
+ * window chrome. Numbers come from the --sui-mac-* / --sui-color-* tokens where one
+ * exists; the only literals are Notes-specific geometry (the yellow accent, the
+ * paper feel, the three-column track widths) that has no kit token.
+ *
+ * Module-scoped (not .global.css) — these class names are local to the Notes app.
+ * The window/sidebar/list/selection structural classes (.sui-mac-*) come from
+ * macos.global.css and are applied alongside these via the components.
+ * ========================================================================== */
+
+/* The Apple Notes yellow — folder glyphs, selection tint, accent. Light/dark
+ * variants track the system yellow ramp (#FFCC00 light → #FFD60A dark). */
+.app {
+  --notes-yellow: #ffc940;
+  --notes-yellow-strong: #f5b800;
+  --notes-yellow-tint: rgba(255, 201, 64, 0.22);
+  --notes-yellow-tint-strong: rgba(255, 201, 64, 0.32);
+  --notes-paper: var(--sui-color-system-background);
+  --notes-list-bg: rgba(250, 250, 250, 0.6);
+  --notes-sidebar-w: 218px;
+  --notes-list-w: 264px;
+}
+:global([data-theme="dark"]) .app {
+  --notes-yellow: #ffd60a;
+  --notes-yellow-strong: #ffd60a;
+  --notes-yellow-tint: rgba(255, 214, 10, 0.16);
+  --notes-yellow-tint-strong: rgba(255, 214, 10, 0.26);
+  --notes-list-bg: rgba(40, 40, 42, 0.5);
+}
+
+/* -----------------------------------------------------------------------------
+ * WINDOW CHROME — the macOS window: rounded corners, hairline rim, drop shadow,
+ * a unified titlebar with the traffic-light cluster spanning all three columns.
+ * -------------------------------------------------------------------------- */
+.window {
+  display: flex;
+  flex-direction: column;
+  inline-size: min(1040px, 100%);
+  block-size: 660px;
+  max-block-size: 86vh;
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--sui-color-system-background);
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim, rgba(0, 0, 0, 0.12)),
+    0 24px 70px rgba(0, 0, 0, 0.34),
+    0 6px 18px rgba(0, 0, 0, 0.22);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    sans-serif;
+  color: var(--sui-color-label);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The unified titlebar: a single 44px strip across the top. The traffic lights
+ * sit in the leading gutter; the column toolbars live below in each pane head. */
+.titleBar {
+  display: flex;
+  align-items: center;
+  block-size: 44px;
+  padding-inline: 13px;
+  gap: 10px;
+  -webkit-app-region: drag;
+}
+.titleBarSidebar {
+  inline-size: var(--notes-sidebar-w);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex-shrink: 0;
+}
+.titleBarMain {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+/* A small round toolbar button (the chrome's icon affordances). */
+.chromeBtn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 26px;
+  block-size: 22px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--sui-color-secondary-label);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.chromeBtn:hover {
+  background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.06));
+  color: var(--sui-color-label);
+}
+.chromeBtnAccent {
+  color: var(--notes-yellow-strong);
+}
+.chromeBtnAccent:hover {
+  color: var(--notes-yellow-strong);
+}
+
+/* -----------------------------------------------------------------------------
+ * BODY — the three-column track sitting under the titlebar.
+ * -------------------------------------------------------------------------- */
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
+}
+
+/* =============================================================================
+ * COLUMN 1 — FOLDERS SIDEBAR (NSVisualEffectView sidebar vibrancy)
+ * ========================================================================== */
+.sidebar {
+  inline-size: var(--notes-sidebar-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 0;
+  overflow-y: auto;
+  border-inline-end: 0.5px solid var(--sui-color-separator);
+}
+.sidebarScroll {
+  flex: 1 1 auto;
+  padding-inline: 10px;
+  padding-block-end: 6px;
+}
+
+/* Source-list group header — "iCloud" / "On My Mac". */
+.groupHeader {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--sui-color-secondary-label);
+  padding: 12px 8px 3px;
+  user-select: none;
+}
+
+/* A folder row: yellow folder glyph + name (flex-grows) + count. */
+.folderRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-block-size: 26px;
+  padding-inline: 8px;
+  border-radius: 6px;
+  cursor: default;
+  color: var(--sui-color-label);
+  font-size: 13px;
+}
+.folderRow:hover:not(.folderRowSelected) {
+  background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.06));
+}
+.folderRowSelected {
+  background: var(--notes-yellow-tint-strong);
+}
+.folderGlyph {
+  color: var(--notes-yellow);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.folderRowSelected .folderGlyph {
+  color: var(--notes-yellow-strong);
+}
+.folderName {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.folderCount {
+  font-size: 12px;
+  color: var(--sui-color-tertiary-label);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.folderRowSelected .folderCount {
+  color: var(--sui-color-secondary-label);
+}
+.disclosure {
+  display: inline-flex;
+  color: var(--sui-color-tertiary-label);
+  inline-size: 12px;
+  margin-inline-start: -4px;
+  transition: transform 0.15s ease;
+}
+.disclosureOpen {
+  transform: rotate(90deg);
+}
+
+/* Sidebar footer — the "New Folder" affordance pinned to the bottom. */
+.sidebarFooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 32px;
+  padding-inline: 14px;
+  border-block-start: 0.5px solid var(--sui-color-separator);
+  color: var(--sui-color-secondary-label);
+  font-size: 13px;
+  cursor: default;
+  flex-shrink: 0;
+}
+.sidebarFooter:hover {
+  color: var(--sui-color-label);
+}
+
+/* =============================================================================
+ * COLUMN 2 — NOTES LIST
+ * ========================================================================== */
+.list {
+  inline-size: var(--notes-list-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--notes-list-bg);
+  border-inline-end: 0.5px solid var(--sui-color-separator);
+  min-block-size: 0;
+}
+
+/* Search field on top of the list. */
+.searchWrap {
+  padding: 7px 12px 6px;
+  flex-shrink: 0;
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 24px;
+  padding-inline: 8px;
+  border-radius: 7px;
+  background: var(--sui-color-system-fill);
+  color: var(--sui-color-secondary-label);
+}
+.searchInput {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--sui-color-label);
+  font-family: inherit;
+}
+.searchInput::placeholder {
+  color: var(--sui-color-tertiary-label);
+}
+
+.listScroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-inline: 10px;
+  padding-block-end: 8px;
+}
+
+/* A note row in the list: title (semibold) + meta line (date + 1-line snippet). */
+.noteRow {
+  position: relative;
+  padding: 8px 10px 9px;
+  border-radius: 8px;
+  cursor: default;
+  margin-block-end: 1px;
+}
+.noteRow:hover:not(.noteRowSelected) {
+  background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.05));
+}
+.noteRowSelected {
+  background: var(--notes-yellow-tint);
+  box-shadow: inset 0 0 0 0.5px var(--notes-yellow-tint-strong);
+}
+.noteTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sui-color-label);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.noteMeta {
+  display: flex;
+  gap: 6px;
+  margin-block-start: 1px;
+  font-size: 12px;
+  line-height: 1.3;
+  min-inline-size: 0;
+}
+.noteDate {
+  color: var(--sui-color-label);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.noteSnippet {
+  color: var(--sui-color-secondary-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-inline-size: 0;
+}
+.noteSnippetEmpty {
+  color: var(--sui-color-tertiary-label);
+  font-style: italic;
+}
+/* Hairline divider drawn between rows (skipped for the selected row + its
+ * neighbor, matching Notes). */
+.noteRow:not(.noteRowSelected)::after {
+  content: "";
+  position: absolute;
+  inset-inline: 10px;
+  inset-block-end: 0;
+  block-size: 0.5px;
+  background: var(--sui-color-separator);
+}
+.noteRow:last-child::after,
+.noteRowSelected::after,
+.noteRowBeforeSelected::after {
+  display: none;
+}
+.pinBadge {
+  color: var(--notes-yellow-strong);
+  margin-inline-end: 4px;
+  display: inline-flex;
+  vertical-align: -1px;
+}
+
+/* =============================================================================
+ * COLUMN 3 — EDITOR (the paper)
+ * ========================================================================== */
+.editor {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--notes-paper);
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+/* The format toolbar that sits above the paper. */
+.formatBar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  block-size: 36px;
+  padding-inline: 12px;
+  border-block-end: 0.5px solid var(--sui-color-separator);
+  flex-shrink: 0;
+  color: var(--sui-color-secondary-label);
+}
+.formatBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 26px;
+  block-size: 24px;
+  padding-inline: 4px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+}
+.formatBtn:hover {
+  background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.06));
+  color: var(--sui-color-label);
+}
+.formatBtnAa {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.formatSep {
+  inline-size: 0.5px;
+  block-size: 18px;
+  background: var(--sui-color-separator);
+  margin-inline: 5px;
+  flex-shrink: 0;
+}
+.formatSpacer {
+  flex: 1 1 auto;
+}
+
+/* The paper sheet. */
+.paper {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px 56px 40px;
+}
+.paperInner {
+  max-inline-size: 620px;
+  margin-inline: auto;
+}
+.paperDate {
+  text-align: center;
+  font-size: 11px;
+  color: var(--sui-color-tertiary-label);
+  margin-block-end: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.docTitle {
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--sui-color-label);
+  margin: 0 0 10px;
+  letter-spacing: -0.01em;
+}
+.bodyText {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--sui-color-label);
+}
+.bodyText p {
+  margin: 0 0 12px;
+}
+.heading {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 18px 0 8px;
+  color: var(--sui-color-label);
+}
+
+/* Checklist. */
+.checklist {
+  list-style: none;
+  margin: 4px 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.checkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.checkBox {
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-block-start: 1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--sui-color-tertiary-label);
+  color: transparent;
+  cursor: pointer;
+}
+.checkBoxOn {
+  background: var(--notes-yellow);
+  border-color: var(--notes-yellow);
+  color: #fff;
+}
+:global([data-theme="dark"]) .checkBoxOn {
+  color: #000;
+}
+.checkLabelDone {
+  color: var(--sui-color-tertiary-label);
+  text-decoration: line-through;
+}
+
+/* Bulleted list. */
+.bullets {
+  margin: 4px 0 14px;
+  padding-inline-start: 22px;
+}
+.bullets li {
+  font-size: 15px;
+  line-height: 1.5;
+  margin-block-end: 4px;
+  color: var(--sui-color-label);
+}
+
+/* A simple table (the "table" toolbar affordance demo). */
+.tableWrap {
+  margin: 6px 0 16px;
+  border: 0.5px solid var(--sui-color-separator);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.notesTable {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.notesTable th,
+.notesTable td {
+  padding: 7px 11px;
+  text-align: start;
+  border-inline-end: 0.5px solid var(--sui-color-separator);
+  border-block-end: 0.5px solid var(--sui-color-separator);
+}
+.notesTable tr td:last-child,
+.notesTable tr th:last-child {
+  border-inline-end: none;
+}
+.notesTable tbody tr:last-child td {
+  border-block-end: none;
+}
+.notesTable thead th {
+  font-weight: 600;
+  background: var(--sui-color-system-fill);
+  color: var(--sui-color-label);
+}
+
+/* Empty editor placeholder (when no note is selected). */
+.empty {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--sui-color-tertiary-label);
+}
+.emptyGlyph {
+  color: var(--notes-yellow);
+  opacity: 0.5;
+}
+.emptyText {
+  font-size: 15px;
+}

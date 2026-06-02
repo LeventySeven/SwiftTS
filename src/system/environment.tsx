@@ -28,6 +28,16 @@ import type {
  */
 export type DesignMode = "liquidGlass" | "classic";
 
+/**
+ * The OS look the kit renders in. `iOS` (default) is the touch chrome; `macOS`
+ * switches to the AppKit desktop chrome — small controls (13px base, ~21px
+ * control height), NSVisualEffectView vibrancy backdrops, 3px accent focus rings,
+ * and accent-tinted selection pills. Projected onto the provider wrapper as
+ * `data-platform` so platform-specific CSS (macos.global.css) keys off it.
+ * (Canonical type lives here; `system/platform.ts` re-exports it as `Platform`.)
+ */
+export type Platform = "iOS" | "macOS";
+
 export interface SwiftUIEnvironment {
   colorScheme: ColorScheme;
   controlSize: ControlSize;
@@ -44,6 +54,13 @@ export interface SwiftUIEnvironment {
    * Read by glass/chrome CSS via the wrapper's `data-design-mode`.
    */
   designMode: DesignMode;
+  /**
+   * The active OS look. `iOS` (default) renders the touch chrome; `macOS`
+   * switches to the AppKit desktop chrome (small controls, vibrancy materials,
+   * accent focus rings, selection pills). Read by macOS CSS via the wrapper's
+   * `data-platform`, and by components via `usePlatform()` / `useIsMac()`.
+   */
+  platform: Platform;
 }
 
 const DEFAULTS: SwiftUIEnvironment = {
@@ -55,6 +72,7 @@ const DEFAULTS: SwiftUIEnvironment = {
   isEnabled: true,
   reduceMotion: false,
   designMode: "liquidGlass",
+  platform: "iOS",
 };
 
 const EnvironmentContext = createContext<SwiftUIEnvironment>(DEFAULTS);
@@ -111,6 +129,7 @@ export function SwiftUIProvider({
   isEnabled,
   reduceMotion,
   designMode,
+  platform,
   children,
   className,
   style,
@@ -146,6 +165,7 @@ export function SwiftUIProvider({
       isEnabled: isEnabled ?? DEFAULTS.isEnabled,
       reduceMotion: reduceMotion ?? DEFAULTS.reduceMotion,
       designMode: designMode ?? DEFAULTS.designMode,
+      platform: platform ?? DEFAULTS.platform,
     }),
     [
       resolvedScheme,
@@ -156,6 +176,7 @@ export function SwiftUIProvider({
       isEnabled,
       reduceMotion,
       designMode,
+      platform,
     ],
   );
 
@@ -173,6 +194,7 @@ export function SwiftUIProvider({
         data-theme={env.colorScheme}
         data-control-size={env.controlSize}
         data-design-mode={env.designMode}
+        data-platform={env.platform}
         dir={CONTROL_DIR[env.layoutDirection]}
         style={cssVars}
       >

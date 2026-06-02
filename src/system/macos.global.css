@@ -1,0 +1,331 @@
+/* =============================================================================
+ * macos.global.css — macOS PLATFORM mode (the AppKit desktop chrome)
+ *
+ * Side-effect stylesheet for the class strings system/platform.ts hands out:
+ *   - .sui-mac-vibrancy-<material>   NSVisualEffectView vibrancy backdrops
+ *   - .sui-mac-focus-ring            the 3px accent focus glow
+ *   - .sui-mac-selection             the rounded accent-tinted selection pill
+ *   - .sui-mac-sidebar-row / -list-row   the desktop row densities
+ *   - .sui-mac-traffic-lights        the close/minimize/zoom dot cluster
+ *   - .sui-mac-toolbar               the unified titlebar+toolbar strip
+ *
+ * Like effects.global.css this is a `.global.css` file: every selector is a
+ * BARE, un-scoped class (NEVER `:global(...)`, which breaks under Turbopack), so
+ * the helper functions can return stable literal class strings. All NUMBERS come
+ * from the --sui-mac-* tokens in tokens/variables.css; the only literals here are
+ * structural geometry that has no token.
+ *
+ * Two scoping rules to know:
+ *   1. The macOS look only applies INSIDE a `[data-platform="macOS"]` wrapper
+ *      (set by SwiftUIProvider). The vibrancy/selection/focus classes are scoped
+ *      under it so an iOS subtree on the same page is untouched.
+ *   2. On macOS 26 the vibrancy materials ARE Liquid Glass. Under
+ *      `[data-design-mode="liquidGlass"]` (the default) we LAYER the glass rim +
+ *      sheen recipe (the same --sui-glass-* vars effects.global.css uses) on top
+ *      of the desaturating vibrancy. Under `classic` they stay flat frosted
+ *      vibrancy (the pre-26 NSVisualEffectView look).
+ * ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+ * 0. Platform type ramp — desktop controls inherit the 13px base inside a macOS
+ *    wrapper. (Components opt in via macMetric(); this sets the ambient default
+ *    so untreated text in a macOS subtree reads at the desktop size.)
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] {
+  font-size: var(--sui-mac-font-base);
+}
+
+/* -----------------------------------------------------------------------------
+ * 1. NSVisualEffectView vibrancy materials.
+ *    Base recipe: blur the backdrop, DESATURATE it (saturate < 1 — the vibrancy
+ *    "wash" that drains color from behind), then lay a per-material tint over it.
+ *    Each modifier class only swaps the tint (and a couple swap blur/shadow for
+ *    floating surfaces like menu/popover/hud).
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] .sui-mac-vibrancy {
+  position: relative;
+  isolation: isolate;
+  background: var(--mac-vib-tint, var(--sui-mac-vibrancy-window-tint));
+  -webkit-backdrop-filter: blur(var(--sui-mac-vibrancy-blur))
+    saturate(var(--sui-mac-vibrancy-saturate));
+  backdrop-filter: blur(var(--sui-mac-vibrancy-blur))
+    saturate(var(--sui-mac-vibrancy-saturate));
+  /* hairline edge — the faint 0.5px border NSVisualEffectView draws */
+  box-shadow: inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim);
+  color: var(--sui-color-label);
+}
+
+/* Per-material tints (the only thing that varies for the flat surfaces). */
+[data-platform="macOS"] .sui-mac-vibrancy-sidebar {
+  --mac-vib-tint: var(--sui-mac-vibrancy-sidebar-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-titlebar {
+  --mac-vib-tint: var(--sui-mac-vibrancy-titlebar-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-headerView {
+  --mac-vib-tint: var(--sui-mac-vibrancy-headerView-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-windowBackground {
+  --mac-vib-tint: var(--sui-mac-vibrancy-window-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-underWindowBackground {
+  --mac-vib-tint: var(--sui-mac-vibrancy-underWindow-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-contentBackground {
+  --mac-vib-tint: var(--sui-mac-vibrancy-content-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-selection {
+  --mac-vib-tint: var(--sui-mac-vibrancy-selection-tint);
+}
+
+/* Floating surfaces — menu / popover / hud / sheet: heavier blur + a real drop
+ * shadow for the lift off the window. */
+[data-platform="macOS"] .sui-mac-vibrancy-menu,
+[data-platform="macOS"] .sui-mac-vibrancy-popover {
+  --mac-vib-tint: var(--sui-mac-vibrancy-menu-tint);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim),
+    0 8px 24px var(--sui-mac-vibrancy-shadow),
+    0 1px 3px var(--sui-mac-vibrancy-shadow);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-popover {
+  --mac-vib-tint: var(--sui-mac-vibrancy-popover-tint);
+}
+[data-platform="macOS"] .sui-mac-vibrancy-sheet {
+  --mac-vib-tint: var(--sui-mac-vibrancy-sheet-tint);
+  border-radius: 10px; /* a sheet has larger window-style corners */
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim),
+    0 18px 50px var(--sui-mac-vibrancy-shadow);
+}
+/* HUD is dark in BOTH color schemes (the classic dark heads-up panel) with a
+ * light vibrant label — so it forces its own foreground color. */
+[data-platform="macOS"] .sui-mac-vibrancy-hud {
+  --mac-vib-tint: var(--sui-mac-vibrancy-hud-tint);
+  --sui-mac-vibrancy-saturate: 1.1; /* HUD keeps a little color, not drained */
+  color: #ffffff;
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.16),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* @supports fallback — no backdrop-filter → opaque-ish tint (loses the live
+ * vibrancy wash but stays legible). */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  [data-platform="macOS"] .sui-mac-vibrancy {
+    background: var(--mac-vib-tint, var(--sui-mac-vibrancy-window-tint));
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * 1b. macOS 26 = Liquid Glass. Under the default liquidGlass design mode, the
+ *     vibrancy materials gain the glass specular rim + diagonal sheen (the SAME
+ *     --sui-glass-* recipe effects.global.css uses), so a macOS-26 sidebar/menu
+ *     reads as a refractive glass slab, not flat frosted vibrancy. Under
+ *     `classic` (below) we strip it back to the pre-26 NSVisualEffectView look.
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"][data-design-mode="liquidGlass"] .sui-mac-vibrancy {
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 6px 20px var(--sui-glass-shadow);
+}
+/* The wet diagonal sheen — same screen-blended glint as the iOS glass, calmer
+ * (macOS chrome is denser, so the sheen stays subtle for legibility). */
+[data-platform="macOS"][data-design-mode="liquidGlass"] .sui-mac-vibrancy::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    125deg,
+    var(--sui-glass-sheen) 0%,
+    transparent 36%,
+    transparent 64%,
+    var(--sui-glass-sheen-2, transparent) 82%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+[data-platform="macOS"][data-design-mode="liquidGlass"] .sui-mac-vibrancy > * {
+  position: relative;
+  z-index: 2;
+}
+/* Floating glass surfaces still keep their drop shadow under the glass rim. */
+[data-platform="macOS"][data-design-mode="liquidGlass"] .sui-mac-vibrancy-menu,
+[data-platform="macOS"][data-design-mode="liquidGlass"] .sui-mac-vibrancy-popover {
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 8px 24px var(--sui-glass-shadow),
+    0 1px 3px var(--sui-glass-shadow);
+}
+
+/* classic (pre-26) — strip the glass sheen; flat frosted vibrancy only. */
+[data-platform="macOS"][data-design-mode="classic"] .sui-mac-vibrancy::before {
+  display: none;
+}
+
+/* -----------------------------------------------------------------------------
+ * 2. Focus ring — the 3px accent glow around the key control.
+ *    Implemented as a layered box-shadow halo so it sits OUTSIDE the control box
+ *    without affecting layout (no outline jank). Honors :focus-visible AND the
+ *    explicit class, so a control can opt in either way.
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] .sui-mac-focus-ring:focus-visible,
+[data-platform="macOS"] .sui-mac-focus-ring[data-focused="true"],
+[data-platform="macOS"] .sui-mac-focus-ringed {
+  outline: none;
+  box-shadow:
+    0 0 0 var(--sui-mac-focus-ring-width) var(--sui-mac-focus-ring-color),
+    0 0 0 1px var(--sui-mac-accent);
+}
+/* Emphasized — a wider halo for primary/default controls. */
+[data-platform="macOS"] .sui-mac-focus-ring-emphasized:focus-visible,
+[data-platform="macOS"] .sui-mac-focus-ring-emphasized[data-focused="true"] {
+  box-shadow:
+    0 0 0 calc(var(--sui-mac-focus-ring-width) + 1px) var(--sui-mac-focus-ring-color),
+    0 0 0 1px var(--sui-mac-accent);
+}
+
+/* -----------------------------------------------------------------------------
+ * 3. Selection pill — the rounded accent-tinted highlight behind a selected
+ *    sidebar/list row. Emphasized (focused window) = solid accent fill with
+ *    white text; inactive (unfocused window) = a flat gray fill, label stays
+ *    its normal color. The pill is the row's own background, inset slightly so
+ *    it floats inside the row gutter (the macOS source-list look).
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] .sui-mac-selection,
+[data-platform="macOS"] [data-selected="true"].sui-mac-sidebar-row,
+[data-platform="macOS"] [data-selected="true"].sui-mac-list-row {
+  background: var(--sui-mac-selection-fill);
+  color: var(--sui-mac-selection-text);
+  border-radius: var(--sui-mac-selection-radius);
+}
+/* Vibrant glyphs/secondary text inside the emphasized pill go white too. */
+[data-platform="macOS"] .sui-mac-selection .sui-vibrant-secondary,
+[data-platform="macOS"] .sui-mac-selection .sui-vibrant-tertiary {
+  color: var(--sui-mac-selection-text);
+}
+/* Inactive (unfocused window) — gray fill, original label color. */
+[data-platform="macOS"] .sui-mac-selection-inactive,
+[data-platform="macOS"] [data-selected="true"][data-window-active="false"].sui-mac-sidebar-row,
+[data-platform="macOS"] [data-selected="true"][data-window-active="false"].sui-mac-list-row {
+  background: var(--sui-mac-selection-fill-inactive);
+  color: var(--sui-color-label);
+}
+
+/* -----------------------------------------------------------------------------
+ * 4. Row densities — the desktop list/sidebar dimensions.
+ *    A list row is ~24px; a sidebar (source-list) row is ~28px. Both get a
+ *    hover wash and host the selection pill. Tight horizontal padding matches the
+ *    macOS gutter.
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] .sui-mac-list-row {
+  min-height: var(--sui-mac-list-row-height);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  font-size: var(--sui-mac-font-base);
+  border-radius: var(--sui-mac-selection-radius);
+}
+[data-platform="macOS"] .sui-mac-sidebar-row {
+  min-height: var(--sui-mac-sidebar-row-height);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  font-size: var(--sui-mac-font-base);
+  border-radius: var(--sui-mac-selection-radius);
+}
+/* Hover wash — only when NOT selected (the pill wins). */
+@media (hover: hover) {
+  [data-platform="macOS"] .sui-mac-sidebar-row:hover:not([data-selected="true"]):not(.sui-mac-selection),
+  [data-platform="macOS"] .sui-mac-list-row:hover:not([data-selected="true"]):not(.sui-mac-selection) {
+    background: var(--sui-mac-hover-fill);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * 5. Unified toolbar — the titlebar and toolbar fused into one strip at the top
+ *    of the window (the modern macOS window). It's a vibrancy titlebar surface
+ *    with the traffic-light gutter on the leading edge. Items sit in a flex row.
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] .sui-mac-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--sui-mac-toolbar-height);
+  padding: 0 12px;
+  /* drag region affordance for an Electron/PWA window chrome */
+  -webkit-app-region: drag;
+}
+/* Controls inside the toolbar are NOT draggable (so they stay clickable). */
+[data-platform="macOS"] .sui-mac-toolbar button,
+[data-platform="macOS"] .sui-mac-toolbar input,
+[data-platform="macOS"] .sui-mac-toolbar a,
+[data-platform="macOS"] .sui-mac-toolbar [role="button"] {
+  -webkit-app-region: no-drag;
+}
+
+/* -----------------------------------------------------------------------------
+ * 6. Traffic lights — the close / minimize / zoom dot cluster (leading-top).
+ *    Three 12px dots, 8px apart. The hue trio is tokenized; when the window is
+ *    unfocused all three go gray (data-window-active="false"). The glyphs (×, −,
+ *    +) reveal on cluster hover — the standard macOS reveal-on-hover behavior.
+ * -------------------------------------------------------------------------- */
+[data-platform="macOS"] .sui-mac-traffic-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--sui-mac-traffic-gap) - var(--sui-mac-traffic-size));
+  -webkit-app-region: no-drag;
+}
+[data-platform="macOS"] .sui-mac-traffic-lights > * {
+  width: var(--sui-mac-traffic-size);
+  height: var(--sui-mac-traffic-size);
+  margin-right: calc(var(--sui-mac-traffic-gap) - var(--sui-mac-traffic-size));
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  /* glyph hidden until the cluster is hovered */
+  font-weight: 700;
+}
+[data-platform="macOS"] .sui-mac-traffic-lights > *::after {
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+@media (hover: hover) {
+  [data-platform="macOS"] .sui-mac-traffic-lights:hover > *::after {
+    opacity: 1;
+  }
+}
+/* Per-dot hues (nth-child: close / minimize / zoom). */
+[data-platform="macOS"] .sui-mac-traffic-lights > *:nth-child(1) {
+  background: var(--sui-mac-traffic-close);
+}
+[data-platform="macOS"] .sui-mac-traffic-lights > *:nth-child(2) {
+  background: var(--sui-mac-traffic-minimize);
+}
+[data-platform="macOS"] .sui-mac-traffic-lights > *:nth-child(3) {
+  background: var(--sui-mac-traffic-zoom);
+}
+/* Unfocused window — all three dots go gray, glyphs stay hidden. */
+[data-platform="macOS"] .sui-mac-traffic-lights[data-window-active="false"] > *:nth-child(1),
+[data-platform="macOS"] .sui-mac-traffic-lights[data-window-active="false"] > *:nth-child(2),
+[data-platform="macOS"] .sui-mac-traffic-lights[data-window-active="false"] > *:nth-child(3) {
+  background: var(--sui-mac-traffic-inactive);
+}

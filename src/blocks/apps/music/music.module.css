@@ -1,0 +1,736 @@
+/**
+ * Apple Music (macOS) app template — scoped styles.
+ *
+ * The whole template is themed around the Apple Music RED accent (#FC3C44 /
+ * #FA243C). The frame is a classic three-pane macOS window: a vibrant glass
+ * sidebar on the left, a scrollable main content column, and a bottom
+ * now-playing bar pinned across the full width.
+ *
+ * All selectors are LOCAL (CSS-module) — no `:global(...)`. The Liquid-Glass
+ * surfaces (sidebar, now-playing bar) layer the kit's `.sui-glass` classes ON
+ * TOP of these structural rules, so rim/sheen/glow come from the system.
+ */
+
+.app {
+  /* Apple Music red accent, threaded through the whole template. */
+  --am-red: #fc3c44;
+  --am-red-2: #fa243c;
+  --am-red-soft: rgba(252, 60, 68, 0.16);
+
+  --am-sidebar-w: 248px;
+  --am-bar-h: 78px;
+  --am-titlebar-h: 52px;
+
+  /* surface tokens (kit tokens win when present; these are the fallbacks) */
+  --am-bg: var(--sui-color-system-background, #f6f6f8);
+  --am-fg: var(--sui-color-label, #1c1c1e);
+  --am-fg-2: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  --am-fg-3: var(--sui-color-tertiary-label, rgba(60, 60, 67, 0.3));
+  --am-card-radius: 10px;
+  --am-hairline: rgba(0, 0, 0, 0.08);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--am-sidebar-w) 1fr;
+  grid-template-rows: 1fr var(--am-bar-h);
+  grid-template-areas:
+    "sidebar main"
+    "bar bar";
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 620px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--am-bg);
+  color: var(--am-fg);
+  font-family: var(
+    --sui-font-text,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Helvetica Neue",
+    sans-serif
+  );
+  isolation: isolate;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.16),
+    0 22px 70px -12px rgba(0, 0, 0, 0.45);
+}
+
+/* Dark color scheme — the canonical Apple Music look. */
+.app[data-scheme="dark"] {
+  --am-bg: #1e1e1e;
+  --am-fg: #f5f5f7;
+  --am-fg-2: rgba(235, 235, 245, 0.6);
+  --am-fg-3: rgba(235, 235, 245, 0.3);
+  --am-hairline: rgba(255, 255, 255, 0.1);
+  --am-card-radius: 10px;
+}
+
+/* ───────────────────────── window chrome (titlebar) ───────────────── */
+
+.titlebar {
+  grid-area: main;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 5;
+  block-size: var(--am-titlebar-h);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 18px;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  background: color-mix(in srgb, var(--am-bg) 72%, transparent);
+  border-block-end: 0.5px solid var(--am-hairline);
+}
+
+/* Traffic-light buttons drawn on the SIDEBAR (macOS puts them top-left). */
+.traffic {
+  grid-area: sidebar;
+  position: absolute;
+  inset-block-start: 19px;
+  inset-inline-start: 18px;
+  z-index: 6;
+  display: flex;
+  gap: 8px;
+}
+.light {
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0, 0, 0, 0.18);
+}
+.lightClose {
+  background: #ff5f57;
+}
+.lightMin {
+  background: #febc2e;
+}
+.lightZoom {
+  background: #28c840;
+}
+
+.navArrows {
+  display: flex;
+  gap: 4px;
+  color: var(--am-fg-3);
+}
+.navArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  color: var(--am-fg-2);
+  cursor: pointer;
+}
+.navArrow:hover {
+  background: var(--am-red-soft);
+  color: var(--am-fg);
+}
+.navArrow:disabled {
+  color: var(--am-fg-3);
+  cursor: default;
+}
+
+/* center search field in the titlebar */
+.search {
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  inline-size: min(360px, 42%);
+  block-size: 30px;
+  padding-inline: 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--am-fg) 8%, transparent);
+  color: var(--am-fg-2);
+  font-size: 13px;
+}
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--am-fg);
+  font: inherit;
+}
+.searchInput::placeholder {
+  color: var(--am-fg-3);
+}
+
+/* ───────────────────────── sidebar ───────────────── */
+
+.sidebar {
+  grid-area: sidebar;
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  padding-block: calc(var(--am-titlebar-h) - 6px) 14px;
+  padding-inline: 10px;
+  border-inline-end: 0.5px solid var(--am-hairline);
+  overflow: hidden;
+  /* vibrant translucent sidebar (system glass layers add rim/sheen on top) */
+  background: color-mix(in srgb, var(--am-bg) 60%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(28px);
+  backdrop-filter: saturate(180%) blur(28px);
+}
+
+.sidebarScroll {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-block-start: 4px;
+}
+.sidebarScroll::-webkit-scrollbar {
+  inline-size: 6px;
+}
+.sidebarScroll::-webkit-scrollbar-thumb {
+  background: var(--am-fg-3);
+  border-radius: 3px;
+}
+
+.sbSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sbSectionTitle {
+  padding-inline: 10px;
+  padding-block: 2px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--am-fg-2);
+}
+
+.sbRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  inline-size: 100%;
+  block-size: 30px;
+  padding-inline: 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  color: var(--am-fg);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: start;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sbRow:hover {
+  background: color-mix(in srgb, var(--am-fg) 7%, transparent);
+}
+.sbRow[data-selected="true"] {
+  background: var(--am-red-soft);
+  color: var(--am-red);
+}
+.sbRow[data-selected="true"] .sbRowIcon {
+  color: var(--am-red);
+}
+.sbRowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 19px;
+  color: var(--am-red);
+  flex: none;
+}
+.sbRowLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* playlist rows carry a tiny gradient artwork instead of an SF symbol */
+.sbArt {
+  inline-size: 19px;
+  block-size: 19px;
+  border-radius: 4px;
+  flex: none;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+  background-size: cover;
+}
+
+/* ───────────────────────── main content ───────────────── */
+
+.main {
+  grid-area: main;
+  position: relative;
+  min-block-size: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--am-bg);
+}
+.mainScroll {
+  padding-block: calc(var(--am-titlebar-h) + 10px) 28px;
+  padding-inline: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.pageTitle {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* ── hero / Listen Now ── */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-block-size: 280px;
+  border-radius: 14px;
+  overflow: hidden;
+  color: #fff;
+  box-shadow: 0 14px 40px -16px rgba(0, 0, 0, 0.5);
+}
+.heroArt {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.28) 42%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+}
+.heroBody {
+  position: relative;
+  padding: 26px;
+  max-inline-size: 560px;
+}
+.heroKicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.heroTitle {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-block: 6px 8px;
+}
+.heroSub {
+  font-size: 15px;
+  opacity: 0.9;
+  margin-block-end: 18px;
+}
+.heroPlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  block-size: 38px;
+  padding-inline: 18px;
+  border: none;
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.heroPlay:hover {
+  background: #fff;
+}
+
+/* ── shelf (horizontal scroller) ── */
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.shelfHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: default;
+}
+.shelfTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--am-fg);
+  cursor: pointer;
+}
+.shelfTitle .chev {
+  color: var(--am-fg-3);
+  transition: transform 0.15s;
+}
+.shelfTitle:hover .chev {
+  color: var(--am-red);
+  transform: translateX(2px);
+}
+.shelfSub {
+  font-size: 13px;
+  color: var(--am-fg-2);
+  margin-block-start: 2px;
+}
+.shelfMore {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--am-red);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.shelfTrack {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  padding-block-end: 6px;
+  scrollbar-width: thin;
+  /* let cards bleed to the edge, then breathe past the gutter */
+  margin-inline: -2px;
+  padding-inline: 2px;
+}
+.shelfTrack::-webkit-scrollbar {
+  block-size: 7px;
+}
+.shelfTrack::-webkit-scrollbar-thumb {
+  background: var(--am-fg-3);
+  border-radius: 4px;
+}
+
+/* ── album / playlist card ── */
+.card {
+  flex: none;
+  inline-size: var(--card-w, 168px);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: start;
+  color: inherit;
+  cursor: pointer;
+}
+.cardArtWrap {
+  position: relative;
+  inline-size: var(--card-w, 168px);
+  block-size: var(--card-w, 168px);
+  border-radius: var(--am-card-radius);
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 0 rgba(0, 0, 0, 0.04),
+    0 8px 22px -12px rgba(0, 0, 0, 0.55);
+  transition: transform 0.18s ease;
+}
+.card[data-round="true"] .cardArtWrap {
+  border-radius: 50%;
+}
+.card:hover .cardArtWrap {
+  transform: translateY(-3px);
+}
+.cardArt {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.cardArtOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px;
+  opacity: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.35), transparent 55%);
+  transition: opacity 0.18s;
+}
+.card:hover .cardArtOverlay {
+  opacity: 1;
+}
+.cardPlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 34px;
+  block-size: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #000;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.cardTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--am-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardSub {
+  font-size: 12.5px;
+  color: var(--am-fg-2);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-block-start: -4px;
+}
+.card[data-round="true"] .cardTitle,
+.card[data-round="true"] .cardSub {
+  text-align: center;
+}
+
+/* ── section grid (Browse / Categories) ── */
+.gridSection {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.gridTile {
+  position: relative;
+  block-size: 110px;
+  border-radius: var(--am-card-radius);
+  overflow: hidden;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  text-align: start;
+  box-shadow: 0 8px 22px -14px rgba(0, 0, 0, 0.5);
+}
+.gridTileArt {
+  position: absolute;
+  inset: 0;
+}
+.gridTileLabel {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  padding: 12px 14px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ───────────────────────── now-playing bar ───────────────── */
+
+.bar {
+  grid-area: bar;
+  position: relative;
+  z-index: 7;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(360px, 2.2fr) minmax(220px, 1fr);
+  align-items: center;
+  gap: 16px;
+  block-size: var(--am-bar-h);
+  padding-inline: 16px;
+  border-block-start: 0.5px solid var(--am-hairline);
+  /* glass surface layered by the system classes; this is the base wash */
+  background: color-mix(in srgb, var(--am-bg) 78%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(28px);
+  backdrop-filter: saturate(180%) blur(28px);
+}
+
+/* left: now-playing track */
+.npTrack {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-inline-size: 0;
+}
+.npThumb {
+  position: relative;
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex: none;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(0, 0, 0, 0.18),
+    0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  background-size: cover;
+  background-position: center;
+}
+.npMeta {
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.npTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--am-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.npArtist {
+  font-size: 12px;
+  color: var(--am-fg-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.npLike {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 26px;
+  block-size: 26px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--am-fg-2);
+}
+.npLike[data-on="true"] {
+  color: var(--am-red);
+}
+
+/* center: transport + scrubber (the LCD-style readout panel) */
+.npCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-inline-size: 0;
+}
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.tBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--am-fg);
+  cursor: pointer;
+  padding: 0;
+}
+.tBtn:hover {
+  color: var(--am-red);
+}
+.tBtn[data-on="true"] {
+  color: var(--am-red);
+}
+.tPlay {
+  inline-size: 30px;
+  block-size: 30px;
+}
+.scrubRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  inline-size: 100%;
+  max-inline-size: 460px;
+}
+.scrubTime {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--am-fg-2);
+  inline-size: 36px;
+  flex: none;
+}
+.scrubTimeEnd {
+  text-align: end;
+}
+.scrubSlider {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* right: volume + queue/airplay */
+.npRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-inline-size: 0;
+}
+.volRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  inline-size: 120px;
+}
+.volRow .volSlider {
+  flex: 1;
+  min-inline-size: 0;
+}
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--am-fg-2);
+  cursor: pointer;
+  flex: none;
+}
+.iconBtn:hover {
+  color: var(--am-fg);
+  background: color-mix(in srgb, var(--am-fg) 8%, transparent);
+}
+.iconBtn[data-on="true"] {
+  color: var(--am-red);
+}
+
+/* small-window guard: collapse the volume cluster gracefully */
+@media (max-width: 880px) {
+  .volRow {
+    inline-size: 84px;
+  }
+  .search {
+    display: none;
+  }
+}

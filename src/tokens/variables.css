@@ -462,6 +462,84 @@
    * references an inline SVG filter parameterised by these. */
   --sui-glass-merge-radius: 8px;
   --sui-glass-merge-spread: 18;
+
+  /* ===========================================================================
+   * macOS PLATFORM — AppKit desktop metrics + NSVisualEffectView vibrancy.
+   * Consumed by system/platform.ts (macMetric/macVibrancyClass) and the
+   * macos.global.css cascade. macOS controls are SMALL: 13px base type, ~21px
+   * regular control box, ~5-6px corners — a different density from iOS touch.
+   * Light values here; the accent/selection/vibrancy dark deltas live in the two
+   * dark blocks below. See research/teardowns/SWIFTUI_MACOS_DESIGN.md.
+   * ======================================================================== */
+
+  /* --- type ramp (NSControl per-size font) --- */
+  --sui-mac-font-base: 13px; /* the macOS body/control size (vs iOS 17) */
+  --sui-mac-font-small: 11px; /* small/secondary labels */
+  --sui-mac-font-mini: 9px; /* mini control captions */
+
+  /* --- control box heights (NSControl.ControlSize) --- */
+  --sui-mac-control-height-mini: 16px;
+  --sui-mac-control-height-small: 19px;
+  --sui-mac-control-height-regular: 21px;
+  --sui-mac-control-height-large: 28px;
+
+  /* --- control geometry (rounded bezel) --- */
+  --sui-mac-control-radius: 5px; /* regular bezel corner (~5-6px) */
+  --sui-mac-control-radius-large: 6px;
+  --sui-mac-control-padding-x: 7px; /* default 6-8px horizontal inset */
+  --sui-mac-control-padding-y: 2px;
+
+  /* --- list / sidebar density --- */
+  --sui-mac-list-row-height: 24px; /* table/list row */
+  --sui-mac-sidebar-row-height: 28px; /* source-list (sidebar) row */
+  --sui-mac-selection-radius: 6px; /* selected-row pill corner */
+
+  /* --- chrome strips --- */
+  --sui-mac-toolbar-height: 38px; /* unified toolbar strip */
+  --sui-mac-titlebar-height: 28px; /* titlebar (traffic-light) zone */
+  --sui-mac-sidebar-width: 220px; /* default source-list width */
+
+  /* --- accent (drives focus ring + selection pill) ---
+   * Default System Blue; the app overrides --sui-mac-accent for a custom accent
+   * (the macOS "Accent color" preference). The ring/pill read this var. */
+  --sui-mac-accent: #007aff;
+  --sui-mac-accent-rgb: 0, 122, 255; /* for rgba() alpha washes */
+  /* focus ring = a 3px accent glow; selection = a low-alpha accent fill pill. */
+  --sui-mac-focus-ring-width: 3px;
+  --sui-mac-focus-ring-color: rgba(0, 122, 255, 0.5);
+  --sui-mac-selection-fill: rgba(0, 122, 255, 0.85); /* emphasized (focused win) */
+  --sui-mac-selection-fill-inactive: rgba(120, 120, 128, 0.24); /* unfocused gray */
+  --sui-mac-selection-text: #ffffff; /* label color inside the emphasized pill */
+  --sui-mac-hover-fill: rgba(0, 0, 0, 0.05); /* sidebar/list row hover wash */
+
+  /* --- NSVisualEffectView vibrancy materials (light) ---
+   * Each material = a translucent, DESATURATING backdrop. blur + saturate(<1)
+   * removes color from what's behind (the vibrancy "wash"), then a per-material
+   * tint sets the brightness. On macOS 26 these compose with the Liquid Glass
+   * rim/sheen (macos.global.css adds it under [data-design-mode="liquidGlass"]). */
+  --sui-mac-vibrancy-blur: 28px; /* the standard NSVisualEffectView radius */
+  --sui-mac-vibrancy-saturate: 0.62; /* DESATURATE the backdrop (vibrancy wash) */
+  --sui-mac-vibrancy-sidebar-tint: rgba(246, 246, 248, 0.72);
+  --sui-mac-vibrancy-menu-tint: rgba(250, 250, 252, 0.78);
+  --sui-mac-vibrancy-popover-tint: rgba(250, 250, 252, 0.82);
+  --sui-mac-vibrancy-hud-tint: rgba(40, 40, 42, 0.62); /* HUD is dark in BOTH modes */
+  --sui-mac-vibrancy-titlebar-tint: rgba(246, 246, 248, 0.8);
+  --sui-mac-vibrancy-sheet-tint: rgba(248, 248, 250, 0.9);
+  --sui-mac-vibrancy-selection-tint: rgba(0, 122, 255, 0.18);
+  --sui-mac-vibrancy-headerView-tint: rgba(246, 246, 248, 0.85);
+  --sui-mac-vibrancy-window-tint: rgba(236, 236, 238, 0.86);
+  --sui-mac-vibrancy-underWindow-tint: rgba(230, 230, 233, 0.6);
+  --sui-mac-vibrancy-content-tint: rgba(255, 255, 255, 0.9);
+  --sui-mac-vibrancy-rim: rgba(255, 255, 255, 0.5); /* hairline edge (light) */
+  --sui-mac-vibrancy-shadow: rgba(0, 0, 0, 0.18); /* popover/menu drop shadow */
+
+  /* --- traffic lights (close/minimize/zoom) --- */
+  --sui-mac-traffic-close: #ff5f57;
+  --sui-mac-traffic-minimize: #febc2e;
+  --sui-mac-traffic-zoom: #28c840;
+  --sui-mac-traffic-inactive: #cccccc; /* all three when the window is unfocused */
+  --sui-mac-traffic-size: 12px; /* the dot diameter */
+  --sui-mac-traffic-gap: 8px; /* center-to-center spacing */
 }
 
 /* =============================================================================
@@ -570,6 +648,34 @@
     /* Vibrancy — dark alphas (secondary/quaternary differ from light) */
     --sui-vibrancy-secondary: 0.55;
     --sui-vibrancy-quaternary: 0.16;
+
+    /* macOS platform — dark overrides. The desktop accent brightens (System Blue
+     * dark variant), the selection pill keeps high accent alpha, and the
+     * NSVisualEffectView materials switch to dark translucent tints (a sidebar is
+     * a near-black wash, not a near-white one). Metrics are mode-independent. */
+    --sui-mac-accent: #0a84ff;
+    --sui-mac-accent-rgb: 10, 132, 255;
+    --sui-mac-focus-ring-color: rgba(10, 132, 255, 0.55);
+    --sui-mac-selection-fill: rgba(10, 132, 255, 0.85);
+    --sui-mac-selection-fill-inactive: rgba(120, 120, 128, 0.3);
+    --sui-mac-hover-fill: rgba(255, 255, 255, 0.06);
+
+    --sui-mac-vibrancy-saturate: 0.7;
+    --sui-mac-vibrancy-sidebar-tint: rgba(40, 40, 42, 0.72);
+    --sui-mac-vibrancy-menu-tint: rgba(44, 44, 46, 0.82);
+    --sui-mac-vibrancy-popover-tint: rgba(44, 44, 46, 0.86);
+    --sui-mac-vibrancy-hud-tint: rgba(28, 28, 30, 0.7);
+    --sui-mac-vibrancy-titlebar-tint: rgba(40, 40, 42, 0.82);
+    --sui-mac-vibrancy-sheet-tint: rgba(48, 48, 50, 0.92);
+    --sui-mac-vibrancy-selection-tint: rgba(10, 132, 255, 0.24);
+    --sui-mac-vibrancy-headerView-tint: rgba(40, 40, 42, 0.85);
+    --sui-mac-vibrancy-window-tint: rgba(30, 30, 32, 0.88);
+    --sui-mac-vibrancy-underWindow-tint: rgba(24, 24, 26, 0.7);
+    --sui-mac-vibrancy-content-tint: rgba(30, 30, 32, 0.9);
+    --sui-mac-vibrancy-rim: rgba(255, 255, 255, 0.14);
+    --sui-mac-vibrancy-shadow: rgba(0, 0, 0, 0.5);
+
+    --sui-mac-traffic-inactive: #565658; /* dimmed dots when window unfocused */
   }
 }
 
@@ -670,6 +776,31 @@
   /* Vibrancy */
   --sui-vibrancy-secondary: 0.55;
   --sui-vibrancy-quaternary: 0.16;
+
+  /* macOS platform — dark overrides (see @media block above for rationale). */
+  --sui-mac-accent: #0a84ff;
+  --sui-mac-accent-rgb: 10, 132, 255;
+  --sui-mac-focus-ring-color: rgba(10, 132, 255, 0.55);
+  --sui-mac-selection-fill: rgba(10, 132, 255, 0.85);
+  --sui-mac-selection-fill-inactive: rgba(120, 120, 128, 0.3);
+  --sui-mac-hover-fill: rgba(255, 255, 255, 0.06);
+
+  --sui-mac-vibrancy-saturate: 0.7;
+  --sui-mac-vibrancy-sidebar-tint: rgba(40, 40, 42, 0.72);
+  --sui-mac-vibrancy-menu-tint: rgba(44, 44, 46, 0.82);
+  --sui-mac-vibrancy-popover-tint: rgba(44, 44, 46, 0.86);
+  --sui-mac-vibrancy-hud-tint: rgba(28, 28, 30, 0.7);
+  --sui-mac-vibrancy-titlebar-tint: rgba(40, 40, 42, 0.82);
+  --sui-mac-vibrancy-sheet-tint: rgba(48, 48, 50, 0.92);
+  --sui-mac-vibrancy-selection-tint: rgba(10, 132, 255, 0.24);
+  --sui-mac-vibrancy-headerView-tint: rgba(40, 40, 42, 0.85);
+  --sui-mac-vibrancy-window-tint: rgba(30, 30, 32, 0.88);
+  --sui-mac-vibrancy-underWindow-tint: rgba(24, 24, 26, 0.7);
+  --sui-mac-vibrancy-content-tint: rgba(30, 30, 32, 0.9);
+  --sui-mac-vibrancy-rim: rgba(255, 255, 255, 0.14);
+  --sui-mac-vibrancy-shadow: rgba(0, 0, 0, 0.5);
+
+  --sui-mac-traffic-inactive: #565658;
 }
 
 /* =============================================================================

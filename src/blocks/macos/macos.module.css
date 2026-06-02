@@ -1,0 +1,513 @@
+/* =============================================================================
+ * macos.module.css — macOS WINDOW CHROME block styles.
+ *
+ * These compose ON TOP of the kit's macOS PLATFORM layer (system/platform.ts +
+ * system/macos.global.css): the NSVisualEffectView vibrancy materials
+ * (.sui-mac-vibrancy-*), the traffic-light cluster (.sui-mac-traffic-lights),
+ * the unified toolbar strip (.sui-mac-toolbar), the selection pill
+ * (.sui-mac-selection) and the source-list row densities (.sui-mac-sidebar-row).
+ * Nothing here re-implements vibrancy or the glass rim — it only adds the BLOCK
+ * geometry (window frame radius + shadow, titlebar grid, split-view columns,
+ * draggable dividers, sidebar section/header layout, search-field bezel) that
+ * turns the platform primitives into a real desktop app window.
+ *
+ * CSS-module scoped so two windows on one page never collide. All NUMBERS that
+ * have a token come from var(--sui-mac-*) / var(--sui-*); the literals here are
+ * structural geometry with no token (window corner radius, divider hit-area).
+ *
+ * IMPORTANT: the macOS look only resolves inside a [data-platform="macOS"]
+ * wrapper (set by SwiftUIProvider). These block classes are platform-agnostic
+ * geometry; the vibrancy/selection classes layered alongside them are the part
+ * that keys off the wrapper. A MacWindow forces the look locally by setting
+ * data-platform="macOS" on its own root (see WindowChrome).
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * 1. WindowChrome — the macOS window frame.
+ *    Rounded ~10px corners, a hairline border, a big soft drop shadow, and a
+ *    column grid: titlebar/toolbar row (auto) over the body (1fr).
+ * ------------------------------------------------------------------------- */
+.window {
+  --mac-window-radius: 10px;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 100%;
+  min-height: 0;
+  border-radius: var(--mac-window-radius);
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--sui-mac-vibrancy-window-tint, rgba(236, 236, 238, 0.86));
+  color: var(--sui-color-label, #000);
+  font-family: var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  font-size: var(--sui-mac-font-base, 13px);
+  /* hairline rim + the layered desktop shadow (ambient + key) */
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim, rgba(255, 255, 255, 0.5)),
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 12px 34px -6px rgba(0, 0, 0, 0.32),
+    0 36px 90px -20px rgba(0, 0, 0, 0.4);
+}
+/* Embedded variant — drop the big shadow + the outer ring (when the window is
+ * already inside another framed surface / a screenshot mock). */
+.window[data-embedded="true"] {
+  box-shadow: inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim, rgba(255, 255, 255, 0.5));
+}
+
+/* The titlebar + unified toolbar row. It is BOTH a .sui-mac-toolbar (drag
+ * region + no-drag controls) AND a vibrancy titlebar surface (added by the TSX).
+ * Grid: [traffic lights] [leading toolbar] [centered title/flex] [trailing]. */
+.titlebar {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  min-height: var(--sui-mac-toolbar-height, 38px);
+  padding: 0 12px;
+  border-bottom: 0.5px solid var(--sui-mac-vibrancy-rim, rgba(0, 0, 0, 0.1));
+  z-index: 3;
+}
+/* The leading cluster: traffic lights + any leading toolbar items. */
+.titlebarLeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+/* Centered title — absolutely centered over the whole bar so toolbar items on
+ * either side don't push it off-center (the macOS centered-title behavior). */
+.titlebarTitle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--sui-mac-font-base, 13px);
+  font-weight: 600;
+  color: var(--sui-color-label, #000);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 50%;
+  pointer-events: none;
+  z-index: 1;
+}
+.titlebarSubtitle {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+}
+/* Trailing cluster — toolbar items pinned to the right edge. */
+.titlebarTrailing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 0;
+  z-index: 2;
+}
+/* The window body region under the titlebar (hosts split-view / content). */
+.windowBody {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Traffic lights — the close / minimize / zoom glyphs.
+ *    The dot geometry + hues + reveal-on-hover come from .sui-mac-traffic-lights
+ *    (macos.global.css). Here we only feed the glyphs via ::after content on each
+ *    dot (× / − / +). The platform CSS hides them until cluster hover.
+ * ------------------------------------------------------------------------- */
+.trafficClose::after {
+  content: "✕";
+}
+.trafficMinimize::after {
+  content: "−";
+}
+.trafficZoom::after {
+  content: "+";
+  font-size: 9px;
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Toolbar items — icon buttons, segmented controls, dividers.
+ *    macOS toolbar buttons are quiet: a flat icon that gains a soft rounded
+ *    hover/active wash. They sit at the regular control height.
+ * ------------------------------------------------------------------------- */
+.toolbarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.toolbarSpacer {
+  flex: 1 1 auto;
+}
+.toolbarButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 24px;
+  min-width: 28px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sui-color-label, #000);
+  font-size: var(--sui-mac-font-base, 13px);
+  font-family: inherit;
+  cursor: default;
+  -webkit-app-region: no-drag;
+  transition:
+    background-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.toolbarButton[data-label-only="true"] {
+  padding: 0 9px;
+}
+@media (hover: hover) {
+  .toolbarButton:hover:not(:disabled):not([data-active="true"]) {
+    background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.06));
+  }
+}
+.toolbarButton:active:not(:disabled),
+.toolbarButton[data-active="true"] {
+  background: var(--sui-fill-secondary, rgba(120, 120, 128, 0.16));
+  box-shadow: inset 0 0 0 0.5px var(--sui-separator, rgba(0, 0, 0, 0.1));
+}
+.toolbarButton[data-prominent="true"] {
+  background: var(--sui-mac-accent, #007aff);
+  color: #fff;
+}
+.toolbarButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.toolbarButtonLabel {
+  white-space: nowrap;
+}
+/* Vertical hairline divider between toolbar groups. */
+.toolbarDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 7px 2px;
+  background: var(--sui-separator, rgba(0, 0, 0, 0.12));
+  -webkit-app-region: no-drag;
+}
+
+/* Segmented control (toolbar mode toggle) — a pill of joined buttons. */
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 1px;
+  border-radius: 7px;
+  background: var(--sui-fill-tertiary, rgba(120, 120, 128, 0.12));
+  box-shadow: inset 0 0 0 0.5px var(--sui-separator, rgba(0, 0, 0, 0.08));
+  -webkit-app-region: no-drag;
+}
+.segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 22px;
+  min-width: 30px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sui-color-label, #000);
+  font-size: var(--sui-mac-font-small, 11px);
+  font-family: inherit;
+  cursor: default;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+}
+.segment[data-selected="true"] {
+  background: var(--sui-color-elevated-background, #fff);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+}
+@media (hover: hover) {
+  .segment:hover:not([data-selected="true"]) {
+    background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.05));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. Search field — the macOS rounded search bezel (toolbar trailing area).
+ *    A recessed capsule with a leading magnifier glyph + a trailing clear button.
+ * ------------------------------------------------------------------------- */
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--sui-color-elevated-background, rgba(255, 255, 255, 0.7));
+  box-shadow: inset 0 0 0 0.5px var(--sui-separator, rgba(0, 0, 0, 0.16));
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  -webkit-app-region: no-drag;
+  transition: box-shadow 0.12s ease;
+  min-width: 140px;
+}
+.search[data-focused="true"] {
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-separator, rgba(0, 0, 0, 0.16)),
+    0 0 0 var(--sui-mac-focus-ring-width, 3px) var(--sui-mac-focus-ring-color, rgba(0, 122, 255, 0.5));
+}
+.searchIcon {
+  flex: 0 0 auto;
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  display: inline-flex;
+}
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--sui-color-label, #000);
+  font-size: var(--sui-mac-font-base, 13px);
+  font-family: inherit;
+}
+.searchInput::placeholder {
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+}
+.searchClear {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--sui-fill-secondary, rgba(120, 120, 128, 0.3));
+  color: var(--sui-color-elevated-background, #fff);
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. MacSidebar — the translucent source list.
+ *    The vibrancy surface (.sui-mac-vibrancy-sidebar) is layered by the TSX. Here
+ *    we add the column layout, the small-caps section headers, the row internals
+ *    (icon / label / count badge / disclosure twisty) and the collapse animation.
+ * ------------------------------------------------------------------------- */
+.sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: var(--mac-sidebar-w, var(--sui-mac-sidebar-width, 220px));
+  flex: 0 0 auto;
+  padding: 8px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* the leading-traffic-light gutter pad when the sidebar reaches the top */
+  z-index: 2;
+}
+.sidebarScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+  min-height: 0;
+}
+
+/* A titled, optionally-collapsible group. */
+.section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px;
+  border: none;
+  background: transparent;
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: default;
+  text-align: left;
+  -webkit-app-region: no-drag;
+}
+.sectionHeaderButton {
+  width: 100%;
+}
+.sectionTwisty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  transition: transform 0.16s ease;
+  opacity: 0;
+}
+@media (hover: hover) {
+  .sectionHeaderButton:hover .sectionTwisty {
+    opacity: 0.7;
+  }
+}
+.section[data-collapsed="true"] .sectionTwisty {
+  transform: rotate(-90deg);
+}
+.sectionRows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.section[data-collapsed="true"] .sectionRows {
+  display: none;
+}
+
+/* A source-list row — composes .sui-mac-sidebar-row (density + hover + pill). */
+.sidebarRow {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--sui-color-label, #000);
+  text-align: left;
+  cursor: default;
+  font-size: var(--sui-mac-font-base, 13px);
+  font-family: inherit;
+  text-decoration: none;
+  -webkit-app-region: no-drag;
+}
+.sidebarRowIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  color: var(--sui-mac-accent, #007aff);
+}
+/* Inside the emphasized selection pill the accent glyph reads white. */
+.sidebarRow[data-selected="true"] .sidebarRowIcon {
+  color: var(--sui-mac-selection-text, #fff);
+}
+.sidebarRowLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebarRowCount {
+  flex: 0 0 auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--sui-fill-secondary, rgba(120, 120, 128, 0.24));
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.sidebarRow[data-selected="true"] .sidebarRowCount {
+  background: rgba(255, 255, 255, 0.3);
+  color: var(--sui-mac-selection-text, #fff);
+}
+.sidebarRow:disabled {
+  opacity: 0.4;
+}
+
+/* Sidebar footer (account chip / settings) pinned to the bottom. */
+.sidebarFooter {
+  margin-top: auto;
+  padding: 6px 8px 0;
+  border-top: 0.5px solid var(--sui-separator, rgba(0, 0, 0, 0.08));
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. MacSplitView — sidebar | content (| inspector) with draggable dividers.
+ *    A horizontal flex of panes separated by hit-areas. Each divider is a 1px
+ *    hairline centered in an ~7px grab zone (col-resize cursor). Dragging is
+ *    wired in the TSX (pointer events); the CSS supplies the visuals + cursor.
+ * ------------------------------------------------------------------------- */
+.split {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+.splitPane {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* The content pane flexes to fill; sidebar/inspector are fixed-width panes. */
+.splitContent {
+  flex: 1 1 auto;
+  background: var(--sui-mac-vibrancy-content-tint, var(--sui-color-system-background, #fff));
+  overflow: auto;
+}
+.splitSidebarPane {
+  flex: 0 0 auto;
+}
+.splitInspectorPane {
+  flex: 0 0 auto;
+  background: var(--sui-mac-vibrancy-content-tint, var(--sui-color-system-background, #fff));
+}
+/* The draggable hairline divider — wide hit-area, thin visible line. */
+.divider {
+  position: relative;
+  flex: 0 0 auto;
+  width: 7px;
+  margin: 0 -3px; /* overlap the panes so the visible gap stays 1px */
+  cursor: col-resize;
+  z-index: 5;
+  -webkit-app-region: no-drag;
+  touch-action: none;
+}
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--sui-separator, rgba(0, 0, 0, 0.12));
+  transition: background-color 0.12s ease;
+}
+@media (hover: hover) {
+  .divider:hover::before {
+    background: var(--sui-mac-accent, #007aff);
+  }
+}
+.divider[data-dragging="true"]::before {
+  background: var(--sui-mac-accent, #007aff);
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. MacWindow content default padding (when no custom content wrapper given).
+ * ------------------------------------------------------------------------- */
+.contentPad {
+  padding: 16px 20px;
+  min-height: 0;
+}
