@@ -230,16 +230,15 @@ export const GlassSidebar = React.forwardRef<HTMLDivElement, GlassSidebarProps>(
     ref,
   ) {
     const isGlass = glass !== false;
-    // Reuse the canonical glass surface class so the panel shares rim/sheen/glow.
-    const glassSurface = isGlass
-      ? glassClass(glass === true ? "regular" : glass)
-      : "";
+    // Use the floating chrome-bar glass (.sui-glass-bar — rim/sheen/glow with a
+    // 22px radius), NOT glassClass() whose default shape is a Capsule (9999px)
+    // that balloons a tall column into a giant pill.
+    const glassSurface = isGlass ? "sui-glass-bar" : "";
 
     const cls = [
       styles.sidebar,
       isGlass ? styles.sidebarGlass : styles.sidebarPlain,
       glassSurface,
-      "sui-glassbar",
       className,
     ]
       .filter(Boolean)

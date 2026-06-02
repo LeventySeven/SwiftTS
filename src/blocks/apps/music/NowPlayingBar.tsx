@@ -19,7 +19,6 @@
  */
 import * as React from "react";
 import { Slider } from "../../../components/Slider";
-import { glassClass } from "../../../system/effects";
 import { SymbolGlyph } from "../../../components/controls/SymbolGlyph";
 import styles from "./music.module.css";
 
@@ -139,9 +138,9 @@ export function NowPlayingBar({
     ? { backgroundImage: `url(${track.artworkUrl})` }
     : { background: thumbBg };
 
-  const cls = [styles.bar, glassClass("regular"), "sui-glassbar", className]
-    .filter(Boolean)
-    .join(" ");
+  // flat translucent transport bar (the `.bar` module material) — NOT glassClass
+  // (capsule default radius would round the full-width bar into a pill).
+  const cls = [styles.bar, className].filter(Boolean).join(" ");
 
   return (
     <div className={cls} style={style} role="group" aria-label="Now playing">

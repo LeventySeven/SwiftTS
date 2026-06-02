@@ -125,9 +125,9 @@ export const GlassToolbar = React.forwardRef<HTMLDivElement, GlassToolbarProps>(
     ref,
   ) {
     const isGlass = glass !== false;
-    const glassSurface = isGlass
-      ? glassClass(glass === true ? "regular" : glass)
-      : "sui-material sui-material-bar";
+    // .sui-glass-bar = the floating chrome-bar glass (22px radius); NOT glassClass()
+    // whose Capsule default (9999px) would round a wide toolbar into a pill.
+    const glassSurface = isGlass ? "sui-glass-bar" : "sui-material sui-material-bar";
 
     const cls = [styles.toolbar, glassSurface, className].filter(Boolean).join(" ");
 

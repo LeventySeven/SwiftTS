@@ -16,7 +16,6 @@
  * sheen + glow. Selection is controlled (`selection` + `onSelect`).
  */
 import * as React from "react";
-import { glassClass } from "../../../system/effects";
 import { SymbolGlyph } from "../../../components/controls/SymbolGlyph";
 import { seedGradient } from "./AlbumCard";
 import styles from "./music.module.css";
@@ -114,9 +113,10 @@ export function MusicSidebar({
 }: MusicSidebarProps): React.ReactElement {
   // Layer the system glass surface (rim + sheen + glow) over the structural
   // vibrant wash from the CSS module.
-  const cls = [styles.sidebar, glassClass("regular"), "sui-glassbar", className]
-    .filter(Boolean)
-    .join(" ");
+  // The flat vibrant `.sidebar` module IS the macOS source-list material — do
+  // NOT layer glassClass() (its default shape is a Capsule → 9999px radius,
+  // which balloons a full-height column into a giant pill).
+  const cls = [styles.sidebar, className].filter(Boolean).join(" ");
 
   return (
     <nav className={cls} style={style} aria-label="Music library">
