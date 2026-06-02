@@ -1,27 +1,71 @@
 {
   "name": "swiftts",
   "version": "0.1.0",
-  "private": true,
-  "description": "SwiftTS — Apple SwiftUI replicated 1:1 as a TypeScript/React UI kit for the web (Next.js). Reverse-engineered from Apple's authoritative .swiftinterface declarations.",
+  "description": "SwiftTS — Apple SwiftUI replicated 1:1 as a TypeScript/React UI kit for the web. Works great in Next.js. Reverse-engineered from Apple's authoritative .swiftinterface declarations.",
   "type": "module",
-  "repository": { "type": "git", "url": "https://github.com/LeventySeven/SwiftTS.git" },
   "license": "MIT",
+  "homepage": "https://github.com/LeventySeven/SwiftTS#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LeventySeven/SwiftTS.git"
+  },
+  "keywords": [
+    "swiftui",
+    "react",
+    "nextjs",
+    "typescript",
+    "ui-kit",
+    "components",
+    "ios",
+    "apple",
+    "design-system",
+    "liquid-glass"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles/swiftts.css",
+    "./tokens.css": "./dist/tokens/variables.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "tsup && tsc -p tsconfig.build.json && node scripts/copy-css.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "next lint"
+    "demo:build": "next build",
+    "demo:start": "next start",
+    "lint": "next lint",
+    "prepare": "npm run build"
   },
-  "dependencies": {
-    "next": "^15.1.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

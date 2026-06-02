@@ -142,7 +142,7 @@ export function SwiftUIProvider({
   return (
     <EnvironmentContext.Provider value={env}>
       <div
-        className={className}
+        className={className ? `sui-root ${className}` : "sui-root"}
         data-theme={env.colorScheme}
         data-control-size={env.controlSize}
         dir={CONTROL_DIR[env.layoutDirection]}

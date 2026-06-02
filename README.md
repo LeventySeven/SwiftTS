@@ -4,17 +4,36 @@
 
 Reverse-engineered from Apple's **authoritative `.swiftinterface` declarations** (the exact public API Apple ships in the SDK: SwiftUICore 21,762 lines + SwiftUI 25,517 + Charts 3,114 — 677 structs, 1,322 funcs, 1,881 extensions, *with default values*), plus the HIG / Dynamic-Type / spring specs for the runtime visual layer the interface can't show. Every value is sourced — see [`research/`](./research) for the full RE evidence: per-cluster teardowns, the design-token derivations, the component inventory, and the design spec.
 
-## Quick start
+## Install
 
 ```bash
-npm install
-npm run dev      # http://localhost:3000 — the component gallery
-npm run build    # production build (also typechecks)
+npm install swiftts react react-dom
 ```
+
+`swiftts` is a standard ESM + TypeScript package (React 18 / 19 are peer deps). It works in **Next.js** (App Router & Pages), Vite, Remix, CRA — any React + bundler setup. Types and the `"use client"` boundaries ship with it; the only required step is importing the stylesheet once.
+
+### Next.js (App Router)
+
+Import the stylesheet once in your root layout, then use components anywhere:
+
+```tsx
+// app/layout.tsx
+import "swiftts/styles.css";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+That's it — no `transpilePackages` needed. Components that need interactivity already carry their own `"use client"` directive, so you can use them inside Server Components; the package ships a single CSS file and per-component CSS that Next bundles automatically. (`swiftts/styles.css` loads the design tokens + a scoped base; the design tokens alone are also exported as `swiftts/tokens.css`.)
 
 ## Usage
 
-Wrap your app in `SwiftUIProvider` (the web port of `@Environment` — color scheme, tint, control size, Dynamic Type, layout direction), then use the components with props that mirror the SwiftUI API:
+Wrap your app (or any subtree) in `SwiftUIProvider` (the web port of `@Environment` — color scheme, tint, control size, Dynamic Type, layout direction), then use the components with props that mirror the SwiftUI API:
 
 ```tsx
 import { SwiftUIProvider, VStack, HStack, Text, Button, Toggle, List, Section } from "swiftts";
@@ -81,6 +100,20 @@ Verified 1:1 (light + dark) across: typography ramp, all button styles, Toggle/S
 ## ⚠️ CSS authoring rule (Turbopack)
 
 Files imported for global side effects (`*.global.css`) **must use bare selectors** (`.sui-foo { … }`). Do **not** wrap them in a top-level `:global { … }` block (Turbopack silently drops it) and do **not** use the per-selector `:global(.foo)` form (passed through literally → invalid in the browser → rule dropped). The `:global(...)` form is only valid inside a true CSS-module (`*.module.css`).
+
+## Develop SwiftTS itself
+
+This repo is both the **library** (`src/`) and a **demo gallery** (`app/`).
+
+```bash
+npm install
+npm run dev          # http://localhost:3000 — the live component gallery
+npm run build        # build the publishable library → dist/ (tsup ESM + tsc .d.ts + CSS)
+npm run typecheck    # tsc --noEmit
+npm run demo:build   # build the gallery as a static Next.js site
+```
+
+The library build (`npm run build`, also run automatically on `prepare`) transpiles each source file with `tsup` (`bundle: false`, so every `"use client"` directive and CSS import is preserved), emits `.d.ts` with `tsc -p tsconfig.build.json`, and copies the stylesheets — producing a tree-shakeable, RSC-correct `dist/`. Only `dist/`, `README`, and `LICENSE` are published (`react`/`react-dom` are peers).
 
 ## License
 

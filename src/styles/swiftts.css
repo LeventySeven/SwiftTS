@@ -1,0 +1,35 @@
+/* SwiftTS — public global stylesheet.
+ *
+ * Consumers import this ONCE (e.g. in a Next.js root layout):
+ *     import "swiftts/styles.css";
+ *
+ * It loads the design-token custom properties (required — components read
+ * `var(--sui-*)`) and a couple of safe globals. It deliberately does NOT reset
+ * your whole document: box-sizing is scoped to SwiftTS subtrees (the
+ * `SwiftUIProvider` adds `.sui-root`) so it never fights your app's own layout. */
+
+@import "../tokens/variables.css";
+
+/* box-sizing for SwiftTS components only (provider wrapper carries `.sui-root`). */
+.sui-root,
+.sui-root *,
+.sui-root *::before,
+.sui-root *::after {
+  box-sizing: border-box;
+}
+
+/* SwiftUI never shows a focus ring on pointer tap; keyboard focus stays visible. */
+.sui-root :focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Honor reduced motion (mirrors accessibilityReduceMotion). */
+@media (prefers-reduced-motion: reduce) {
+  .sui-root *,
+  .sui-root *::before,
+  .sui-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
