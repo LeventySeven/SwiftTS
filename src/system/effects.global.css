@@ -204,41 +204,61 @@
  *    lighter, more translucent, with a BRIGHT specular RIM and an airy lift.
  *
  *    Layer stack (back → front), all token-driven (--sui-glass-*):
- *      backdrop  : blur() saturate(180%) brightness(1.08)  — refractive lift
+ *      backdrop  : blur() saturate(1.8) brightness(1.1) contrast(1.04) — lens
  *      body      : a THIN translucent white tint (~0.18α light / 0.08α dark)
- *      rim       : layered box-shadow — inset top specular + bottom counter-
+ *      rim       : layered box-shadow — inset top specular lip + bottom counter-
  *                  light + a hairline white border + a soft outer drop shadow
- *      ::before  : a top-down diagonal SHEEN gradient (the wet-glass highlight)
- *      ::after   : a soft radial inner GLOW pooled at the top edge
+ *      ::before  : a two-stop diagonal SHEEN gradient, screen-blended (wet glint)
+ *      ::after   : a soft radial inner GLOW pooled top + a faint floor glow
  *      tint      : optional colored wash via --sui-glass-tint-color overlay
- *      .interactive: hover lift + press lensing (scale + brightness), springy
+ *      .interactive: hover lift + press lensing (scale + brightness + saturate
+ *                    bulge) on the snappy spring
  *
  *    Default shape is a Capsule (DefaultGlassEffectShape) → border-radius:9999px;
  *    `glassEffectProps`/`<GlassEffect shape>` override the radius/clip per call.
- *    True backdrop refraction (feDisplacementMap) + droplet-merge are out of
- *    scope for pure CSS and flagged DESIGNED in the teardown.
+ *
+ *    Companion classes in this section:
+ *      4b .sui-glass-bar         — the FLOATING nav/tab chrome-bar variant
+ *      4c .sui-scroll-edge-soft  — soft glass fade for content under a bar
+ *         .sui-scroll-edge-hard  — hard scrim line under a bar
+ *      4d .sui-glass-merge       — gooey SVG-filter droplet-merge (container)
+ *      4e [data-design-mode]     — liquidGlass (default) ↔ classic switch
+ *
+ *    True backdrop refraction (feDisplacementMap) + native droplet-merge are out
+ *    of scope for pure CSS and flagged DESIGNED in the teardown; .sui-glass-merge
+ *    approximates the merge with the classic SVG "goo" filter.
  * -------------------------------------------------------------------------- */
 .sui-glass {
   position: relative;
   isolation: isolate; /* keep ::before/::after sheen+glow off siblings */
   border-radius: 9999px; /* Capsule default; override per `in: shape` */
+  /* Layered refractive backdrop: blur lifts the backdrop, saturate(1.8) energizes
+   * its color, brightness(1.1) gives the airy lift. The contrast() nudge deepens
+   * the lensed pixels so the pane reads as a real refracting slab, not a scrim. */
   -webkit-backdrop-filter: blur(var(--sui-glass-blur))
-    saturate(var(--sui-glass-saturate)) brightness(var(--sui-glass-brightness));
+    saturate(var(--sui-glass-saturate)) brightness(var(--sui-glass-brightness))
+    contrast(1.04);
   backdrop-filter: blur(var(--sui-glass-blur)) saturate(var(--sui-glass-saturate))
-    brightness(var(--sui-glass-brightness));
+    brightness(var(--sui-glass-brightness)) contrast(1.04);
   background: var(--sui-glass-tint);
-  /* Specular rim: bright top edge + dim bottom counter-light + hairline border
-   * + soft outer drop shadow. The hairline is a 0.5px inset spread so it traces
-   * the rounded/capsule corner exactly. */
+  /* Specular rim: bright top edge (inset top-light) + dim bottom counter-light +
+   * a hairline 0.5px border that traces the rounded/capsule corner exactly + a
+   * soft outer drop shadow for elevation. The 1.5px top spread widens the wet
+   * specular lip so the edge catches light like real glass. */
   box-shadow:
     inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 1.5px 2px -0.5px var(--sui-glass-rim),
     inset 0 -1px 1px var(--sui-glass-rim-bottom),
     inset 0 0 0 0.5px var(--sui-glass-hairline),
     0 6px 20px var(--sui-glass-shadow);
+  /* Hint the compositor so the live backdrop + lensing transform stay smooth. */
+  transition: backdrop-filter 0.18s ease, -webkit-backdrop-filter 0.18s ease;
 }
 
 /* Top diagonal specular SHEEN — the wet, light-catching highlight that makes
- * glass read as glass. Screen-blended so it only ADDS light, never darkens. */
+ * glass read as glass. Two stops: a bright top-left glint and a fainter lower
+ * counter-glint, so the sheen has depth instead of a single flat band.
+ * Screen-blended so it only ADDS light, never darkens. */
 .sui-glass::before {
   content: "";
   position: absolute;
@@ -246,17 +266,21 @@
   border-radius: inherit;
   pointer-events: none;
   z-index: 1;
-  background: linear-gradient(
-    125deg,
-    var(--sui-glass-sheen) 0%,
-    transparent 38%,
-    transparent 100%
-  );
+  background:
+    linear-gradient(
+      125deg,
+      var(--sui-glass-sheen) 0%,
+      transparent 34%,
+      transparent 62%,
+      var(--sui-glass-sheen-2, transparent) 80%,
+      transparent 100%
+    );
   mix-blend-mode: screen;
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
-/* Soft inner GLOW pooled at the top — the diffuse self-lit look of the pane. */
+/* Soft inner GLOW pooled at the top — the diffuse self-lit look of the pane,
+ * plus a faint floor glow so the lower edge isn't dead. */
 .sui-glass::after {
   content: "";
   position: absolute;
@@ -264,11 +288,17 @@
   border-radius: inherit;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(
-    120% 80% at 50% -10%,
-    var(--sui-glass-glow) 0%,
-    transparent 60%
-  );
+  background:
+    radial-gradient(
+      120% 80% at 50% -10%,
+      var(--sui-glass-glow) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      140% 60% at 50% 115%,
+      color-mix(in srgb, var(--sui-glass-glow) 45%, transparent) 0%,
+      transparent 55%
+    );
 }
 
 /* Children sit above the sheen/glow layers. */
@@ -329,13 +359,18 @@
     0 6px 20px var(--sui-glass-shadow);
 }
 
-/* -------- .interactive() — hover lift + press lensing -------- */
+/* -------- .interactive() — hover lift + press lensing --------
+ * The lensing response uses the SwiftUI snappy spring on `transform` so the
+ * scale settles with a tiny overshoot (the physical "give" of the glass), while
+ * brightness/backdrop track the press with a fast linear nudge. */
 .sui-glass-interactive {
   cursor: pointer;
   transition:
     transform 0.4s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
     box-shadow 0.3s ease,
-    filter 0.18s ease;
+    filter 0.18s ease,
+    backdrop-filter 0.18s ease,
+    -webkit-backdrop-filter 0.18s ease;
 }
 @media (hover: hover) {
   .sui-glass-interactive:hover {
@@ -343,25 +378,212 @@
     filter: brightness(var(--sui-glass-hover-brightness));
     box-shadow:
       inset 0 1px 0.5px var(--sui-glass-rim),
+      inset 0 1.5px 2px -0.5px var(--sui-glass-rim),
       inset 0 -1px 1px var(--sui-glass-rim-bottom),
       inset 0 0 0 0.5px var(--sui-glass-hairline),
       0 10px 28px var(--sui-glass-shadow);
   }
 }
+/* Press: scale IN (lens contracts under the finger), brightness pop, and the
+ * backdrop saturates harder at the contact point — the optical bulge. */
 .sui-glass-interactive:active {
   transform: scale(var(--sui-glass-interactive-scale));
   filter: brightness(var(--sui-glass-interactive-brightness));
+  -webkit-backdrop-filter: blur(var(--sui-glass-blur))
+    saturate(var(--sui-glass-interactive-saturate, var(--sui-glass-saturate)))
+    brightness(calc(var(--sui-glass-brightness) + 0.04)) contrast(1.06);
+  backdrop-filter: blur(var(--sui-glass-blur))
+    saturate(var(--sui-glass-interactive-saturate, var(--sui-glass-saturate)))
+    brightness(calc(var(--sui-glass-brightness) + 0.04)) contrast(1.06);
   transition:
     transform 0.12s ease,
     filter 0.12s ease;
 }
 
+/* Respect reduced motion: kill the lensing scale, keep the brightness cue. */
+@media (prefers-reduced-motion: reduce) {
+  .sui-glass-interactive,
+  .sui-glass-interactive:hover,
+  .sui-glass-interactive:active {
+    transform: none;
+    transition: filter 0.1s ease, box-shadow 0.2s ease;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * 4b. .sui-glass-bar — the FLOATING chrome bar variant (nav / tab bar).
+ *     iOS-26 bars float as a glass slab OVER scrolling content; the content
+ *     extends behind them (backgroundExtensionEffect). A bar is wider, heavier-
+ *     blurred and more opaque than a free pane so dense UI behind stays legible,
+ *     with a stronger floor shadow for the lift. Default radius is a soft rect,
+ *     NOT a capsule (override per placement). Composes with .sui-glass.
+ * -------------------------------------------------------------------------- */
+.sui-glass-bar {
+  border-radius: 22px;
+  -webkit-backdrop-filter: blur(var(--sui-glass-bar-blur))
+    saturate(var(--sui-glass-bar-saturate))
+    brightness(var(--sui-glass-bar-brightness)) contrast(1.03);
+  backdrop-filter: blur(var(--sui-glass-bar-blur))
+    saturate(var(--sui-glass-bar-saturate))
+    brightness(var(--sui-glass-bar-brightness)) contrast(1.03);
+  background: var(--sui-glass-bar-tint);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-bar-rim),
+    inset 0 0 0 0.5px var(--sui-glass-bar-hairline),
+    0 8px 30px var(--sui-glass-bar-shadow),
+    0 1px 2px var(--sui-glass-bar-shadow);
+}
+/* The bar's sheen is calmer (a single soft top band) so chrome stays readable. */
+.sui-glass-bar::before {
+  opacity: 0.5;
+}
+.sui-glass-bar::after {
+  opacity: 0.7;
+}
+
+/* -----------------------------------------------------------------------------
+ * 4c. Scroll-edge effects (ScrollEdgeEffectStyle .soft / .hard).
+ *     The strip of content scrolling UNDER a floating bar gets a glass fade so
+ *     it doesn't hard-clip at the bar's edge. Applied to the scroll container's
+ *     edge as a self-masking gradient layer (top edge by default; add
+ *     `data-edge="bottom"` to flip). These are overlay strips — position them
+ *     absolutely at the bar boundary over the scroll content.
+ * -------------------------------------------------------------------------- */
+.sui-scroll-edge-soft {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--sui-scroll-edge-soft-size);
+  pointer-events: none;
+  z-index: 5;
+  /* a long translucent ramp from the bar-frosted scrim down to clear */
+  background: linear-gradient(
+    to bottom,
+    var(--sui-scroll-edge-soft-scrim) 0%,
+    color-mix(in srgb, var(--sui-scroll-edge-soft-scrim) 40%, transparent) 45%,
+    transparent 100%
+  );
+  -webkit-backdrop-filter: blur(var(--sui-scroll-edge-soft-blur));
+  backdrop-filter: blur(var(--sui-scroll-edge-soft-blur));
+  /* fade the blur itself out toward the clear end so only the lip is frosted */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+.sui-scroll-edge-hard {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--sui-scroll-edge-hard-size);
+  pointer-events: none;
+  z-index: 5;
+  /* a short, crisp scrim line — a hard cut under the bar */
+  background: linear-gradient(
+    to bottom,
+    var(--sui-scroll-edge-hard-scrim) 0%,
+    transparent 100%
+  );
+}
+/* bottom-edge variants (under a tab bar) — flip the gradient + position. */
+.sui-scroll-edge-soft[data-edge="bottom"],
+.sui-scroll-edge-hard[data-edge="bottom"] {
+  top: auto;
+  bottom: 0;
+}
+.sui-scroll-edge-soft[data-edge="bottom"] {
+  background: linear-gradient(
+    to top,
+    var(--sui-scroll-edge-soft-scrim) 0%,
+    color-mix(in srgb, var(--sui-scroll-edge-soft-scrim) 40%, transparent) 45%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0%, transparent 100%);
+}
+.sui-scroll-edge-hard[data-edge="bottom"] {
+  background: linear-gradient(
+    to top,
+    var(--sui-scroll-edge-hard-scrim) 0%,
+    transparent 100%
+  );
+}
+
+/* -----------------------------------------------------------------------------
+ * 4d. .sui-glass-merge — gooey droplet-merge for GlassEffectContainer.
+ *     The native glassEffectUnion fuses adjacent glass capsules into liquid
+ *     droplets. The closest CSS analog is the classic SVG "goo" filter: blur the
+ *     alpha then re-sharpen it with a high-contrast feColorMatrix, which makes
+ *     near touching shapes bleed into one blob. The container applies this filter
+ *     (referencing an inline <filter id="sui-glass-goo">) to a wrapper whose
+ *     children overlap by a negative gap. We carry the structural bits here; the
+ *     SVG filter itself is emitted once by GlassEffectContainer.
+ * -------------------------------------------------------------------------- */
+.sui-glass-merge {
+  filter: url(#sui-glass-goo);
+  isolation: isolate;
+}
+/* When the goo filter is unavailable (no SVG ref), the children still cluster;
+ * the negative-gap overlap from the container gives a visual kiss. */
+@supports not (filter: url(#x)) {
+  .sui-glass-merge {
+    filter: none;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+ * 4e. Design-mode switch — [data-design-mode] on the .sui-root wrapper.
+ *     'liquidGlass' (iOS 26, default) is the recipe above. 'classic' rolls the
+ *     glass back to the pre-26 frosted Material look: heavier opaque body, no
+ *     bright specular lip, calmer sheen — so a single prop flips the whole kit
+ *     between design languages without touching component markup.
+ * -------------------------------------------------------------------------- */
+[data-design-mode="classic"] .sui-glass {
+  background: color-mix(
+    in srgb,
+    var(--sui-glass-tint) 100%,
+    var(--sui-material-regular-tint)
+  );
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 2px 8px var(--sui-glass-shadow);
+}
+[data-design-mode="classic"] .sui-glass::before {
+  opacity: 0.35; /* drop the wet specular sheen to a faint vibrancy band */
+}
+[data-design-mode="classic"] .sui-glass::after {
+  opacity: 0.5;
+}
+[data-design-mode="classic"] .sui-glass-interactive:hover {
+  transform: none; /* pre-26 glass doesn't lens; just brighten */
+}
+[data-design-mode="classic"] .sui-glass-interactive:active {
+  transform: none;
+  -webkit-backdrop-filter: blur(var(--sui-glass-blur))
+    saturate(var(--sui-glass-saturate)) brightness(var(--sui-glass-brightness));
+  backdrop-filter: blur(var(--sui-glass-blur))
+    saturate(var(--sui-glass-saturate)) brightness(var(--sui-glass-brightness));
+}
+[data-design-mode="classic"] .sui-glass-bar {
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-glass-bar-hairline),
+    0 1px 6px var(--sui-glass-bar-shadow);
+}
+
 /* @supports fallback: no backdrop-filter → fall back to a slightly more opaque
- * tinted body so the pane is still legible (loses the live refraction only). */
+ * tinted body so the pane is still legible (loses the live refraction only).
+ * Covers the free pane AND the bar variant. */
 @supports not (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
 ) {
   .sui-glass {
     background: color-mix(in srgb, var(--sui-glass-tint) 70%, rgba(200, 200, 200, 0.5));
+  }
+  .sui-glass-bar {
+    background: color-mix(in srgb, var(--sui-glass-bar-tint) 100%, rgba(180, 180, 180, 0.6));
+  }
+  .sui-scroll-edge-soft {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

@@ -22,6 +22,14 @@ import {
 } from "./PresentationRoot";
 import { Sheet, type PresentationAdaptation } from "./Sheet";
 import { springCss } from "../../system/animation";
+import { glass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassSurfaceClass,
+  glassCaretClass,
+  concentricVars,
+  chromeClasses,
+} from "./glassChrome";
 import type { Edge } from "../../system/types";
 import styles from "./Popover.module.css";
 
@@ -68,6 +76,11 @@ export interface PopoverProps {
   compactAdaptation?: PresentationAdaptation;
   /** Below this width, auto-adapt to a sheet (DESIGNED, default 500). */
   compactBreakpoint?: number;
+  /**
+   * Liquid-Glass panel override. Unset ⇒ follow `useEnvironment().liquidGlass`
+   * (default glass). `false` ⇒ classic frosted Material panel.
+   */
+  glass?: boolean;
   "aria-label"?: string;
   children?: React.ReactNode;
 }
@@ -94,8 +107,11 @@ export function Popover(props: PopoverProps): React.JSX.Element {
     arrowEdge = null,
     compactAdaptation = "automatic",
     compactBreakpoint = 500,
+    glass: glassProp,
     children,
   } = props;
+
+  const glassy = useLiquidGlass(glassProp);
 
   const { mounted, dataState, reduceMotion, surfaceProps } = usePresentation({
     isPresented,
@@ -297,8 +313,21 @@ export function Popover(props: PopoverProps): React.JSX.Element {
           onTransitionEnd={surfaceProps.onTransitionEnd}
           style={popoverStyle}
         >
-          <div ref={panelRef} className={styles.panel}>
-            <div className={styles.arrow} style={arrowStyle} aria-hidden="true" />
+          <div
+            ref={panelRef}
+            className={chromeClasses(
+              styles.panel,
+              glassy && styles.panelGlass,
+              glassy && glassSurfaceClass(glass.regular),
+            )}
+            data-glass={glassy ? "true" : undefined}
+            style={glassy ? concentricVars(13) : undefined}
+          >
+            <div
+              className={chromeClasses(styles.arrow, glassCaretClass(glassy))}
+              style={arrowStyle}
+              aria-hidden="true"
+            />
             {children}
           </div>
         </div>

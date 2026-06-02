@@ -19,6 +19,13 @@ import {
   DismissProvider,
 } from "./PresentationRoot";
 import { springCss } from "../../system/animation";
+import { glass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassSurfaceClass,
+  concentricVars,
+  chromeClasses,
+} from "./glassChrome";
 
 export interface FullScreenCoverProps {
   /** `Binding<Bool>`. */
@@ -26,8 +33,17 @@ export interface FullScreenCoverProps {
   onIsPresentedChange?: (next: boolean) => void;
   /** Fires AFTER the dismiss animation completes. */
   onDismiss?: () => void;
-  /** Opaque background; default = system background. */
+  /**
+   * Opaque background; default = system background. In Liquid-Glass mode an
+   * explicit `background` opts the cover OUT of glass (the caller owns the fill).
+   */
   background?: string;
+  /**
+   * Liquid-Glass surface override. Unset ⇒ follow `useEnvironment().liquidGlass`
+   * (default glass). `false` ⇒ classic opaque cover. A custom `background` always
+   * wins (opts out of glass).
+   */
+  glass?: boolean;
   "aria-label"?: string;
   children?: React.ReactNode;
 }
@@ -37,9 +53,17 @@ export function FullScreenCover(props: FullScreenCoverProps): React.JSX.Element 
     isPresented,
     onIsPresentedChange,
     onDismiss,
-    background = "var(--sui-color-system-background, #fff)",
+    background,
+    glass: glassProp,
     children,
   } = props;
+
+  // Liquid-Glass mode. An explicit `background` opts out (caller owns the fill);
+  // glass paints the cover only when no background was supplied.
+  const liquidGlass = useLiquidGlass(glassProp);
+  const glassy = liquidGlass && background == null;
+  const resolvedBackground =
+    background ?? (glassy ? "transparent" : "var(--sui-color-system-background, #fff)");
 
   const { mounted, dataState, reduceMotion, surfaceProps } = usePresentation({
     isPresented,
@@ -61,13 +85,21 @@ export function FullScreenCover(props: FullScreenCoverProps): React.JSX.Element 
   const coverStyle: React.CSSProperties = {
     position: "fixed",
     inset: 0,
-    background,
+    background: resolvedBackground,
     transform: presented ? "translateY(0)" : "translateY(100%)",
     transition: reduceMotion
       ? "opacity 0.2s linear"
       : springCss("smooth", { property: "transform" }),
     willChange: "transform",
     pointerEvents: "auto",
+    // glass cover floats with concentric top corners over the page behind it.
+    ...(glassy
+      ? {
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          ...concentricVars(16),
+        }
+      : {}),
     ...(reduceMotion ? { opacity: presented ? 1 : 0, transform: "none" } : {}),
   };
 
@@ -80,6 +112,7 @@ export function FullScreenCover(props: FullScreenCoverProps): React.JSX.Element 
           aria-modal={true}
           aria-label={props["aria-label"] ?? "Full screen cover"}
           data-state={dataState}
+          className={chromeClasses(glassy && glassSurfaceClass(glass.regular))}
           onTransitionEnd={surfaceProps.onTransitionEnd}
           style={coverStyle}
         >

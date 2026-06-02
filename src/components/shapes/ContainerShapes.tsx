@@ -93,69 +93,10 @@ export function ContainerRelativeShape({
 ContainerRelativeShape.displayName = "ContainerRelativeShape";
 
 /* ------------------------- ConcentricRectangle --------------------------- */
-
-/** `Edge.Corner.Style` — a fixed px radius, `.concentric`, or `.concentric(minimum:)`. */
-export type CornerStyle =
-  | number
-  | "concentric"
-  | { concentric: { minimum?: number } };
-
-export interface ConcentricRectangleProps {
-  corners?: {
-    topLeading?: CornerStyle;
-    topTrailing?: CornerStyle;
-    bottomLeading?: CornerStyle;
-    bottomTrailing?: CornerStyle;
-  };
-  /** apply one value to all corners (overridden by per-corner). */
-  uniform?: CornerStyle;
-  isUniform?: boolean;
-  fill?: string;
-  className?: string;
-  style?: React.CSSProperties;
-  rtl?: boolean;
-}
-
-function cornerCSS(s: CornerStyle | undefined, fallback: CornerStyle): string {
-  const v = s ?? fallback;
-  if (typeof v === "number") return `${v}px`;
-  const base = `calc(var(--sui-container-radius, 0px) - var(--sui-container-inset, 0px))`;
-  if (v === "concentric") return `max(0px, ${base})`;
-  const min = v.concentric.minimum ?? 0;
-  return `max(${min}px, ${base})`;
-}
-
-export function ConcentricRectangle({
-  corners = {},
-  uniform = "concentric",
-  fill = "var(--sui-color-label)",
-  className,
-  style,
-  rtl = false,
-}: ConcentricRectangleProps) {
-  // leading→left, trailing→right (swap under RTL).
-  const tl = rtl ? corners.topTrailing : corners.topLeading;
-  const tr = rtl ? corners.topLeading : corners.topTrailing;
-  const bl = rtl ? corners.bottomTrailing : corners.bottomLeading;
-  const br = rtl ? corners.bottomLeading : corners.bottomTrailing;
-  // CSS border-radius order: TL TR BR BL.
-  const borderRadius = [
-    cornerCSS(tl, uniform),
-    cornerCSS(tr, uniform),
-    cornerCSS(br, uniform),
-    cornerCSS(bl, uniform),
-  ].join(" ");
-  return (
-    <div
-      className={className}
-      style={{
-        width: "100%",
-        height: "100%",
-        background: fill,
-        borderRadius,
-        ...style,
-      }}
-    />
-  );
-}
-ConcentricRectangle.displayName = "ConcentricRectangle";
+//
+// The canonical `ConcentricRectangle` (squircle-path, full RectangleCornerRadii,
+// `.fixed`/`.concentric(minimum:)`, container-var resolution) lives in
+// `./ConcentricRectangle.tsx` and is re-exported from the barrel. The legacy
+// border-radius-only version was REMOVED here to avoid a duplicate export; it
+// also reads the `--sui-container-radius`/`--sui-container-inset` vars that
+// `<ContainerShape>` above publishes, so the contract is unchanged.

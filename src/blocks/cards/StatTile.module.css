@@ -1,0 +1,33 @@
+/* StatTile / MetricCard — KPI tile chrome.
+   Layout comes from the kit VStack/HStack; this owns the icon chip, the delta
+   pill, and the sparkline well. --sui-tile-tint is set inline per tile. */
+
+.iconChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+  color: #fff;
+  /* solid tint fill behind the white glyph (iOS settings-icon look) */
+  background: var(--sui-tile-tint, var(--sui-color-system-blue));
+}
+
+.deltaPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  /* a soft tinted capsule behind the delta; currentColor is the delta tint */
+  padding: 2px 7px 2px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  white-space: nowrap;
+}
+
+.spark {
+  width: 100%;
+  margin-top: 2px;
+}

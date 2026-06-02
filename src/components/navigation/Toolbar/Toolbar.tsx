@@ -32,6 +32,7 @@ import {
   type ToolbarTitleDisplayMode,
   type ToolbarRoleName,
 } from "../NavigationContext";
+import { useLiquidGlassMode } from "../liquidGlassNav";
 
 export type {
   ToolbarPlacement,
@@ -56,6 +57,13 @@ export interface ToolbarItemProps
   content?: React.ReactNode;
   /** Children = the item's view (alternative to `content`). */
   children?: React.ReactNode;
+  /**
+   * iOS-26 Liquid Glass item background. When true the built bar button renders
+   * inside a Liquid-Glass capsule (a `glassEffect`-style chip). Defaults to the
+   * app design mode at the enclosing `<Toolbar>`; set `false` to force a plain
+   * (non-glass) tappable label even in iOS-26.
+   */
+  glass?: boolean;
 }
 
 /**
@@ -66,22 +74,42 @@ export interface ToolbarItemProps
  */
 export function ToolbarItem(props: ToolbarItemProps): React.ReactElement | null {
   // As a leaf it self-registers; <Toolbar> reads its props directly instead.
-  const entry = toolbarItemToEntry(props);
+  const glassDefault = useLiquidGlassMode();
+  const entry = React.useMemo(
+    () => toolbarItemToEntry(props, glassDefault),
+    [props, glassDefault],
+  );
   useToolbar([entry]);
   return null;
 }
 ToolbarItem.displayName = "ToolbarItem";
 (ToolbarItem as unknown as { __suiToolbarItem: boolean }).__suiToolbarItem = true;
 
-/** Render a `ToolbarItem`'s view: explicit content/children, else a built button. */
-export function renderToolbarItem(props: ToolbarItemProps): React.ReactNode {
-  const { placement, title, systemImage, content, children, ...rest } = props;
+/**
+ * Render a `ToolbarItem`'s view: explicit content/children, else a built button.
+ * `glassDefault` is the enclosing `<Toolbar>`'s resolved design mode; an item's
+ * own `glass` prop overrides it. When glass is on, the built button wears a
+ * Liquid-Glass capsule chip (`data-glass="true"` → the `.sui-toolbar-btn` glass
+ * rule in navigation.global.css supplies the backdrop blur + specular rim).
+ */
+export function renderToolbarItem(
+  props: ToolbarItemProps,
+  glassDefault = false,
+): React.ReactNode {
+  const { placement, title, systemImage, content, children, glass, ...rest } = props;
   if (content !== undefined) return content;
   if (children !== undefined && (title === undefined && systemImage === undefined))
     return children;
   const role = roleFor(placement);
+  const isGlass = glass ?? glassDefault;
   return (
-    <button type="button" className="sui-toolbar-btn" data-role={role} {...rest}>
+    <button
+      type="button"
+      className="sui-toolbar-btn"
+      data-role={role}
+      data-glass={isGlass ? "true" : undefined}
+      {...rest}
+    >
       {systemImage ? <Image systemName={systemImage} aria-hidden /> : null}
       {title ? <span>{title}</span> : null}
       {children}
@@ -89,8 +117,8 @@ export function renderToolbarItem(props: ToolbarItemProps): React.ReactNode {
   );
 }
 
-function toolbarItemToEntry(props: ToolbarItemProps): ToolbarEntry {
-  return { placement: props.placement, content: renderToolbarItem(props) };
+function toolbarItemToEntry(props: ToolbarItemProps, glassDefault = false): ToolbarEntry {
+  return { placement: props.placement, content: renderToolbarItem(props, glassDefault) };
 }
 
 function roleFor(p: ToolbarPlacement | undefined): string | undefined {
@@ -109,12 +137,13 @@ export interface ToolbarItemGroupProps {
 }
 
 export function ToolbarItemGroup({ placement, children }: ToolbarItemGroupProps): React.ReactElement | null {
+  const glassDefault = useLiquidGlassMode();
   const items: ToolbarEntry[] = [];
   React.Children.forEach(children, (child) => {
     if (React.isValidElement(child)) {
       const p = { ...(child.props as ToolbarItemProps) };
       if (p.placement === undefined) p.placement = placement;
-      items.push(toolbarItemToEntry(p));
+      items.push(toolbarItemToEntry(p, glassDefault));
     }
   });
   useToolbar(items);
@@ -129,14 +158,23 @@ ToolbarItemGroup.displayName = "ToolbarItemGroup";
 export interface ToolbarProps {
   /** A list of `<ToolbarItem>`/`<ToolbarItemGroup>` children. */
   children: React.ReactNode;
+  /**
+   * iOS-26 Liquid Glass default for the bar's built buttons. Defaults to the app
+   * design mode; set `false` to render plain (non-glass) toolbar items even in
+   * iOS-26 (per-item `glass` still wins over this).
+   */
+  glass?: boolean;
 }
 
 /**
  * `<Toolbar>` — the `.toolbar { … }` modifier. Reads its `ToolbarItem`/
  * `ToolbarItemGroup` children's props (without rendering them itself) and
- * registers the flattened item list with the enclosing `NavigationStack`.
+ * registers the flattened item list with the enclosing `NavigationStack`. In
+ * iOS-26 design mode the built buttons default to Liquid-Glass chips.
  */
-export function Toolbar({ children }: ToolbarProps): React.ReactElement | null {
+export function Toolbar({ children, glass }: ToolbarProps): React.ReactElement | null {
+  const glassMode = useLiquidGlassMode();
+  const glassDefault = glass ?? glassMode;
   const items = React.useMemo(() => {
     const out: ToolbarEntry[] = [];
     const walk = (nodes: React.ReactNode, inheritedPlacement?: ToolbarPlacement) => {
@@ -154,12 +192,12 @@ export function Toolbar({ children }: ToolbarProps): React.ReactElement | null {
         const p = { ...(child.props as ToolbarItemProps) };
         if (p.placement === undefined && inheritedPlacement)
           p.placement = inheritedPlacement;
-        out.push(toolbarItemToEntry(p));
+        out.push(toolbarItemToEntry(p, glassDefault));
       });
     };
     walk(children);
     return out;
-  }, [children]);
+  }, [children, glassDefault]);
 
   useToolbar(items);
   return null;

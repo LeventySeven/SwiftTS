@@ -21,6 +21,14 @@ import {
   Scrim,
   useFocusTrap,
 } from "./PresentationRoot";
+import { glass, glassClass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassScrimClass,
+  glassRowClass,
+  concentricVars,
+  chromeClasses,
+} from "./glassChrome";
 import styles from "./Alert.module.css";
 
 /* ===========================================================================
@@ -108,6 +116,11 @@ export interface AlertProps {
   severity?: DialogSeverity;
   /** `dialogSuppressionToggle` — "Don't ask again". */
   suppressionToggle?: SuppressionToggle;
+  /**
+   * Liquid-Glass card override. Unset ⇒ follow `useEnvironment().liquidGlass`
+   * (default glass). `false` ⇒ classic frosted Material alert card.
+   */
+  glass?: boolean;
   /** `<Alert.Button>` children (the `actions:` builder). */
   children?: React.ReactNode;
 }
@@ -122,8 +135,11 @@ export function Alert(props: AlertProps): React.JSX.Element {
     icon,
     severity = "automatic",
     suppressionToggle,
+    glass: glassProp,
     children,
   } = props;
+
+  const glassy = useLiquidGlass(glassProp);
 
   const { mounted, dataState, reduceMotion, surfaceProps } = usePresentation({
     isPresented,
@@ -213,19 +229,27 @@ export function Alert(props: AlertProps): React.JSX.Element {
         aria-describedby={message != null ? msgId : undefined}
       >
         <Scrim
-          opacity={0.3}
+          opacity={glassy ? 1 : 0.3}
           presented={presented}
           interactive={false}
           transition={scrimTransition}
-          className={styles.scrim}
+          className={chromeClasses(styles.scrim, glassScrimClass(glassy))}
         />
         <div
-          className={styles.card}
+          className={chromeClasses(
+            styles.card,
+            glassy && styles.cardGlass,
+            glassy && `${glassClass(glass.regular)} sui-glass-chrome`,
+          )}
           data-state={dataState}
           data-buttons={layout}
           data-severity={severity}
+          data-glass={glassy ? "true" : undefined}
           onTransitionEnd={surfaceProps.onTransitionEnd}
-          style={{ transition: cardTransition }}
+          style={{
+            transition: cardTransition,
+            ...(glassy ? concentricVars(14) : {}),
+          }}
         >
           {criticalIcon != null && <div className={styles.icon}>{criticalIcon}</div>}
           <div className={styles.text}>
@@ -253,7 +277,7 @@ export function Alert(props: AlertProps): React.JSX.Element {
               <button
                 key={i}
                 type="button"
-                className={styles.btn}
+                className={chromeClasses(styles.btn, glassRowClass(glassy))}
                 data-role={b.role}
                 onClick={() => runButton(b)}
                 autoFocus={b === defaultButton}

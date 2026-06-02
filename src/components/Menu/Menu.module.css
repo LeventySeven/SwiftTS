@@ -74,6 +74,13 @@
   transform-origin: top right;
 }
 
+/* Liquid-Glass dropdown panel: the .sui-glass layer supplies the refraction +
+ * specular rim + sheen, so drop the flat shadow/border the classic panel drew. */
+.popup[data-glass="true"] {
+  box-shadow: none;
+  background: transparent;
+}
+
 @keyframes sui-menu-in {
   from {
     opacity: 0;

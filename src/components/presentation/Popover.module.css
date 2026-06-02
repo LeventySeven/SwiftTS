@@ -37,3 +37,19 @@
   /* upward-pointing triangle; rotated per edge by the component. */
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
+
+/* Liquid-Glass popover panel: drop the opaque Material backing (the .sui-glass
+ * layer paints the refraction + specular rim + sheen), and let the glass caret
+ * poke out of the panel box (overflow:visible) so it reads as a continuous glass
+ * shape with a beak. The glass radius is the menu radius (13px). */
+.panelGlass {
+  background: transparent;
+  border-radius: 13px;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+/* the caret keeps z above the panel body so its rim is not hidden. */
+.panelGlass .arrow {
+  z-index: 2;
+}

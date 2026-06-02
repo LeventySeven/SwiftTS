@@ -18,6 +18,7 @@ export * from "./Path";
 export * from "./Rectangle";
 export * from "./RoundedRectangle";
 export * from "./UnevenRoundedRectangle";
+export * from "./ConcentricRectangle";
 export * from "./Circle";
 export * from "./Ellipse";
 export * from "./Capsule";

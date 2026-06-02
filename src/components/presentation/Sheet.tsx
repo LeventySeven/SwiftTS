@@ -23,6 +23,15 @@ import {
   DismissProvider,
 } from "./PresentationRoot";
 import { springCss } from "../../system/animation";
+import { glass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassSurfaceClass,
+  glassScrimClass,
+  glassGrabberClass,
+  concentricVars,
+  chromeClasses,
+} from "./glassChrome";
 import styles from "./Sheet.module.css";
 
 /* ===========================================================================
@@ -153,6 +162,12 @@ export interface SheetProps {
   sizing?: PresentationSizing;
   /** Block swipe/scrim dismissal (`interactiveDismissDisabled`). */
   interactiveDismissDisabled?: boolean;
+  /**
+   * Liquid-Glass surface override. Unset ⇒ follow `useEnvironment().liquidGlass`
+   * (default glass in iOS-26 mode). `false` ⇒ classic frosted Material card.
+   * Ignored when a custom `background` is supplied (the caller owns the backing).
+   */
+  glass?: boolean;
   /** Accessible label id; defaults are derived. */
   "aria-label"?: string;
   children?: React.ReactNode;
@@ -185,8 +200,15 @@ export function Sheet(props: SheetProps): React.JSX.Element {
     backgroundInteraction = "automatic",
     sizing = "automatic",
     interactiveDismissDisabled = false,
+    glass: glassProp,
     children,
   } = props;
+
+  // Liquid-Glass mode (default glass in iOS-26). A custom `background` opts the
+  // surface out (the caller draws its own backing), so glass only paints the
+  // card when no explicit background is provided.
+  const liquidGlass = useLiquidGlass(glassProp);
+  const glassy = liquidGlass && background == null;
 
   const { mounted, dataState, reduceMotion, surfaceProps } = usePresentation({
     isPresented,
@@ -369,11 +391,14 @@ export function Sheet(props: SheetProps): React.JSX.Element {
 
   // Resolve the card transform: resting (translateY 0) + drag offset, OR resolve
   // height directly while dragging so the sheet tracks the finger 1:1.
+  // The resolved top-corner radius (system default 10pt; glass lifts to a softer
+  // 16pt so the concentric rim reads). Used both for the CSS var and to publish
+  // the concentric parent radius for nested glass children.
+  const resolvedRadius = cornerRadius ?? (glassy ? 16 : 10);
   const cardStyle: React.CSSProperties = {
     ["--sheet-detent-h" as string]: `${detentHeightPx}px`,
-    ...(cornerRadius != null
-      ? { ["--sheet-radius" as string]: `${cornerRadius}px` }
-      : {}),
+    ["--sheet-radius" as string]: `${resolvedRadius}px`,
+    ...(glassy ? concentricVars(resolvedRadius) : {}),
     // a non-automatic sizing strategy wins over the detent height var.
     ...(sizingMode !== "automatic" ? sizingStyle : {}),
   };
@@ -415,17 +440,22 @@ export function Sheet(props: SheetProps): React.JSX.Element {
           aria-label={props["aria-label"] ?? "Sheet"}
         >
           <Scrim
-            opacity={0.4}
+            opacity={glassy ? 1 : 0.4}
             presented={dataState === "presented"}
             interactive={interactive}
             onTap={interactiveDismissDisabled ? undefined : dismiss}
             transition={scrimTransition}
-            className={styles.scrim}
+            className={chromeClasses(styles.scrim, glassScrimClass(glassy))}
           />
           <div
             ref={cardRef}
-            className={styles.card}
+            className={chromeClasses(
+              styles.card,
+              glassy && styles.cardGlass,
+              glassy && glassSurfaceClass(glass.regular),
+            )}
             data-state={dataState}
+            data-glass={glassy ? "true" : undefined}
             data-dragging={drag.dragging ? "true" : "false"}
             data-sizing={sizingMode !== "automatic" ? sizingMode : undefined}
             onTransitionEnd={surfaceProps.onTransitionEnd}
@@ -433,7 +463,7 @@ export function Sheet(props: SheetProps): React.JSX.Element {
           >
             {showGrabber && (
               <div
-                className={styles.grabber}
+                className={chromeClasses(styles.grabber, glassGrabberClass(glassy))}
                 aria-hidden="true"
                 onPointerDown={isResizable || !interactiveDismissDisabled ? onPointerDown : undefined}
                 onPointerMove={onPointerMove}

@@ -50,6 +50,27 @@
   transition: none !important;
 }
 
+/* Liquid-Glass surface: drop the opaque Material backing so the .sui-glass layer
+ * (backdrop refraction + specular rim + sheen) shows through. The glass rim/glow
+ * comes from .sui-glass*; here we only own the geometry (top-corner rounding so
+ * the rim traces just the visible top edge of the sheet). */
+.card[data-glass="true"] {
+  background: transparent;
+  /* the .sui-glass-chrome shadow handles elevation; drop the flat one */
+  box-shadow: none;
+  /* concentric top corners; bottom is flush with the screen edge */
+  border-top-left-radius: var(--sheet-radius, 16px);
+  border-top-right-radius: var(--sheet-radius, 16px);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* sizing variants float a fully-rounded glass card (all four corners). */
+.card[data-glass="true"][data-sizing="fitted"],
+.card[data-glass="true"][data-sizing="form"],
+.card[data-glass="true"][data-sizing="fixed"] {
+  border-radius: var(--sheet-radius, 16px);
+}
+
 /* presentationSizing(.fitted / .form) — float a centered, content-hugging card
    with all four corners rounded (not pinned to the bottom edge). */
 .card[data-sizing="fitted"],

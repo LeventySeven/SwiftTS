@@ -21,7 +21,12 @@
  */
 import * as React from "react";
 import { View, type ViewProps } from "../../View";
-import { materialClass } from "../../../system/effects";
+import {
+  materialClass,
+  type Glass,
+  type GlassVariant,
+  type ScrollEdgeEffectStyle,
+} from "../../../system/effects";
 import { ChevronBackward } from "../glyphs";
 import {
   NavigationContext,
@@ -33,6 +38,13 @@ import {
   type NavigationContextValue,
   type ToolbarEntry,
 } from "../NavigationContext";
+import {
+  useLiquidGlassMode,
+  resolveBarSurface,
+  glassBarClass,
+  glassBarStyle,
+  resolveScrollEdge,
+} from "../liquidGlassNav";
 import "../navigation.global.css";
 
 /** Edge-swipe-back hot zone (px) and completion threshold — §14 constants. */
@@ -50,15 +62,45 @@ export interface NavigationStackProps extends Omit<ViewProps, "as" | "title"> {
   children: React.ReactNode;
   /** Title for the root screen when no child sets one via `navigationTitle`. */
   rootTitle?: string;
+  /**
+   * iOS-26 Liquid Glass nav bar. When the app design mode is iOS-26 the bar
+   * FLOATS as Liquid Glass over content (content extends behind it via
+   * backgroundExtensionEffect, :12093) by default. Pass `glass={false}` (or
+   * `material`) to force the classic frosted `.bar` material; pass an explicit
+   * `Glass` value / variant to configure it (`.regular`/`.clear`/tinted).
+   */
+  glass?: boolean | Glass | GlassVariant;
+  /** Opt out to the classic (non-glass) frosted `.bar` material. */
+  material?: boolean;
+  /**
+   * `scrollEdgeEffectStyle(_:)` (:12169) — the soft/hard glass fade applied to
+   * the scroll edge that runs under the floating glass bar. `.automatic` (soft)
+   * by default; `.hard` for a crisp cut; `hidden` to disable.
+   */
+  scrollEdgeEffectStyle?: ScrollEdgeEffectStyle;
 }
 
 type AnimState = { depth: number; kind: "push" | "pop" } | null;
 
 export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackProps>(
   function NavigationStack(
-    { path: controlledPath, onPathChange, children, rootTitle, style, className, ...rest },
+    {
+      path: controlledPath,
+      onPathChange,
+      children,
+      rootTitle,
+      glass,
+      material,
+      scrollEdgeEffectStyle = "automatic",
+      style,
+      className,
+      ...rest
+    },
     ref,
   ) {
+    const liquidGlassMode = useLiquidGlassMode();
+    const surface = resolveBarSurface({ glass, material, liquidGlassMode });
+    const edgeStyle = resolveScrollEdge(scrollEdgeEffectStyle);
     const isControlled = controlledPath !== undefined;
     const [internalPath, setInternalPath] = React.useState<NavPathEntry[]>([]);
     const path = isControlled ? controlledPath! : internalPath;
@@ -299,15 +341,28 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
       );
     }
 
-    const barClasses = [
-      "sui-navbar",
-      // frosted .bar material when collapsed OR forced-visible
-      collapsed || activeBar.toolbarBackground?.visibility === "visible"
-        ? `${materialClass("bar")} sui-material-no-rim`
-        : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    // A forced solid/hidden background, or a screen forcing visibility, overrides
+    // the glass float (toolbarBackground always wins — it is the explicit opt-out).
+    const forcedBg = activeBar.toolbarBackground;
+    const useGlass =
+      surface.kind === "glass" &&
+      !forcedBg?.style &&
+      forcedBg?.visibility !== "hidden";
+
+    const barClasses = useGlass
+      ? // FLOATING Liquid-Glass bar: glass at every scroll offset, concentric
+        // corners + float shadow come from the bar-local CSS. `data-floating`
+        // makes the content extend BEHIND it (backgroundExtensionEffect).
+        glassBarClass("sui-navbar", surface.glass)
+      : [
+          "sui-navbar",
+          // classic path: frosted .bar material crosses in when collapsed/forced
+          collapsed || forcedBg?.visibility === "visible"
+            ? `${materialClass("bar")} sui-material-no-rim`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
 
     const leadingItems = activeToolbar.filter((i) => canonicalPlacement(i.placement) === "leading");
     const principalItems = activeToolbar.filter((i) => canonicalPlacement(i.placement) === "principal");
@@ -322,6 +377,11 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
       (stackStyle as Record<string, string>)["--bar-fg"] = activeBar.toolbarForegroundStyle;
     }
 
+    // The floating glass bar carries the tint custom prop; the header gets it.
+    const headerStyle: React.CSSProperties | undefined = useGlass
+      ? glassBarStyle(surface.glass)
+      : undefined;
+
     return (
       <NavigationContext.Provider value={nav}>
         <NavigationBarContext.Provider value={barCtx}>
@@ -335,6 +395,8 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
               className={["sui-navstack", className].filter(Boolean).join(" ")}
               data-collapsed={String(collapsed)}
               data-display-mode={displayMode}
+              data-floating={useGlass ? "true" : undefined}
+              data-scroll-edge={useGlass ? edgeStyle : undefined}
               data-toolbar-role={
                 activeBar.toolbarRole && activeBar.toolbarRole !== "automatic"
                   ? activeBar.toolbarRole
@@ -353,6 +415,7 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
               <header
                 className={barClasses}
                 role="navigation"
+                style={headerStyle}
                 data-bg={
                   activeBar.toolbarBackground?.visibility === "visible" ? "visible" : undefined
                 }
@@ -425,9 +488,18 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
               {/* page stack */}
               <div className="sui-navstack-pages">{pages}</div>
 
-              {/* bottom bar (toolbar items placed in .bottomBar) */}
+              {/* bottom bar (toolbar items placed in .bottomBar) — floats as glass
+                  in iOS-26 mode, else the classic frosted .bar material */}
               {bottomItems.length > 0 ? (
-                <div className={`sui-bottombar ${materialClass("bar")} sui-material-no-rim`}>
+                <div
+                  className={
+                    useGlass
+                      ? glassBarClass("sui-bottombar", surface.glass)
+                      : `sui-bottombar ${materialClass("bar")} sui-material-no-rim`
+                  }
+                  style={useGlass ? glassBarStyle(surface.glass) : undefined}
+                  data-floating={useGlass ? "true" : undefined}
+                >
                   {bottomItems.map((it, i) => (
                     <React.Fragment key={`b${i}`}>{it.content}</React.Fragment>
                   ))}

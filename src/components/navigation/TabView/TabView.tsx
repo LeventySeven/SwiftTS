@@ -18,9 +18,22 @@
  */
 import * as React from "react";
 import { SymbolGlyph } from "../../controls/SymbolGlyph";
-import { materialClass } from "../../../system/effects";
+import {
+  materialClass,
+  type Glass,
+  type GlassVariant,
+  type TabBarMinimizeBehavior,
+} from "../../../system/effects";
 import type { TabViewStyleName } from "../../../system/styles";
 import { Tab, type TabProps } from "../Tab/Tab";
+import {
+  useLiquidGlassMode,
+  resolveBarSurface,
+  glassBarClass,
+  glassBarStyle,
+  resolveMinimizeBehavior,
+  shouldMinimize,
+} from "../liquidGlassNav";
 import "../navigation.global.css";
 
 /** Normalized per-tab spec, built from either a `<Tab>` or a legacy `tabItem` child. */
@@ -51,6 +64,23 @@ export interface TabViewProps {
   indexDisplayMode?: "automatic" | "always" | "never";
   /** sidebarAdaptable: width (px) below which the bar shows instead of the sidebar. */
   sidebarBreakpoint?: number;
+  /**
+   * iOS-26 Liquid Glass tab bar. When the app design mode is iOS-26 the tab bar
+   * FLOATS as a Liquid-Glass capsule over content (content extends behind it) by
+   * default, the selected tab gets a glass-highlight capsule that MORPHS between
+   * tabs, and the bar minimizes to a compact pill on scroll. Pass `glass={false}`
+   * (or `material`) for the classic frosted `.bar` row; pass a `Glass` value to
+   * configure the surface.
+   */
+  glass?: boolean | Glass | GlassVariant;
+  /** Opt out to the classic (non-glass) frosted `.bar` material. */
+  material?: boolean;
+  /**
+   * `TabBarMinimizeBehavior` (:8789) — when the floating glass bar shrinks to a
+   * compact pill as you scroll. `.automatic` (≈ `.onScrollDown`) | `.onScrollDown`
+   * | `.onScrollUp` | `.never`. Only applies to the glass floating bar.
+   */
+  tabBarMinimizeBehavior?: TabBarMinimizeBehavior;
   /** `<Tab>` descriptors or legacy `tabItem`-carrying children. */
   children: React.ReactNode;
   className?: string;
@@ -63,12 +93,16 @@ export function TabView({
   style = "bar",
   indexDisplayMode = "automatic",
   sidebarBreakpoint = 768,
+  glass,
+  material,
+  tabBarMinimizeBehavior = "automatic",
   children,
   className,
   style2,
 }: TabViewProps) {
   const tabs = React.useMemo(() => collectTabs(children), [children]);
   const isPage = style === "page" || style === "verticalPage";
+  const liquidGlassMode = useLiquidGlassMode();
 
   if (isPage) {
     return (
@@ -95,6 +129,8 @@ export function TabView({
       style={style2}
       adaptive={adaptive}
       sidebarBreakpoint={sidebarBreakpoint}
+      surface={resolveBarSurface({ glass, material, liquidGlassMode })}
+      minimizeBehavior={resolveMinimizeBehavior(tabBarMinimizeBehavior)}
     />
   );
 }
@@ -113,6 +149,8 @@ function BarTabView({
   style,
   adaptive = false,
   sidebarBreakpoint = 768,
+  surface,
+  minimizeBehavior = "onScrollDown",
 }: {
   tabs: TabSpec[];
   selection: unknown;
@@ -121,8 +159,11 @@ function BarTabView({
   style?: React.CSSProperties;
   adaptive?: boolean;
   sidebarBreakpoint?: number;
+  surface: { kind: "glass" | "material"; glass: Glass | GlassVariant };
+  minimizeBehavior?: "onScrollDown" | "onScrollUp" | "never";
 }) {
   const hostRef = React.useRef<HTMLDivElement | null>(null);
+  const useGlass = surface.kind === "glass";
   // sidebarAdaptable: measure width → "sidebar" (regular) vs "bar" (compact).
   const [layout, setLayout] = React.useState<"bar" | "sidebar">("bar");
   React.useEffect(() => {
@@ -143,8 +184,76 @@ function BarTabView({
 
   const showSidebar = adaptive && layout === "sidebar";
 
+  /* ---- TabBarMinimizeBehavior (:8789) — shrink to a compact pill on scroll ----
+   * Watches the active page's scroll; `shouldMinimize` maps the scroll-direction
+   * delta to the minimize decision per behavior. `null` (behavior `.never`) keeps
+   * the bar full. Only the floating glass bar minimizes. */
+  const pagesRef = React.useRef<HTMLDivElement | null>(null);
+  const lastScrollY = React.useRef(0);
+  const [minimized, setMinimized] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!useGlass || minimizeBehavior === "never") {
+      setMinimized(false);
+      return;
+    }
+    const root = pagesRef.current;
+    if (!root) return;
+    // The scroll happens on whichever descendant actually scrolls (the visible
+    // page). Listen in the capture phase so we catch nested scroll containers.
+    const onScroll = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      const y = t && "scrollTop" in t ? (t as HTMLElement).scrollTop : 0;
+      const dy = y - lastScrollY.current;
+      lastScrollY.current = y;
+      const next = shouldMinimize(minimizeBehavior, dy);
+      if (next != null) setMinimized(next);
+      // Always re-expand when back at the very top.
+      if (y <= 0) setMinimized(false);
+    };
+    root.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => root.removeEventListener("scroll", onScroll, { capture: true } as EventListenerOptions);
+  }, [useGlass, minimizeBehavior]);
+
+  /* ---- morphing glass-highlight capsule (glassEffectUnion / matched-geometry) --
+   * A SINGLE shared highlight element is translated+sized to sit under the
+   * selected tab; the CSS transition on transform/width makes it MORPH between
+   * tabs (the web analog of glassEffectUnion + matchedGeometryEffect). We measure
+   * the selected button's box relative to the bar and write it as custom props. */
+  const barRef = React.useRef<HTMLElement | null>(null);
+  const itemRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const [highlight, setHighlight] = React.useState<{ x: number; w: number; ready: boolean }>({
+    x: 0,
+    w: 0,
+    ready: false,
+  });
+  const selectedIndex = Math.max(0, tabs.findIndex((t) => sameValue(t.value, selection)));
+
+  const measureHighlight = React.useCallback(() => {
+    const bar = barRef.current;
+    const btn = itemRefs.current[selectedIndex];
+    if (!bar || !btn) return;
+    const bb = bar.getBoundingClientRect();
+    const ib = btn.getBoundingClientRect();
+    setHighlight({ x: ib.left - bb.left, w: ib.width, ready: true });
+  }, [selectedIndex]);
+
+  React.useEffect(() => {
+    if (!useGlass) return;
+    measureHighlight();
+  }, [useGlass, measureHighlight, minimized, tabs.length]);
+
+  React.useEffect(() => {
+    if (!useGlass || typeof ResizeObserver === "undefined") return;
+    const bar = barRef.current;
+    if (!bar) return;
+    const ro = new ResizeObserver(() => measureHighlight());
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, [useGlass, measureHighlight]);
+
   const pages = (
-    <div className="sui-tab-pages">
+    <div className="sui-tab-pages" ref={pagesRef}>
       {tabs.map((t, i) => {
         const selected = sameValue(t.value, selection);
         return (
@@ -200,25 +309,54 @@ function BarTabView({
     );
   }
 
+  const tabbarClasses = useGlass
+    ? glassBarClass("sui-tabbar", surface.glass)
+    : `sui-tabbar ${materialClass("bar")} sui-material-no-rim`;
+  const highlightStyle: React.CSSProperties = {
+    ["--hl-x" as string]: `${highlight.x}px`,
+    ["--hl-w" as string]: `${highlight.w}px`,
+  };
+
   return (
     <div
       ref={hostRef}
       className={["sui-tabview", className].filter(Boolean).join(" ")}
       data-style={adaptive ? "sidebarAdaptable" : "bar"}
       data-layout="bar"
+      data-floating={useGlass ? "true" : undefined}
+      data-minimized={useGlass && minimized ? "true" : undefined}
       style={style}
     >
       {pages}
-      <nav className={`sui-tabbar ${materialClass("bar")} sui-material-no-rim`} role="tablist">
+      <nav
+        ref={barRef}
+        className={tabbarClasses}
+        role="tablist"
+        style={useGlass ? { ...glassBarStyle(surface.glass), ...highlightStyle } : undefined}
+        data-minimized={useGlass && minimized ? "true" : undefined}
+      >
+        {/* morphing glass-highlight capsule under the selected tab (glassEffectUnion).
+            One shared element; CSS transitions transform+width so it MORPHS. */}
+        {useGlass ? (
+          <span
+            className="sui-tabbar-highlight"
+            aria-hidden
+            data-ready={String(highlight.ready)}
+          />
+        ) : null}
         {tabs.map((t, i) => {
           const selected = sameValue(t.value, selection);
           return (
             <button
               key={tabKey(t, i)}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
               type="button"
               className="sui-tabbar-item"
               role="tab"
               aria-selected={selected}
+              data-selected={String(selected)}
               onClick={() => onSelectionChange(t.value)}
             >
               <TabIcon spec={t} />

@@ -28,6 +28,10 @@
  * Pure data, no React, SSR-safe.
  */
 
+import { UI_SYSTEM_SYMBOLS } from "./symbols/ui-system";
+import { COMM_MEDIA_SYMBOLS } from "./symbols/comm-media";
+import { LIFE_MISC_SYMBOLS } from "./symbols/life-misc";
+
 /** One glyph's drawable geometry on the 24×24 grid. */
 export interface GlyphGeometry {
   /** Path(s) painted with `stroke: currentColor` (outline style). */
@@ -47,6 +51,12 @@ const ROUND_CHEVRON = (d: string): GlyphGeometry => ({ stroke: d });
  * `.slash` variant suffixes where the filled drawing differs from the outline).
  */
 export const SF_SYMBOLS: Record<string, GlyphGeometry> = {
+  // Satellite glyph sets are spread FIRST so the curated entries below win on
+  // any key conflict (later object keys override earlier ones in a spread).
+  ...UI_SYSTEM_SYMBOLS,
+  ...COMM_MEDIA_SYMBOLS,
+  ...LIFE_MISC_SYMBOLS,
+
   // ── house ────────────────────────────────────────────────────────────────
   house: {
     stroke:

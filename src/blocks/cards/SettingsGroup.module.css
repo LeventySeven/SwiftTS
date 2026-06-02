@@ -1,0 +1,17 @@
+/* SettingsGroup — the colored leading icon tile.
+   Card chrome, rows, separators, header/footer all come from the kit List +
+   Section. This only styles the 29×29 rounded-square glyph chip. */
+
+.iconTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 7px;
+  flex: 0 0 auto;
+  color: #fff;
+  background: var(--sui-settings-icon, var(--sui-color-system-blue));
+  /* tiny inner highlight for the glossy Settings-icon feel */
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25);
+}

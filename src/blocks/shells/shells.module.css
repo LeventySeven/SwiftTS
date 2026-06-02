@@ -1,0 +1,694 @@
+/* =============================================================================
+ * shells.module.css — app-shell + chrome BLOCK styles.
+ *
+ * These compose ON TOP of the kit's design tokens (var(--sui-*)) and the shared
+ * Liquid-Glass surface classes (.sui-glass / .sui-glassbar from
+ * system/effects.global.css + navigation.global.css). Nothing here re-implements
+ * the glass recipe — it only adds the BLOCK geometry (frame grid, sidebar width,
+ * floating-bar insets, row layout) that turns the kit's primitives into a real
+ * iOS-26 app screen.
+ *
+ * CSS-module scoped so two shells on one page never collide. Bare grouped
+ * backgrounds + typography come from the tokens, so dark mode "just works".
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * AppShell frame — sidebar | (navbar / content) grid.
+ * ------------------------------------------------------------------------- */
+.shell {
+  display: grid;
+  grid-template-columns: var(--shell-sidebar-w, 264px) 1fr;
+  grid-template-rows: 100%;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  background: var(--sui-color-system-grouped-background, #f2f2f7);
+  color: var(--sui-color-label, #000);
+  font-family: var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Collapsed: the sidebar column shrinks to a rail (or to 0 on mobile). */
+.shell[data-collapsed="true"] {
+  grid-template-columns: var(--shell-rail-w, 0px) 1fr;
+}
+
+/* The sidebar column wrapper — clips the panel as it collapses. */
+.sidebarColumn {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  transition: width 0.36s var(--sui-anim-snappy-css, cubic-bezier(0.3, 0.9, 0.3, 1));
+}
+
+/* The main column = navbar (auto) over a scrollable content region (1fr). */
+.mainColumn {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The scrollable content area: content scrolls BEHIND the floating glass navbar
+ * (backgroundExtensionEffect), so we pad the top by the bar height + float inset. */
+.content {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--shell-content-pad, 24px);
+  box-sizing: border-box;
+}
+
+/* When the navbar floats as glass, content extends under it → reserve headroom. */
+.content[data-bar-floating="true"] {
+  padding-top: var(--shell-content-pad-top, 76px);
+}
+
+/* The mobile scrim that closes an overlaid sidebar (small viewports). */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.28);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: shellScrimIn 0.24s ease both;
+}
+@keyframes shellScrimIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive: below the breakpoint the sidebar overlays instead of pushing. */
+@media (max-width: 820px) {
+  .shell {
+    grid-template-columns: 100%;
+  }
+  .shell[data-collapsed="true"] {
+    grid-template-columns: 100%;
+  }
+  .sidebarColumn {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    width: var(--shell-sidebar-w, 264px);
+    box-shadow: 0 12px 48px var(--sui-glass-shadow, rgba(0, 0, 0, 0.22));
+    transform: translateX(0);
+  }
+  /* collapsed on mobile = slide the panel fully off-canvas. */
+  .shell[data-collapsed="true"] .sidebarColumn {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * GlassSidebar — the panel itself (full-height glass column).
+ * ------------------------------------------------------------------------- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  /* edge-anchored glass: trailing rim only, no float drop (matches §6.7). */
+  border-radius: 0;
+}
+.sidebar.sidebarGlass {
+  box-shadow:
+    inset -1px 0 0.5px var(--sui-glass-rim),
+    inset 0 0 0 0.5px var(--sui-glass-hairline);
+}
+/* classic (non-glass) sidebar: opaque grouped panel + hard trailing separator. */
+.sidebar.sidebarPlain {
+  background: var(--sui-color-secondary-system-grouped-background, #fff);
+  box-shadow: inset -0.5px 0 0 var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+}
+
+.sidebarHeader {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  min-height: 56px;
+  box-sizing: border-box;
+}
+.sidebarHeaderIcon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--sui-radius-icon-app, 9px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--sui-color-tint, #007aff);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    0 1px 3px var(--sui-glass-shadow, rgba(0, 0, 0, 0.18));
+}
+.sidebarHeaderText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.sidebarHeaderTitle {
+  font:
+    600 16px/1.2 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  color: var(--sui-color-label, #000);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebarHeaderSubtitle {
+  font:
+    400 12px/1.3 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The scrollable body holding the sections. */
+.sidebarBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 10px 12px;
+  box-sizing: border-box;
+}
+.sidebarBody::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebarBody::-webkit-scrollbar-thumb {
+  background: var(--sui-color-tertiary-label, rgba(60, 60, 67, 0.3));
+  border-radius: 4px;
+}
+
+.sidebarSection {
+  margin: 4px 0 10px;
+}
+.sidebarSectionTitle {
+  font:
+    600 11px/1.4 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  padding: 6px 10px 4px;
+}
+
+/* A selectable nav row: icon + label + optional badge. */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  margin: 1px 0;
+  border: 0;
+  background: transparent;
+  border-radius: var(--sui-radius-list, 10px);
+  color: var(--sui-color-label, #000);
+  font:
+    400 15px/1.2 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition:
+    background 0.16s ease,
+    transform 0.16s var(--sui-anim-snappy-css, cubic-bezier(0.3, 0.9, 0.3, 1));
+  appearance: none;
+  -webkit-appearance: none;
+}
+@media (hover: hover) {
+  .row:hover {
+    background: var(--sui-color-tertiary-system-fill, rgba(118, 118, 128, 0.12));
+  }
+}
+.row:active {
+  transform: scale(0.985);
+}
+.rowIcon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+}
+.rowLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rowBadge {
+  flex: 0 0 auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sui-color-system-red, #ff3b30);
+  color: #fff;
+  font:
+    600 12px/1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  box-sizing: border-box;
+}
+.rowBadge[data-tone="neutral"] {
+  background: var(--sui-color-tertiary-system-fill, rgba(118, 118, 128, 0.2));
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+}
+.rowChevron {
+  flex: 0 0 auto;
+  color: var(--sui-color-tertiary-label, rgba(60, 60, 67, 0.3));
+}
+
+/* selected row — tinted capsule (matches the §6.7 glass sidebar selection). */
+.row[data-selected="true"] {
+  background: color-mix(in srgb, var(--sui-color-tint, #007aff) 14%, transparent);
+  color: var(--sui-color-tint, #007aff);
+  font-weight: 600;
+}
+.row[data-selected="true"] .rowIcon {
+  color: var(--sui-color-tint, #007aff);
+}
+.sidebar.sidebarGlass .row[data-selected="true"] {
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 0 0 0.5px
+      color-mix(in srgb, var(--sui-color-tint, #007aff) 35%, var(--sui-glass-hairline));
+}
+
+.sidebarFooter {
+  flex: 0 0 auto;
+  border-top: 0.5px solid var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------------------
+ * GlassNavBar — floating top bar template.
+ * ------------------------------------------------------------------------- */
+.navbar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  z-index: 20;
+}
+
+/* Floating glass variant: inset from the column edges, concentric corners,
+ * soft drop. Mirrors the `.sui-navbar.sui-glassbar` geometry from §6.1. */
+.navbar.navbarFloating {
+  --sui-glassbar-radius: 22px;
+  margin: 10px 12px 0;
+  border-radius: var(--sui-glassbar-radius);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 8px 30px var(--sui-glass-shadow);
+}
+
+/* Pinned (non-floating) variant: a full-width bar with a bottom hairline. */
+.navbar.navbarPinned {
+  border-radius: 0;
+  box-shadow: 0 0.5px 0 var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+}
+
+.navbarRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+.navbarLeading,
+.navbarTrailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.navbarTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.navbarTitle[data-align="leading"] {
+  justify-content: flex-start;
+}
+.navbarTitleText {
+  font:
+    600 17px/1.2 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  letter-spacing: -0.01em;
+  color: var(--sui-color-label, #000);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Large-title row, drawn below the compact row (navigationBarTitleDisplayMode
+ * = .large). */
+.navbarLargeRow {
+  padding: 0 16px 10px;
+}
+.navbarLargeTitle {
+  font:
+    700 30px/1.1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  letter-spacing: 0.0125em;
+  color: var(--sui-color-label, #000);
+}
+.navbarLargeSubtitle {
+  margin-top: 2px;
+  font:
+    400 14px/1.3 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+}
+
+/* A round glass icon button used as a leading/trailing slot control. */
+.barButton {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--sui-color-tint, #007aff);
+  font:
+    400 16px/1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    background 0.16s ease,
+    transform 0.2s var(--sui-anim-snappy-css, cubic-bezier(0.3, 0.9, 0.3, 1));
+}
+@media (hover: hover) {
+  .barButton:hover {
+    background: var(--sui-color-tertiary-system-fill, rgba(118, 118, 128, 0.12));
+  }
+}
+.barButton:active {
+  transform: scale(0.92);
+}
+.barButton[data-prominent="true"] {
+  color: #fff;
+  background: var(--sui-color-tint, #007aff);
+}
+.barButton[disabled] {
+  color: var(--sui-color-quaternary-label, rgba(60, 60, 67, 0.18));
+  pointer-events: none;
+}
+
+/* The search field row in the search NavBar variant. */
+.searchRow {
+  padding: 0 14px 10px;
+}
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: var(--sui-color-tertiary-system-fill, rgba(118, 118, 128, 0.12));
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+}
+.searchField input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--sui-color-label, #000);
+  font:
+    400 16px/1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+}
+.searchField input::placeholder {
+  color: var(--sui-color-placeholder-text, rgba(60, 60, 67, 0.3));
+}
+
+/* ---------------------------------------------------------------------------
+ * GlassTabBar — floating bottom tab capsule.
+ * ------------------------------------------------------------------------- */
+.tabbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  z-index: 30;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: min(var(--tabbar-max-w, 520px), calc(100% - 24px));
+  height: 60px;
+  padding: 5px;
+  border-radius: 9999px;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 12px 36px var(--sui-glass-shadow);
+}
+.tabbarItem {
+  position: relative;
+  z-index: 2;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  border-radius: 9999px;
+  cursor: pointer;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  color: var(--sui-color-secondary-label, rgba(60, 60, 67, 0.6));
+  transition: color 0.2s ease;
+}
+.tabbarItem[data-selected="true"] {
+  color: var(--sui-color-tint, #007aff);
+}
+.tabbarItem:active {
+  opacity: 0.7;
+}
+.tabbarIcon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+.tabbarLabel {
+  font:
+    600 10px/1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  max-height: 14px;
+  transition: opacity 0.2s ease, max-height 0.24s ease;
+}
+.tabbarBadge {
+  position: absolute;
+  top: 6px;
+  left: 56%;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--sui-color-system-red, #ff3b30);
+  color: #fff;
+  font:
+    600 11px/18px var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Morphing selected-tab glass highlight (matchedGeometry / glassEffectUnion). */
+.tabbarHighlight {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: var(--hl-w, 0px);
+  transform: translateX(var(--hl-x, 0px));
+  z-index: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--sui-color-tint, #007aff) 16%, transparent);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px
+      color-mix(in srgb, var(--sui-color-tint, #007aff) 40%, var(--sui-glass-hairline));
+  transition:
+    transform 0.44s var(--sui-anim-snappy-css, cubic-bezier(0.3, 0.9, 0.3, 1)),
+    width 0.44s var(--sui-anim-snappy-css, cubic-bezier(0.3, 0.9, 0.3, 1));
+}
+.tabbarHighlight[data-ready="false"] {
+  opacity: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * GlassToolbar — a glass row of icon buttons.
+ * ------------------------------------------------------------------------- */
+.toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--toolbar-gap, 4px);
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 6px 22px var(--sui-glass-shadow);
+}
+.toolbar[data-shape="rounded"] {
+  border-radius: 18px;
+}
+.toolbar[data-orientation="vertical"] {
+  flex-direction: column;
+}
+.toolbarButton {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--sui-color-tint, #007aff);
+  font:
+    400 16px/1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    background 0.16s ease,
+    transform 0.2s var(--sui-anim-snappy-css, cubic-bezier(0.3, 0.9, 0.3, 1));
+}
+@media (hover: hover) {
+  .toolbarButton:hover {
+    background: color-mix(in srgb, var(--sui-color-tint, #007aff) 10%, transparent);
+  }
+}
+.toolbarButton:active {
+  transform: scale(0.92);
+}
+.toolbarButton[data-selected="true"] {
+  background: color-mix(in srgb, var(--sui-color-tint, #007aff) 18%, transparent);
+}
+.toolbarButton[data-role="destructive"] {
+  color: var(--sui-color-system-red, #ff3b30);
+}
+.toolbarButton[disabled] {
+  color: var(--sui-color-quaternary-label, rgba(60, 60, 67, 0.18));
+  pointer-events: none;
+}
+.toolbarDivider {
+  flex: 0 0 auto;
+  width: 0.5px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+}
+.toolbar[data-orientation="vertical"] .toolbarDivider {
+  width: auto;
+  height: 0.5px;
+  margin: 2px 4px;
+}
+
+/* ---------------------------------------------------------------------------
+ * DashboardLayout — content grid + section helpers.
+ * ------------------------------------------------------------------------- */
+.dashGrid {
+  display: grid;
+  grid-template-columns: repeat(var(--dash-cols, 12), minmax(0, 1fr));
+  gap: var(--dash-gap, 16px);
+  align-items: start;
+}
+.dashSectionTitle {
+  font:
+    700 22px/1.2 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  letter-spacing: 0.01em;
+  color: var(--sui-color-label, #000);
+  margin: 4px 0 12px;
+}
+.card {
+  background: var(--sui-color-secondary-system-grouped-background, #fff);
+  border-radius: var(--sui-radius-card, 16px);
+  padding: 16px;
+  box-sizing: border-box;
+  box-shadow:
+    inset 0 0 0 0.5px var(--sui-color-separator, rgba(60, 60, 67, 0.16)),
+    0 1px 3px var(--sui-glass-shadow, rgba(0, 0, 0, 0.06));
+}
+
+@media (max-width: 700px) {
+  .dashGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Reduced motion — drop the springs, keep the glass.
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .sidebarColumn,
+  .row,
+  .barButton,
+  .tabbarItem,
+  .tabbarLabel,
+  .tabbarHighlight,
+  .toolbarButton {
+    transition: none;
+  }
+}

@@ -35,3 +35,20 @@ export type {
   ToolbarPlacement,
   ToolbarEntry,
 } from "./NavigationContext";
+
+/* Liquid Glass (iOS-26) navigation helpers — the design-mode resolver, the
+ * floating-bar class/style builders, and the scroll-edge / tab-minimize
+ * resolvers. The vocab TYPES (`ScrollEdgeEffectStyle`, `TabBarMinimizeBehavior`)
+ * are NOT re-exported here: they are owned by `system/effects`/`system/modifiers`
+ * and already reach the public barrel via those — re-exporting them here would
+ * make `src/index.ts`'s `export *` ambiguous (TS2308). */
+export {
+  isLiquidGlassMode,
+  useLiquidGlassMode,
+  resolveBarSurface,
+  glassBarClass,
+  glassBarStyle,
+  resolveScrollEdge,
+  resolveMinimizeBehavior,
+  shouldMinimize,
+} from "./liquidGlassNav";

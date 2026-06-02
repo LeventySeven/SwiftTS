@@ -43,6 +43,20 @@
     saturate(var(--sui-material-regular-saturate, 1.8));
 }
 
+/* Liquid-Glass action sheet: the .group / .cancel cards drop their opaque
+ * Material backing (the .sui-glass layer paints the refraction + rim + sheen),
+ * and the inner hairlines lighten to the glass hairline so they stay legible
+ * over the translucent body. */
+.stack[data-glass="true"] .group,
+.stack[data-glass="true"] .cancel {
+  background: transparent;
+}
+.stack[data-glass="true"] .header,
+.stack[data-glass="true"] .group .btn + .btn,
+.stack[data-glass="true"] .suppression {
+  border-color: var(--sui-glass-hairline, rgba(255, 255, 255, 0.28));
+}
+
 .header {
   padding: 14px 16px;
   text-align: center;

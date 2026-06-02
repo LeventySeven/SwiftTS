@@ -20,6 +20,14 @@ import {
 } from "./PresentationRoot";
 import { Popover, type PopoverProps } from "./Popover";
 import { springCss } from "../../system/animation";
+import { glass, glassClass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassScrimClass,
+  glassRowClass,
+  concentricVars,
+  chromeClasses,
+} from "./glassChrome";
 import type { PresentationAdaptation } from "./Sheet";
 import type { DialogSeverity, SuppressionToggle } from "./Alert";
 import styles from "./ConfirmationDialog.module.css";
@@ -77,6 +85,11 @@ export interface ConfirmationDialogProps {
   anchorRef?: PopoverProps["anchorRef"];
   /** Above this width, render as a popover (DESIGNED, default 768). */
   regularBreakpoint?: number;
+  /**
+   * Liquid-Glass override. Unset ⇒ follow `useEnvironment().liquidGlass` (default
+   * glass). `false` ⇒ classic frosted Material action sheet / popover.
+   */
+  glass?: boolean;
   children?: React.ReactNode;
 }
 
@@ -96,8 +109,11 @@ export function ConfirmationDialog(
     compactAdaptation = "automatic",
     anchorRef,
     regularBreakpoint = 768,
+    glass: glassProp,
     children,
   } = props;
+
+  const glassy = useLiquidGlass(glassProp);
 
   const { mounted, dataState, reduceMotion, surfaceProps } = usePresentation({
     isPresented,
@@ -186,6 +202,7 @@ export function ConfirmationDialog(
         anchorRef={anchorRef}
         arrowEdge={null}
         compactAdaptation="popover"
+        glass={glassy}
       >
         <div style={{ minWidth: 220, padding: 6 }} data-severity={severity}>
           {(showTitle || message || resolvedIcon) && (
@@ -199,9 +216,9 @@ export function ConfirmationDialog(
             <button
               key={i}
               type="button"
-              className={styles.btn}
+              className={chromeClasses(styles.btn, glassRowClass(glassy))}
               data-role={b.role}
-              style={{ minHeight: 44, fontSize: 17 }}
+              style={{ minHeight: 44, fontSize: 17, borderRadius: 8 }}
               onClick={() => runButton(b)}
             >
               {b.label}
@@ -231,21 +248,28 @@ export function ConfirmationDialog(
         aria-label={typeof title === "string" ? title : "Confirmation dialog"}
       >
         <Scrim
-          opacity={0.3}
+          opacity={glassy ? 1 : 0.3}
           presented={presented}
           interactive={false}
           onTap={() => (cancelButton ? runButton(cancelButton) : dismiss())}
           transition={scrimTransition}
-          className={styles.scrim}
+          className={chromeClasses(styles.scrim, glassScrimClass(glassy))}
         />
         <div
           className={styles.stack}
           data-state={dataState}
           data-severity={severity}
+          data-glass={glassy ? "true" : undefined}
           onTransitionEnd={surfaceProps.onTransitionEnd}
           style={{ transition: stackTransition }}
         >
-          <div className={styles.group}>
+          <div
+            className={chromeClasses(
+              styles.group,
+              glassy && `${glassClass(glass.regular)} sui-glass-chrome`,
+            )}
+            style={glassy ? concentricVars(14) : undefined}
+          >
             {(showTitle || message || resolvedIcon) && (
               <div className={styles.header}>
                 {resolvedIcon != null && <div className={styles.icon}>{resolvedIcon}</div>}
@@ -258,7 +282,7 @@ export function ConfirmationDialog(
               <button
                 key={i}
                 type="button"
-                className={styles.btn}
+                className={chromeClasses(styles.btn, glassRowClass(glassy))}
                 data-role={b.role}
                 onClick={() => runButton(b)}
               >
@@ -267,10 +291,16 @@ export function ConfirmationDialog(
             ))}
           </div>
           {cancelButton && (
-            <div className={styles.cancel}>
+            <div
+              className={chromeClasses(
+                styles.cancel,
+                glassy && `${glassClass(glass.regular)} sui-glass-chrome`,
+              )}
+              style={glassy ? concentricVars(14) : undefined}
+            >
               <button
                 type="button"
-                className={styles.btn}
+                className={chromeClasses(styles.btn, glassRowClass(glassy))}
                 data-role="cancel"
                 onClick={() => runButton(cancelButton)}
               >

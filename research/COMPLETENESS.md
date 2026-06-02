@@ -10,7 +10,7 @@ Exhaustive accounting of **every** public type in Apple's SwiftUI surface (parse
 | Surface | Implemented | N/A (justified) | Web-applicable gaps |
 |---|---|---|---|
 | **Components** | **67** | 102 | 0 |
-| **Modifiers** | **234** | 185 | 83 |
+| **Modifiers** | **240** | 182 | 80 |
 
 Every **user-facing component** is implemented; the non-implemented components are all internal/private/AppKit-interop/app-scene types. Every **web-applicable modifier of consequence** is covered; the non-implemented modifiers are platform-specific (no web analog) or advanced/deferred, each justified below.
 
@@ -61,7 +61,7 @@ Every **user-facing component** is implemented; the non-implemented components a
 
 - **accessibility (advanced) — core .accessibilityLabel/Hint/Value/Hidden/Identifier/Role/SortPriority map to ARIA in applyModifiers; rotor/representation/chart-descriptor deferred** (15): `accessibilityAction`, `accessibilityActions`, `accessibilityChartDescriptor`, `accessibilityChildren`, `accessibilityDefaultFocus`, `accessibilityElement`, `accessibilityFocused`, `accessibilityIgnoresInvertColors`, `accessibilityLabeledPair`, `accessibilityLinkedGroup`, `accessibilityQuickAction`, `accessibilityRepresentation`, `accessibilityRotor`, `accessibilityRotorEntry`, `accessibilityShowsLargeContentViewer`
 
-- **OS shell/platform chrome — N/A on web** (14): `_statusBar`, `_statusBarHidden`, `assistiveAccessNavigationIcon`, `backgroundExtensionEffect`, `contentCaptureProtected`, `contentToolbar`, `defaultAppStorage`, `defersSystemGestures`, `interactionActivityTrackingTag`, `persistentSystemOverlays`, `statusBar`, `statusBarHidden`, `writingToolsAffordanceVisibility`, `writingToolsBehavior`
+- **OS shell/platform chrome — N/A on web** (13): `_statusBar`, `_statusBarHidden`, `assistiveAccessNavigationIcon`, `contentCaptureProtected`, `contentToolbar`, `defaultAppStorage`, `defersSystemGestures`, `interactionActivityTrackingTag`, `persistentSystemOverlays`, `statusBar`, `statusBarHidden`, `writingToolsAffordanceVisibility`, `writingToolsBehavior`
 
 - **Swift Charts advanced modifier — core axes/scales/legend/foregroundStyleScale covered; selection/scroll extras deferred** (10): `chartAngleSelection`, `chartGesture`, `chartLineStyleScale`, `chartScrollPosition`, `chartScrollTargetBehavior`, `chartScrollableAxes`, `chartSymbolScale`, `chartSymbolSizeScale`, `chartXVisibleDomain`, `chartYVisibleDomain`
 
@@ -69,15 +69,15 @@ Every **user-facing component** is implemented; the non-implemented components a
 
 - **macOS/iPadOS multi-window & scene — no web runtime analog** (9): `allowsWindowActivationEvents`, `presentedWindowStyle`, `presentedWindowToolbarStyle`, `windowDismissBehavior`, `windowFullScreenBehavior`, `windowMinimizeBehavior`, `windowResizeAnchor`, `windowResizeBehavior`, `windowToolbarFullScreenVisibility`
 
-- **handled by the SwiftTS style system (style-name unions + *Configuration in src/system/styles.ts)** (8): `_texturedSegmentedControlStyle`, `chartXAxisStyle`, `chartYAxisStyle`, `disclosureGroupStyle`, `groupBoxStyle`, `indexViewStyle`, `pointerStyle`, `scrollEdgeEffectStyle`
-
-- **iPadOS 18 adaptable tab-bar customization — core TabView covered; these extras deferred** (8): `defaultAdaptableTabBarPlacement`, `tabBarMinimizeBehavior`, `tabViewBottomAccessory`, `tabViewCustomization`, `tabViewSearchActivation`, `tabViewSidebarBottomBar`, `tabViewSidebarFooter`, `tabViewSidebarHeader`
-
 - **macOS menu-bar commands / clipboard commands — Web Clipboard API; deferred** (8): `onCommand`, `onCopyCommand`, `onCutCommand`, `onDeleteCommand`, `onExitCommand`, `onPasteCommand`, `onPlayPauseCommand`, `pageCommand`
+
+- **handled by the SwiftTS style system (style-name unions + *Configuration in src/system/styles.ts)** (7): `_texturedSegmentedControlStyle`, `chartXAxisStyle`, `chartYAxisStyle`, `disclosureGroupStyle`, `groupBoxStyle`, `indexViewStyle`, `pointerStyle`
 
 - **deprecated SwiftUI API — superseded by a current equivalent already in SwiftTS (confirmationDialog / ignoresSafeArea / navigationTitle+toolbar / …)** (7): `actionSheet`, `disableAutocorrection`, `edgesIgnoringSafeArea`, `horizontalRadioGroupLayout`, `menuButtonStyle`, `navigationBarItems`, `navigationViewStyle`
 
 - **Swift Charts 3D — no clean web analog** (7): `chart3DCameraProjection`, `chart3DPose`, `chart3DRenderingStyle`, `chartZAxis`, `chartZAxisLabel`, `chartZScale`, `chartZSelection`
+
+- **iPadOS 18 adaptable tab-bar customization — core TabView covered; these extras deferred** (7): `defaultAdaptableTabBarPlacement`, `tabViewBottomAccessory`, `tabViewCustomization`, `tabViewSearchActivation`, `tabViewSidebarBottomBar`, `tabViewSidebarFooter`, `tabViewSidebarHeader`
 
 - **Xcode #Preview tooling — not a runtime feature** (7): `dragPreviewsFormation`, `dropPreviewsFormation`, `previewContext`, `previewDevice`, `previewDisplayName`, `previewInterfaceOrientation`, `previewLayout`
 
@@ -112,9 +112,9 @@ Every **user-facing component** is implemented; the non-implemented components a
 - **document-based apps — no web document model** (1): `documentBrowserContextMenu`
 
 
-## Modifiers — remaining web-applicable gaps (83)
+## Modifiers — remaining web-applicable gaps (80)
 
-`allowedDynamicRange`, `attributedTextFormattingDefinition`, `buttonRepeatBehavior`, `buttonSizing`, `defaultHoverEffect`, `defaultWheelPickerItemHeight`, `dialogPreventsAppTermination`, `dismissalConfirmationDialog`, `dynamicTypeSize`, `environmentObject`, `glassEffectID`, `glassEffectTransition`, `gridCellAnchor`, `gridCellUnsizedAxes`, `gridColumnAlignment`, `highPriorityGesture`, `hoverEffectGroup`, `inspector`, `inspectorColumnWidth`, `keyboardShortcut`, `labelsVisibility`, `layoutDirectionBehavior`, `layoutValue`, `listRowHoverEffect`, `listRowHoverEffectDisabled`, `listRowPlatterColor`, `listSectionIndexVisibility`, `listSectionMargins`, `luminanceToAlpha`, `materialActiveAppearance`, `menuIndicator`, `menuOrder`, `modifierKeyAlternate`, `navigationLinkIndicatorVisibility`, `navigationSplitViewColumnWidth`, `navigationTransition`, `onContinueUserActivity`, `onDragSessionUpdated`, `onDropSessionUpdated`, `onInteractiveResizeChange`, `onLongTouchGesture`, `onModifierKeysChanged`, `onOpenURL`, `onReceive`, `onScrollGeometryChange`, `onScrollPhaseChange`, `onScrollTargetVisibilityChange`, `onScrollVisibilityChange`, `paletteSelectionEffect`, `pointerVisibility`, `preference`, `preferredSurroundingsEffect`, `presentationPreventsAppTermination`, `replaceDisabled`, `safeAreaBar`, `safeAreaInset`, `scrollEdgeEffectHidden`, `scrollInputBehavior`, `scrollTransition`, `searchFocused`, `searchPresentationToolbarBehavior`, `searchSelection`, `searchToolbarBehavior`, `sectionActions`, `sectionIndexLabel`, `simultaneousGesture`, `sliderThumbVisibility`, `springLoadingBehavior`, `submitScope`, `symbolEffectsRemoved`, `symbolVariableValueMode`, `textInputCompletion`, `textInputFormattingControlVisibility`, `textInputSuggestions`, `textRenderer`, `textSelectionAffinity`, `toolbarItemHidden`, `toolbarTitleMenu`, `toolbarVisibility`, `transformEnvironment`, `typeSelectEquivalent`, `typesettingLanguage`, `writingDirection`
+`allowedDynamicRange`, `attributedTextFormattingDefinition`, `buttonRepeatBehavior`, `buttonSizing`, `defaultHoverEffect`, `defaultWheelPickerItemHeight`, `dialogPreventsAppTermination`, `dismissalConfirmationDialog`, `dynamicTypeSize`, `environmentObject`, `gridCellAnchor`, `gridCellUnsizedAxes`, `gridColumnAlignment`, `highPriorityGesture`, `hoverEffectGroup`, `inspector`, `inspectorColumnWidth`, `keyboardShortcut`, `labelsVisibility`, `layoutDirectionBehavior`, `layoutValue`, `listRowHoverEffect`, `listRowHoverEffectDisabled`, `listRowPlatterColor`, `listSectionIndexVisibility`, `listSectionMargins`, `luminanceToAlpha`, `materialActiveAppearance`, `menuIndicator`, `menuOrder`, `modifierKeyAlternate`, `navigationLinkIndicatorVisibility`, `navigationSplitViewColumnWidth`, `navigationTransition`, `onContinueUserActivity`, `onDragSessionUpdated`, `onDropSessionUpdated`, `onInteractiveResizeChange`, `onLongTouchGesture`, `onModifierKeysChanged`, `onOpenURL`, `onReceive`, `onScrollGeometryChange`, `onScrollPhaseChange`, `onScrollTargetVisibilityChange`, `onScrollVisibilityChange`, `paletteSelectionEffect`, `pointerVisibility`, `preference`, `preferredSurroundingsEffect`, `presentationPreventsAppTermination`, `replaceDisabled`, `safeAreaBar`, `safeAreaInset`, `scrollInputBehavior`, `scrollTransition`, `searchFocused`, `searchPresentationToolbarBehavior`, `searchSelection`, `searchToolbarBehavior`, `sectionActions`, `sectionIndexLabel`, `simultaneousGesture`, `sliderThumbVisibility`, `springLoadingBehavior`, `submitScope`, `symbolEffectsRemoved`, `symbolVariableValueMode`, `textInputCompletion`, `textInputFormattingControlVisibility`, `textInputSuggestions`, `textRenderer`, `textSelectionAffinity`, `toolbarItemHidden`, `toolbarTitleMenu`, `toolbarVisibility`, `transformEnvironment`, `typeSelectEquivalent`, `typesettingLanguage`, `writingDirection`
 
 
 ## Styles (195)

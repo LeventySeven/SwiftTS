@@ -1,0 +1,101 @@
+/* ActivityRow / NotificationRow — feed/notification row.
+   Title/subtitle/timestamp layout comes from kit VStack/HStack/Text; this owns
+   the row padding, leading icon chip / avatar slot, unread dot, badge, chevron,
+   and the leading-inset hairline between stacked rows. */
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  position: relative;
+  background: transparent;
+  transition: background 0.12s ease;
+}
+
+/* leading-inset separator between stacked rows (icon column + gap = ~52px) */
+.row + .row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 66px;
+  right: 0;
+  height: 0.5px;
+  background: var(--sui-color-separator);
+}
+
+.row[data-tappable="true"] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.row[data-tappable="true"]:active {
+  background: var(--sui-color-system-fill);
+}
+.row[data-tappable="true"]:focus-visible {
+  outline: 2px solid var(--sui-color-tint);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.leading {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.iconChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--sui-activity-icon, var(--sui-color-system-blue));
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.22);
+}
+
+.unreadDot {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sui-color-system-blue);
+}
+
+.trailing {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  align-self: center;
+}
+
+.badge {
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: var(--sui-color-system-red);
+}
+
+.chevron {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  color: var(--sui-color-tertiary-label);
+}

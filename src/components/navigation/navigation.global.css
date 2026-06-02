@@ -754,3 +754,294 @@
 .sui-bottombar .sui-spacer {
   flex: 1;
 }
+
+/* ===========================================================================
+ * 6. Liquid Glass (iOS 26) navigation chrome — Coverage Expansion (2026-06-02)
+ *
+ * The iOS-26 design language: ALL navigation bars (nav / tab / bottom) FLOAT as
+ * Liquid Glass over content that extends BEHIND them (backgroundExtensionEffect,
+ * SwiftUICore.swiftinterface:12093), with the bright specular RIM + sheen + glow
+ * supplied by the shared `.sui-glass` rules (effects.global.css) — this file
+ * layers the bar-only geometry on top: the float inset, concentric (nested-
+ * adaptive) corners (ConcentricRectangle :13235), the soft drop, the scroll-edge
+ * glass fade (ScrollEdgeEffectStyle :12150), the tab-bar minimize pill
+ * (TabBarMinimizeBehavior :8789), and the morphing selected-tab capsule
+ * (glassEffectUnion :9880 / matchedGeometry).
+ *
+ * `.sui-glassbar` is the bar-local hook the TSX adds alongside `glassClass(...)`,
+ * so the bars share the SAME rim/sheen/glow tokens as every other glass surface
+ * and only get the floating geometry from here.
+ * ======================================================================== */
+
+/* Concentric-corner token: the bar's outer radius. Content nested inside a glass
+ * bar (the highlight capsule, toolbar chips) derives its radius from this so the
+ * corners stay concentric (ConcentricRectangle). */
+.sui-glassbar {
+  --sui-glassbar-radius: 22px;
+}
+
+/* ---- 6.1 Floating Liquid-Glass NAV BAR (top) ----
+ * Float it in from the screen edges, round all four corners (concentric), and
+ * let the content scroll BEHIND it. The `.sui-glass` backdrop-filter already
+ * refracts the content underneath; here we add the float inset + soft drop and
+ * override the capsule default radius to the bar's concentric radius. */
+.sui-navbar.sui-glassbar {
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 8px;
+  right: 8px;
+  padding-top: 0;
+  border-radius: var(--sui-glassbar-radius);
+  /* `.sui-glass` sets background/backdrop-filter/rim; add the float drop shadow
+   * on top of its inset rim by extending the shadow stack via a wrapper var. */
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 8px 30px var(--sui-glass-shadow);
+  transition:
+    transform 0.4s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    box-shadow 0.3s ease;
+}
+/* The floating nav bar no longer needs the scroll cross-fade box-shadow hairline
+ * (it is glass at every offset); neutralize the §1 collapsed rule for glass. */
+.sui-navstack[data-collapsed="true"] .sui-navbar.sui-glassbar {
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 8px 30px var(--sui-glass-shadow);
+}
+
+/* Content extends BEHIND the floating bar (backgroundExtensionEffect): the page
+ * scroll container gets top padding equal to the floated bar's footprint so the
+ * first content sits just under the glass, and scrolls up THROUGH it. */
+.sui-navstack[data-floating="true"] .sui-navstack-scroll {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px + 44px + 8px);
+}
+.sui-navstack[data-floating="true"][data-display-mode="large"] .sui-navstack-scroll {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px + 44px + 52px + 8px);
+}
+
+/* ---- 6.2 Scroll-edge glass fade (ScrollEdgeEffectStyle) ----
+ * Where content scrolls under the floating bar, the top edge of the scroll area
+ * gets a soft/hard glass fade so content dissolves into the glass rather than
+ * hard-clipping. `.soft` = a feathered gradient mask; `.hard` = a crisp blurred
+ * hairline band; `hidden` = nothing. Implemented as a mask on the scroll element
+ * (soft) / a pseudo band (hard). */
+.sui-navstack[data-floating="true"][data-scroll-edge="soft"] .sui-navstack-scroll {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    rgba(0, 0, 0, 0.35) calc(env(safe-area-inset-top, 0px) + 8px),
+    #000 calc(env(safe-area-inset-top, 0px) + 8px + 44px + 14px)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    rgba(0, 0, 0, 0.35) calc(env(safe-area-inset-top, 0px) + 8px),
+    #000 calc(env(safe-area-inset-top, 0px) + 8px + 44px + 14px)
+  );
+}
+/* hard: a crisp frosted band sits right under the bar; no feather on the content */
+.sui-navstack[data-floating="true"][data-scroll-edge="hard"] .sui-navbar.sui-glassbar::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: 100%;
+  height: 12px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--sui-glass-shadow) 0%,
+    transparent 100%
+  );
+  opacity: 0.5;
+}
+
+/* ---- 6.3 Floating Liquid-Glass TAB BAR (bottom) ----
+ * The tab bar floats as a glass capsule inset from the bottom + sides, rounded
+ * to a full pill. Content extends behind it. On minimize it shrinks to a compact
+ * pill (TabBarMinimizeBehavior). */
+.sui-tabview[data-floating="true"] {
+  position: relative;
+}
+.sui-tabbar.sui-glassbar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+  width: min(560px, calc(100% - 24px));
+  height: 56px;
+  padding: 4px;
+  border-radius: 9999px; /* full pill — the iOS-26 floating tab capsule */
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 10px 34px var(--sui-glass-shadow);
+  /* re-add the §4 top hairline removal — the float drop replaces it */
+  transition:
+    width 0.42s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    height 0.42s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    transform 0.42s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    box-shadow 0.3s ease;
+  overflow: hidden; /* clip the morphing highlight to the pill */
+}
+/* content extends behind the floating tab bar */
+.sui-tabview[data-floating="true"] .sui-tab-pages {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px + 56px + 10px);
+  box-sizing: border-box;
+}
+/* glass tab items: above the highlight, currentColor tint, no per-item bg */
+.sui-tabbar.sui-glassbar .sui-tabbar-item {
+  position: relative;
+  z-index: 2;
+  border-radius: 9999px;
+}
+/* selected glyph/label brighten on the glass */
+.sui-tabbar.sui-glassbar .sui-tabbar-item[data-selected="true"] {
+  color: var(--sui-color-tint, #007aff);
+}
+
+/* ---- 6.4 TabBarMinimizeBehavior — shrink to a compact pill on scroll ----
+ * Minimized: the bar collapses toward a centered compact pill; labels fade out
+ * and the bar narrows to just the icon row, re-expanding when scrolled back. */
+.sui-tabbar.sui-glassbar[data-minimized="true"] {
+  width: min(280px, calc(100% - 96px));
+  height: 46px;
+}
+.sui-tabbar.sui-glassbar[data-minimized="true"] .sui-tabbar-label {
+  opacity: 0;
+  max-height: 0;
+  transition: opacity 0.18s ease, max-height 0.24s ease;
+}
+.sui-tabbar.sui-glassbar .sui-tabbar-label {
+  transition: opacity 0.2s ease, max-height 0.26s ease;
+  max-height: 14px;
+}
+.sui-tabbar.sui-glassbar[data-minimized="true"] .sui-tabbar-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---- 6.5 Morphing selected-tab glass capsule (glassEffectUnion / matchedGeometry) ----
+ * One shared highlight element, absolutely positioned, translated + sized to the
+ * selected tab via --hl-x / --hl-w (measured in TSX). The transition on transform
+ * + width makes it MORPH/slide between tabs like a fused glass droplet. It is a
+ * lighter inner glass chip (rim + glow) clipped concentric to the pill. */
+.sui-tabbar-highlight {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: var(--hl-w, 0px);
+  transform: translateX(var(--hl-x, 0px));
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 1;
+  background: color-mix(in srgb, var(--sui-color-tint, #007aff) 16%, transparent);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px
+      color-mix(in srgb, var(--sui-color-tint, #007aff) 40%, var(--sui-glass-hairline));
+  transition:
+    transform 0.44s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    width 0.44s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback));
+}
+/* before first measurement, keep it invisible (no flash at 0,0) */
+.sui-tabbar-highlight[data-ready="false"] {
+  opacity: 0;
+}
+.sui-tabbar-highlight[data-ready="true"] {
+  opacity: 1;
+  transition:
+    transform 0.44s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    width 0.44s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    opacity 0.2s ease;
+}
+
+/* ---- 6.6 Floating Liquid-Glass BOTTOM BAR (toolbar .bottomBar) ---- */
+.sui-bottombar.sui-glassbar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  height: 50px;
+  padding: 0 14px;
+  border-radius: var(--sui-glassbar-radius);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 8px 30px var(--sui-glass-shadow);
+}
+
+/* ---- 6.7 Liquid-Glass SIDEBAR (NavigationSplitView) ----
+ * The sidebar panel becomes translucent glass: the page shows through with the
+ * specular rim along its trailing edge. The opaque grouped-background + hard
+ * separator from §2 are replaced by the glass surface; rows keep their selection
+ * highlight but read on glass. */
+.sui-splitview[data-sidebar-glass="true"] .sui-split-sidebar.sui-glassbar {
+  background: var(--sui-glass-tint);
+  border-right: none;
+  border-radius: 0;
+  /* rim only on the trailing edge + soft glow, no full float drop (it is edge-anchored) */
+  box-shadow:
+    inset -1px 0 0.5px var(--sui-glass-rim),
+    inset 0 0 0 0.5px var(--sui-glass-hairline);
+}
+/* selected rows on a glass sidebar pick up a glass-tinted capsule */
+.sui-splitview[data-sidebar-glass="true"] .sui-split-sidebar .sui-row[aria-selected="true"] {
+  background: color-mix(in srgb, var(--sui-color-tint, #007aff) 20%, transparent);
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 0 0 0.5px
+      color-mix(in srgb, var(--sui-color-tint, #007aff) 35%, var(--sui-glass-hairline));
+}
+
+/* ---- 6.8 Glass TOOLBAR item chips ----
+ * In iOS-26 a built toolbar button wears a Liquid-Glass capsule chip: its own
+ * mini backdrop blur + specular rim, so each control reads as a floating glass
+ * pill in the bar (the `glassEffect`-on-a-control look). */
+.sui-toolbar-btn[data-glass="true"] {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: var(--sui-glass-tint);
+  -webkit-backdrop-filter: blur(var(--sui-glass-blur))
+    saturate(var(--sui-glass-saturate)) brightness(var(--sui-glass-brightness));
+  backdrop-filter: blur(var(--sui-glass-blur)) saturate(var(--sui-glass-saturate))
+    brightness(var(--sui-glass-brightness));
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 2px 8px var(--sui-glass-shadow);
+  transition:
+    transform 0.3s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    filter 0.18s ease;
+}
+@media (hover: hover) {
+  .sui-toolbar-btn[data-glass="true"]:hover {
+    filter: brightness(var(--sui-glass-hover-brightness));
+  }
+}
+.sui-toolbar-btn[data-glass="true"]:active {
+  opacity: 1; /* glass chip uses lensing instead of the flat 0.3 dim */
+  transform: scale(var(--sui-glass-interactive-scale));
+  filter: brightness(var(--sui-glass-interactive-brightness));
+}
+
+/* ---- 6.9 Reduced-motion: kill the morph/minimize springs, keep the glass ---- */
+@media (prefers-reduced-motion: reduce) {
+  .sui-navbar.sui-glassbar,
+  .sui-tabbar.sui-glassbar,
+  .sui-tabbar-highlight,
+  .sui-tabbar.sui-glassbar .sui-tabbar-label,
+  .sui-toolbar-btn[data-glass="true"] {
+    transition: none;
+  }
+}

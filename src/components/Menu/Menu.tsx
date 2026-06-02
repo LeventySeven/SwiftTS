@@ -29,7 +29,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { materialClass } from "../../system/effects";
+import { materialClass, glass, glassClass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassRowClass,
+  concentricVars,
+  chromeClasses,
+} from "../presentation/glassChrome";
 import type { ButtonRole } from "../Button/Button";
 import { SymbolGlyph } from "../controls/SymbolGlyph";
 import { useIsDisabled } from "../controls/controlMachinery";
@@ -42,6 +48,8 @@ interface MenuCtx {
   /** Called by a row after its action fires; dismisses unless dismiss is off. */
   close: () => void;
   dismissOnSelect: boolean;
+  /** Liquid-Glass mode — rows add a glass highlight on hover/active. */
+  glassy: boolean;
 }
 const MenuContext = createContext<MenuCtx | null>(null);
 
@@ -64,6 +72,11 @@ export interface MenuProps {
   align?: "leading" | "trailing";
   /** `.disabled(_:)`. */
   disabled?: boolean;
+  /**
+   * Liquid-Glass dropdown override. Unset ⇒ follow `useEnvironment().liquidGlass`
+   * (default glass). `false` ⇒ classic frosted Material panel.
+   */
+  glass?: boolean;
 }
 
 export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
@@ -76,9 +89,11 @@ export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
     dismissOnSelect = true,
     align = "leading",
     disabled,
+    glass: glassProp,
   },
   ref,
 ) {
+  const glassy = useLiquidGlass(glassProp);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -196,14 +211,21 @@ export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
       </button>
 
       {open ? (
-        <MenuContext.Provider value={{ close, dismissOnSelect }}>
+        <MenuContext.Provider value={{ close, dismissOnSelect, glassy }}>
           <ul
             ref={popupRef}
             id={menuId}
             role="menu"
             tabIndex={-1}
             data-align={align}
-            className={`${styles.popup} ${materialClass("regular")}`}
+            data-glass={glassy ? "true" : undefined}
+            className={chromeClasses(
+              styles.popup,
+              glassy
+                ? `${glassClass(glass.regular)} sui-glass-chrome`
+                : materialClass("regular"),
+            )}
+            style={glassy ? concentricVars(13) : undefined}
             onKeyDown={onPopupKeyDown}
           >
             {wrappedChildren}
@@ -247,9 +269,9 @@ export const MenuItem: React.FC<MenuItemProps> & { __isMenuItem?: boolean } =
         <button
           type="button"
           role="menuitem"
-          className={styles.item}
+          className={chromeClasses(styles.item, glassRowClass(!!ctx?.glassy))}
           data-role={role}
-          data-active={_active || undefined}
+          data-active={_active ? "true" : undefined}
           disabled={disabled}
           onClick={onClick}
         >

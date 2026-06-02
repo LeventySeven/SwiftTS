@@ -1,0 +1,31 @@
+/* Card — base rounded data-display container.
+   The surface (fill / material / glass), radius, shadow, and overflow are set
+   inline by Card.tsx (variant-driven). This module only owns the interior
+   region layout so dividers stretch full-bleed and regions stack vertically. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  /* a continuous-corner card hugs its content width by default; callers stretch
+     it with a frame/width modifier or a parent grid cell. */
+  width: 100%;
+  box-sizing: border-box;
+  /* continuous-corner smoothing approximation (matches the kit's squircle look) */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
+/* Each header/body/footer region. Padding is applied inline (variant padding),
+   so this just establishes the box and lets content fill the width. */
+.region {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* On material/glass surfaces the inner separators read better at a softer tint;
+   the kit Divider already uses --sui-color-separator (translucent), so nothing
+   extra is needed here — the variant data-attr is available for future tuning. */
+.card[data-variant="glass"] .region,
+.card[data-variant="material"] .region {
+  position: relative;
+  z-index: 1;
+}

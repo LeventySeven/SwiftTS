@@ -25,6 +25,19 @@
   border-left: 0.5px solid var(--sui-color-separator);
 }
 
+/* Liquid-Glass segmented cluster: the .sui-glass layer paints the refraction +
+ * specular rim + sheen, so drop the flat fill/shadow. Keep the control radius
+ * (override the .sui-glass-chrome rect default), and lighten the inner hairlines
+ * to the glass hairline so the cells read as one continuous glass bar. */
+.groupGlass {
+  background: transparent;
+  box-shadow: none;
+  border-radius: var(--ctl-radius, 8px) !important;
+}
+.groupGlass > * + * {
+  border-left-color: var(--sui-glass-hairline, rgba(255, 255, 255, 0.28));
+}
+
 /* optional group label (iOS16+) sits leading, secondary-label colored */
 .label {
   display: inline-flex;

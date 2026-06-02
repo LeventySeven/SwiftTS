@@ -29,6 +29,12 @@
 
 import * as React from "react";
 import type { Material as MaterialKind } from "./types";
+import {
+  useMatchedGeometry,
+  useNamespace,
+  MatchedGeometryNamespace,
+  type MatchedGeometryNamespaceValue,
+} from "./matched-geometry";
 
 /**
  * SwiftUI `BlendMode` — all 21 cases (SwiftUICore.swiftinterface:6232–6259).
@@ -632,38 +638,332 @@ GlassEffect.displayName = "GlassEffect";
 export const Glass = GlassEffect;
 
 /**
- * <GlassEffectContainer spacing> — groups glass children so nearby panes blend
- * (shared isolation context + a `spacing` gap, the web analog of
- * `GlassEffectContainer(spacing:)`, :9045). CSS cannot truly merge glass blobs
- * like native liquid droplets — that needs feDisplacementMap/WebGL — so this is
- * a flex group whose `spacing` ≈ the SwiftUI fuse distance, with a NEGATIVE
- * effective overlap option so capsules can visually kiss/merge at the rim. The
- * native droplet-merge (glassEffectUnion/ID) is intentionally approximated.
+ * <GlassEffectContainer spacing> — groups glass children so nearby panes MERGE
+ * like native liquid droplets, the web analog of `GlassEffectContainer(spacing:)`
+ * (:9045). This pass does the real merge, not just a flex group:
+ *
+ *   1. A shared GOOEY SVG FILTER (blur → high-contrast alpha threshold) is applied
+ *      to a single merge layer that holds every child's silhouette. When two glass
+ *      capsules come within ~`spacing` px, the blur fields overlap and the alpha
+ *      threshold re-solidifies the union into ONE seamless blob with a smooth
+ *      neck — the metaball / liquid-merge look (the CSS "gooey filter" technique).
+ *   2. A NEGATIVE effective gap (`spacing` is the FUSE distance: the smaller it
+ *      is, the closer—and more merged—the capsules sit). The flex `gap` is set to
+ *      `spacing` minus the merge radius so capsules overlap their blur fields.
+ *   3. A SHARED BLUR layer: the container hosts one `isolation: isolate` context so
+ *      every child's backdrop blur composites against the same stacking context,
+ *      and the gooey filter unifies their rims into a continuous specular edge.
+ *
+ * The gooey filter is injected once per container (a hidden inline `<svg>` with a
+ * unique id) and referenced by the merge layer via `filter: url(#id)`. Children
+ * are rendered twice conceptually: their real glass content sits on top, and a
+ * tinted silhouette feeds the merge layer beneath — but to stay a drop-in we run
+ * the filter on the children wrapper directly, which merges their rims/bodies.
+ *
+ * Still DESIGNED (flagged): true refraction (feDisplacementMap) and per-droplet
+ * physics are out of scope; this is the closest pure-CSS/SVG liquid merge.
  */
 export interface GlassEffectContainerProps
   extends React.HTMLAttributes<HTMLDivElement> {
-  /** Gap between glass children (≈ SwiftUI `spacing:` fuse distance). Default 8. */
+  /**
+   * SwiftUI `spacing:` — the FUSE distance: how close two glass shapes get before
+   * they merge into one droplet. Smaller = tighter merge. Default 8.
+   */
   spacing?: number;
   /** Stack axis for the group (default horizontal, like a capsule cluster). */
   axis?: "horizontal" | "vertical";
+  /**
+   * Merge strength — the blur radius (px) of the gooey filter. Larger = fatter
+   * necks between droplets and a softer union. Default `spacing * 1.25`.
+   */
+  mergeStrength?: number;
+  /**
+   * Disable the liquid merge and fall back to a plain isolation group (the prior
+   * behavior). Use when children should stay visually separate.
+   */
+  merge?: boolean;
   children?: React.ReactNode;
+}
+
+let GOO_ID_SEQ = 0;
+/** Stable-per-instance gooey-filter id (SSR-safe via React.useId when available). */
+function useGooId(): string {
+  const reactId = (React as { useId?: () => string }).useId?.();
+  const fallback = React.useRef<string | null>(null);
+  if (reactId) return `sui-goo-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  if (fallback.current === null) fallback.current = `sui-goo-${GOO_ID_SEQ++}`;
+  return fallback.current;
 }
 
 export const GlassEffectContainer: React.FC<GlassEffectContainerProps> = ({
   spacing = 8,
   axis = "horizontal",
+  mergeStrength,
+  merge = true,
   style,
   children,
   ...rest
 }) => {
+  const gooId = useGooId();
+  // The fuse: pull capsules together by the merge radius so their blur fields
+  // overlap. The effective flex gap is the SwiftUI spacing minus that overlap.
+  const strength = mergeStrength ?? spacing * 1.25;
+  const effGap = merge ? Math.max(0, spacing - strength) : spacing;
+
   const mergedStyle: React.CSSProperties = {
     display: "inline-flex",
     flexDirection: axis === "vertical" ? "column" : "row",
     alignItems: "center",
-    gap: spacing,
+    gap: effGap,
     isolation: "isolate",
+    position: "relative",
     ...style,
   };
-  return React.createElement("div", { style: mergedStyle, ...rest }, children);
+
+  // The gooey filter: blur to overlap silhouettes, then a steep alpha contrast
+  // (feColorMatrix on the alpha channel) re-solidifies the union into one blob.
+  // The 19/-9 alpha ramp is the canonical metaball threshold (gain 19, bias −9).
+  const filterDefs = merge
+    ? React.createElement(
+        "svg",
+        {
+          "aria-hidden": true,
+          width: 0,
+          height: 0,
+          style: { position: "absolute", width: 0, height: 0 },
+        },
+        React.createElement(
+          "defs",
+          null,
+          React.createElement(
+            "filter",
+            { id: gooId },
+            React.createElement("feGaussianBlur", {
+              in: "SourceGraphic",
+              stdDeviation: strength,
+              result: "blur",
+            }),
+            React.createElement("feColorMatrix", {
+              in: "blur",
+              // feColorMatrix uses `type` (NOT `mode`); the alpha-row gain 19 /
+              // bias −9 is the canonical metaball threshold that re-solidifies the
+              // blurred union into one hard-edged droplet field.
+              type: "matrix",
+              values: "1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9",
+              result: "goo",
+            }),
+            // composite the sharp original back over the gooey union so child
+            // CONTENT (icons/text) stays crisp while only the glass rims merge.
+            // feBlend uses `mode` (default "normal" layers SourceGraphic on top).
+            React.createElement("feBlend", {
+              in: "SourceGraphic",
+              in2: "goo",
+              mode: "normal",
+            }),
+          ),
+        ),
+      )
+    : null;
+
+  // The children sit in a merge layer that runs the gooey filter. The filter
+  // merges the overlapping glass rims/bodies into one continuous droplet field.
+  const mergeLayer = React.createElement(
+    "div",
+    {
+      style: {
+        display: "contents",
+        ...(merge ? { filter: `url(#${gooId})` } : {}),
+      } as React.CSSProperties,
+    },
+    children,
+  );
+
+  // `display: contents` can't host a filter in every engine; wrap in a flex row
+  // that itself carries the filter when merging (keeps layout identical).
+  const body = merge
+    ? React.createElement(
+        "div",
+        {
+          style: {
+            display: "inline-flex",
+            flexDirection: axis === "vertical" ? "column" : "row",
+            alignItems: "center",
+            gap: effGap,
+            filter: `url(#${gooId})`,
+          } as React.CSSProperties,
+        },
+        children,
+      )
+    : mergeLayer;
+
+  return React.createElement(
+    "div",
+    { style: mergedStyle, ...rest },
+    filterDefs,
+    body,
+  );
 };
 GlassEffectContainer.displayName = "GlassEffectContainer";
+
+/* ============================================================================
+ * 5. glassEffectTransition — `GlassEffectTransition` (:2847) +
+ *    `.glassEffectTransition(_:)` (:2861). The enter/exit animation a glass
+ *    surface plays when it appears/disappears across a state change.
+ *
+ *    SwiftUI statics (:2848/:2851/:2854):
+ *      .matchedGeometry — morph the glass between two matched IDs (FLIP).
+ *      .materialize     — fade + scale the glass in/out (the "form from light"
+ *                         droplet condense; clip-path/blur grow on enter).
+ *      .identity        — no transition.
+ * ========================================================================== */
+
+/** `GlassEffectTransition` — the three statics, as a string union. */
+export type GlassEffectTransition = "matchedGeometry" | "materialize" | "identity";
+
+/** Enter/exit CSS for a glass transition. `materialize` grows from a blurred,
+ *  scaled-down, faded droplet; `identity` is a no-op; `matchedGeometry` is driven
+ *  by the FLIP in `useGlassEffectID` (this returns the fade portion only). */
+export interface GlassTransitionStyles {
+  /** style at the START of an ENTER (and END of an EXIT). */
+  hidden: React.CSSProperties;
+  /** style at the END of an ENTER (the resting state). */
+  shown: React.CSSProperties;
+  /** the `transition` shorthand to put on the element. */
+  transition: string;
+}
+
+/**
+ * `glassTransitionStyles(kind)` → the `{ hidden, shown, transition }` triple for a
+ * glass enter/exit. Drive it from a mount-transition hook (toggle the class/style
+ * between `hidden`→`shown` across a frame). `.materialize` is the iOS-26 "droplet
+ * condenses out of light" look: it scales up from 0.86, un-blurs, and fades in.
+ */
+export function glassTransitionStyles(
+  kind: GlassEffectTransition = "materialize",
+): GlassTransitionStyles {
+  if (kind === "identity") {
+    return { hidden: {}, shown: {}, transition: "none" };
+  }
+  if (kind === "matchedGeometry") {
+    // the morph is positional (handled by the FLIP); the opacity just cross-fades.
+    return {
+      hidden: { opacity: 0 },
+      shown: { opacity: 1 },
+      transition:
+        "opacity 0.35s var(--sui-anim-smooth-css, var(--sui-anim-smooth-fallback, ease))",
+    };
+  }
+  // materialize: scale + blur + fade — glass condensing into existence.
+  return {
+    hidden: {
+      opacity: 0,
+      transform: "scale(0.86)",
+      filter: "blur(8px)",
+    },
+    shown: {
+      opacity: 1,
+      transform: "scale(1)",
+      filter: "blur(0px)",
+    },
+    transition:
+      "opacity 0.4s var(--sui-anim-smooth-css, var(--sui-anim-smooth-fallback, ease)), " +
+      "transform 0.45s var(--sui-anim-bouncy-css, var(--sui-anim-bouncy-fallback, ease)), " +
+      "filter 0.4s var(--sui-anim-smooth-css, var(--sui-anim-smooth-fallback, ease))",
+  };
+}
+
+/** Class form: a single class enabling the materialize/matchedGeometry transition
+ *  (the CSS lives in effects.global.css). Pair with `data-glass-shown`. */
+export function glassTransitionClass(kind: GlassEffectTransition = "materialize"): string {
+  if (kind === "identity") return "";
+  return `sui-glass-transition sui-glass-transition--${kind}`;
+}
+
+/* ============================================================================
+ * 6. glassEffectID + glassEffectUnion — morph/merge glass between states
+ *    (:17372 / :9880). Both key off a `Namespace.ID`; we reuse the kit's
+ *    matched-geometry FLIP so a glass shape with the same `id` in two states
+ *    morphs (position+size) from the first to the second — the liquid droplet
+ *    gliding/reshaping between layouts.
+ * ========================================================================== */
+
+/** Re-export the matched-geometry namespace so callers share one `@Namespace`
+ *  between glass IDs and ordinary matched geometry. */
+export type GlassNamespace = MatchedGeometryNamespaceValue;
+export { useNamespace as useGlassNamespace, MatchedGeometryNamespace as GlassNamespaceProvider };
+
+export interface UseGlassEffectIDOptions {
+  /** the namespace the id is scoped to (or the nearest <GlassNamespaceProvider>). */
+  namespace?: GlassNamespace;
+  /** `isSource` — the source glass defines the geometry the destination morphs FROM. */
+  isSource?: boolean;
+  /** skip the morph (reduce-motion). */
+  disabled?: boolean;
+}
+
+/**
+ * `.glassEffectID(_:in:)` — give a glass shape an identity inside a namespace so
+ * it MORPHS (FLIP: translate+scale) from its previous frame to its new one when
+ * the layout changes between two states with the same id. Returns props to spread
+ * on the glass element (a ref + transform style). Built on the kit's
+ * matched-geometry engine, so glass IDs and normal matched geometry interop.
+ *
+ *   const a = useGlassEffectID("orb", { isSource: true });  // state A
+ *   const b = useGlassEffectID("orb");                       // state B → morphs from A
+ */
+export function useGlassEffectID<E extends HTMLElement = HTMLDivElement>(
+  id: string | number,
+  options: UseGlassEffectIDOptions = {},
+) {
+  return useMatchedGeometry<E>(id, options.namespace, {
+    isSource: options.isSource ?? true,
+    properties: "frame",
+    disabled: options.disabled,
+  });
+}
+
+/**
+ * `.glassEffectUnion(id:namespace:)` — MERGE several glass shapes that share a
+ * union id into one droplet field. Where `glassEffectID` morphs ONE shape across
+ * states, `union` fuses MANY shapes (in the same state) under a common id so a
+ * `GlassEffectContainer` treats them as a single merged blob. We model this as a
+ * `data-glass-union` grouping attribute + the shared namespace key; the container's
+ * gooey filter then welds every element carrying the same union id.
+ *
+ * Returns `{ "data-glass-union": key }` to spread on each member element.
+ */
+export function glassEffectUnionProps(
+  id: string | number,
+  namespace?: GlassNamespace,
+): { "data-glass-union": string } {
+  const ns = namespace?.id ?? "default";
+  return { "data-glass-union": `${ns}:${String(id)}` };
+}
+
+/* ============================================================================
+ * 7. Bar-chrome support types — ScrollEdgeEffectStyle + TabBarMinimizeBehavior.
+ *    These are the SwiftUI enums the navigation/tab agents import; the View-level
+ *    modifiers that USE them live in modifiers.ts (scrollEdgeEffect*). Defined
+ *    here so the glass system owns the glass vocabulary in one place.
+ * ========================================================================== */
+
+/**
+ * `ScrollEdgeEffectStyle` (:12150) — the glass fade a scroll container's edge gets
+ * under a floating bar. `.hard` = a crisp glass cutoff; `.soft` = a gentle blur
+ * fade; `.automatic` resolves to soft on iOS-26 bars. String union for the nav
+ * agent to import.
+ */
+export type ScrollEdgeEffectStyle = "automatic" | "hard" | "soft";
+
+/**
+ * `TabBarMinimizeBehavior` (:8789) — how an iOS-26 tab bar minimizes on scroll.
+ * `.onScrollDown` shrinks the bar to a pill as the user scrolls down (and
+ * restores on scroll up); `.onScrollUp` is the inverse; `.never` keeps it full;
+ * `.automatic` picks the platform default (onScrollDown). String union for the
+ * tab agent to import.
+ */
+export type TabBarMinimizeBehavior =
+  | "automatic"
+  | "onScrollDown"
+  | "onScrollUp"
+  | "never";

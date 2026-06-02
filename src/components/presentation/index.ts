@@ -11,6 +11,9 @@
 // Shared infrastructure (§9).
 export * from "./PresentationRoot";
 
+// Liquid-Glass chrome switch + class helpers (iOS-26 design language).
+export * from "./glassChrome";
+
 // The six presentation surfaces.
 export * from "./Sheet";
 export * from "./FullScreenCover";

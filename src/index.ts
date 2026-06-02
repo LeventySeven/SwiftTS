@@ -85,3 +85,7 @@ export { MenuDivider } from "./components/Menu";
 export { Section } from "./components/layout";
 export type { SectionProps } from "./components/layout";
 export { BLEND_MAP } from "./system/effects";
+export type { ToolbarEntry } from "./components/navigation";
+
+// --- Kit blocks (dashboards, navbars, sidebars, cards, screens) ---
+export * from "./blocks";

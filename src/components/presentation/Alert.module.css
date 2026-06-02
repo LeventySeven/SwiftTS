@@ -38,6 +38,18 @@
   transform: scale(1);
 }
 
+/* Liquid-Glass alert card: drop the opaque Material backing + flat shadow (the
+ * .sui-glass layer paints the refraction + specular rim + sheen). The button
+ * hairlines lighten to the glass hairline so they read over the translucent body. */
+.card[data-glass="true"] {
+  background: transparent;
+  box-shadow: none;
+}
+.card[data-glass="true"] .buttons,
+.card[data-glass="true"] .btn + .btn {
+  border-color: var(--sui-glass-hairline, rgba(255, 255, 255, 0.28));
+}
+
 .icon {
   display: flex;
   justify-content: center;

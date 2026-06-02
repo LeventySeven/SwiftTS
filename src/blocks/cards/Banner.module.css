@@ -1,0 +1,49 @@
+/* Banner / Callout — tinted or glass notice strip.
+   Surface (fill/glass), radius, and tint border are set inline by Banner.tsx;
+   this owns the padding, the status-icon box, and the dismiss button. */
+
+.banner {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  line-height: 1;
+  /* nudge the icon to optically align with the title cap-height */
+  margin-top: 1px;
+}
+
+.dismiss {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  cursor: pointer;
+  color: var(--sui-color-secondary-label);
+  background: var(--sui-color-tertiary-system-fill);
+  transition: background 0.15s ease;
+}
+.dismiss:hover {
+  background: var(--sui-color-secondary-system-fill);
+}
+.dismiss:active {
+  opacity: 0.6;
+}
+
+/* On the glass surface, keep the content above the backdrop layers. */
+.banner[data-variant="glass"] {
+  position: relative;
+}
+.banner[data-variant="glass"] > * {
+  position: relative;
+  z-index: 1;
+}

@@ -18,6 +18,13 @@
 import * as React from "react";
 import { View, type ViewProps } from "../../View";
 import type { NavigationSplitViewStyleName } from "../../../system/styles";
+import { type Glass, type GlassVariant } from "../../../system/effects";
+import {
+  useLiquidGlassMode,
+  resolveBarSurface,
+  glassBarClass,
+  glassBarStyle,
+} from "../liquidGlassNav";
 import "../navigation.global.css";
 
 export type NavigationSplitViewVisibility =
@@ -47,6 +54,16 @@ export interface NavigationSplitViewProps extends Omit<ViewProps, "as" | "conten
   sidebarWidth?: number;
   /** Content width override (px). Default 320. */
   contentWidth?: number;
+  /**
+   * iOS-26 Liquid Glass sidebar. When the app design mode is iOS-26 the sidebar
+   * panel renders as a translucent Liquid-Glass surface (specular rim + sheen)
+   * over the page rather than the opaque grouped-background. Pass `glass={false}`
+   * (or `material`) for the classic opaque sidebar; pass a `Glass` value/variant
+   * to configure the surface (e.g. `.clear` for a more transparent panel).
+   */
+  glass?: boolean | Glass | GlassVariant;
+  /** Opt out to the classic (non-glass) opaque sidebar background. */
+  material?: boolean;
 }
 
 export const NavigationSplitView = React.forwardRef<HTMLDivElement, NavigationSplitViewProps>(
@@ -61,6 +78,8 @@ export const NavigationSplitView = React.forwardRef<HTMLDivElement, NavigationSp
       splitStyle,
       sidebarWidth,
       contentWidth,
+      glass,
+      material,
       className,
       style,
       ...rest
@@ -72,11 +91,19 @@ export const NavigationSplitView = React.forwardRef<HTMLDivElement, NavigationSp
     // host doesn't drive a toggle yet; reference it so the binding stays wired.
     void onColumnVisibilityChange;
 
+    const liquidGlassMode = useLiquidGlassMode();
+    const surface = resolveBarSurface({ glass, material, liquidGlassMode });
+    const useGlass = surface.kind === "glass";
+
     const gridStyle: React.CSSProperties = { ...style };
     if (sidebarWidth != null)
       (gridStyle as Record<string, string>)["--sidebar-w"] = `${sidebarWidth}px`;
     if (contentWidth != null)
       (gridStyle as Record<string, string>)["--content-w"] = `${contentWidth}px`;
+
+    const sidebarClass = useGlass
+      ? glassBarClass("sui-split-sidebar", surface.glass)
+      : "sui-split-sidebar";
 
     return (
       <View
@@ -86,10 +113,13 @@ export const NavigationSplitView = React.forwardRef<HTMLDivElement, NavigationSp
         data-columns={twoColumn ? "2" : "3"}
         data-compact-column={preferredCompactColumn}
         data-split-style={splitStyle}
+        data-sidebar-glass={useGlass ? "true" : undefined}
         style={gridStyle}
         {...rest}
       >
-        <aside className="sui-split-sidebar">{sidebar}</aside>
+        <aside className={sidebarClass} style={useGlass ? glassBarStyle(surface.glass) : undefined}>
+          {sidebar}
+        </aside>
         {!twoColumn && <section className="sui-split-content">{content}</section>}
         <main className="sui-split-detail">{detail}</main>
       </View>

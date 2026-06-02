@@ -18,6 +18,10 @@
  * verbatim (frame→flex grid, shadow blur = 2×radius, brightness = 1+a, etc.).
  */
 import "./modifiers.global.css";
+// The `glassEffect` prop alias emits the `sui-glass*` classes whose CSS lives in
+// effects.global.css; import it so a plain <View glassEffect> renders the surface
+// even when effects.ts isn't otherwise loaded.
+import "./effects.global.css";
 import type * as React from "react";
 import type {
   Alignment,
@@ -215,6 +219,60 @@ export type VisualEffectProp =
   | { style?: React.CSSProperties; className?: string };
 
 /* =============================================================================
+ * iOS-26 Liquid-Glass chrome modifiers (the glass-bar / scroll-edge family).
+ *
+ * These three modifiers make a view participate in the floating-glass-bar world:
+ *   - backgroundExtensionEffect() — let the content BLEED edge-to-edge behind a
+ *     translucent bar (content extends under the chrome instead of stopping at it).
+ *   - scrollEdgeEffectStyle(_:for:) — the soft/hard glass FADE a scroll edge gets
+ *     under a floating bar.
+ *   - scrollEdgeEffectHidden(_:for:) — suppress that fade on chosen edges.
+ *   - glassEffect — a prop alias for `.glassEffect(_:in:)` on a plain View.
+ * ========================================================================== */
+
+/**
+ * `.backgroundExtensionEffect()` (SwiftUI:12093) / `.backgroundExtensionEffect(
+ * isEnabled:)` (:12096) — the view's background extends EDGE-TO-EDGE behind
+ * translucent chrome (nav/tab bars). `true` (bare) enables it; the object form
+ * mirrors the `isEnabled:` parameter so it can be toggled without removing the
+ * prop. Web mapping (DESIGNED): pull the view out under the safe-area insets so
+ * its background bleeds under the floating bar, and mark it so the bar's blur
+ * samples real content behind it.
+ */
+export type BackgroundExtensionEffectProp = boolean | { isEnabled?: boolean };
+
+/**
+ * `ScrollEdgeEffectStyle` (SwiftUI:12150) — the glass fade a scroll container's
+ * edge gets under a floating bar. `.hard` = crisp glass cutoff; `.soft` = gentle
+ * blur fade; `.automatic` = soft on iOS-26.
+ *
+ * NOT re-exported publicly: the CANONICAL `ScrollEdgeEffectStyle` is the one
+ * exported from `system/effects.ts` (which the navigation barrel imports/re-
+ * exports). This local copy exists only so modifiers.ts has no value/import cycle
+ * with effects.ts; it is intentionally module-private to avoid an `export *`
+ * name collision at `src/index.ts`.
+ */
+type ScrollEdgeEffectStyle = "automatic" | "hard" | "soft";
+
+/**
+ * `.scrollEdgeEffectStyle(_:for:)` (:12169) — set the edge fade style for chosen
+ * edges of a scroll container. The bare style applies to all edges; the object
+ * form selects edges (`.top`/`.bottom`/…). `null` clears the effect.
+ */
+export type ScrollEdgeEffectStyleProp =
+  | ScrollEdgeEffectStyle
+  | null
+  | { style: ScrollEdgeEffectStyle | null; edges?: EdgeSet };
+
+/**
+ * `.scrollEdgeEffectHidden(_:for:)` (:12169) — hide the scroll-edge effect on the
+ * chosen edges. `true` (bare) hides all; the object form selects edges.
+ */
+export type ScrollEdgeEffectHiddenProp =
+  | boolean
+  | { hidden?: boolean; edges?: EdgeSet };
+
+/* =============================================================================
  * ViewModifierProps — the idiomatic prop bag (1:1 with SwiftUI modifier names)
  * ========================================================================== */
 
@@ -378,6 +436,29 @@ export interface ViewModifierProps {
   drawingGroup?: boolean;
   geometryGroup?: boolean;
 
+  // ---- iOS-26 LIQUID-GLASS CHROME (glass-bar / scroll-edge family) ----------
+  /**
+   * `.glassEffect(_:in:)` — apply the iOS-26 Liquid-Glass surface to this view.
+   * `true` → the default `.regular` glass clipped to a capsule; the object form
+   * selects the variant / tint / interactive / clip shape. This is the prop ALIAS
+   * for the `<GlassEffect>` component (effects.ts owns the surface; here it's a
+   * one-prop modifier that emits the same glass class + tint var inline).
+   */
+  glassEffect?:
+    | boolean
+    | {
+        variant?: "regular" | "clear" | "identity";
+        tint?: string;
+        interactive?: boolean;
+        shape?: "capsule" | "circle" | { rounded: number };
+      };
+  /** `.backgroundExtensionEffect()` — bleed the background edge-to-edge behind chrome. */
+  backgroundExtensionEffect?: BackgroundExtensionEffectProp;
+  /** `.scrollEdgeEffectStyle(_:for:)` — soft/hard glass fade at a scroll edge. */
+  scrollEdgeEffectStyle?: ScrollEdgeEffectStyleProp;
+  /** `.scrollEdgeEffectHidden(_:for:)` — hide the scroll-edge fade on edges. */
+  scrollEdgeEffectHidden?: ScrollEdgeEffectHiddenProp;
+
   // ---- CONTROL / ENV (Part G) ----
   controlSize?: ControlSize;
   labelsHidden?: boolean;
@@ -423,6 +504,9 @@ const MODIFIER_KEYS = new Set<string>([
   "projectionEffect", "visualEffect",
   "blur", "brightness", "contrast", "saturation", "grayscale", "hueRotation",
   "colorInvert", "blendMode", "compositingGroup", "drawingGroup", "geometryGroup",
+  // iOS-26 liquid-glass chrome
+  "glassEffect", "backgroundExtensionEffect",
+  "scrollEdgeEffectStyle", "scrollEdgeEffectHidden",
   // control/env
   "controlSize", "labelsHidden", "imageScale", "symbolRenderingMode",
   "symbolVariant", "symbolEffect", "symbolColorRenderingMode",
@@ -864,6 +948,48 @@ export function applyModifiers(
   }
   if (m.geometryGroup) style.contain = "layout paint";
 
+  // ---- iOS-26 LIQUID-GLASS CHROME ------------------------------------------
+  // glassEffect — the prop alias for <GlassEffect>. Emits the same `sui-glass*`
+  // classes + tint var that effects.ts's glassClass/glassStyle produce, so a
+  // plain <View glassEffect> renders the iOS-26 glass surface with no wrapper.
+  if (m.glassEffect) {
+    Object.assign(style, glassEffectToCSS(m.glassEffect, cls));
+  }
+  // backgroundExtensionEffect — bleed the background edge-to-edge under chrome.
+  if (m.backgroundExtensionEffect) {
+    const enabled =
+      m.backgroundExtensionEffect === true ||
+      (typeof m.backgroundExtensionEffect === "object" &&
+        m.backgroundExtensionEffect.isEnabled !== false);
+    if (enabled) {
+      cls.push("sui-bg-extension");
+      // pull the view OUT under every safe-area inset so its background extends
+      // edge-to-edge behind a floating bar (content keeps its own padding via
+      // the bar's own safeAreaPadding). Negative margins == ignoresSafeArea(.all).
+      Object.assign(style, ignoresSafeAreaToCSS(true));
+      rest["data-bg-extension"] = "true";
+    }
+  }
+  // scrollEdgeEffectStyle — soft/hard glass fade at the scroll edges. We don't
+  // own the overlay-strip CSS (the bar agent renders `.sui-scroll-edge-*` strips);
+  // here we publish the RESOLVED style + edges as data-attrs + CSS vars so a
+  // scroll container (or the bar agent) can place the fade. `null` clears it.
+  if (m.scrollEdgeEffectStyle !== undefined) {
+    Object.assign(style, scrollEdgeStyleToCSS(m.scrollEdgeEffectStyle, rest));
+  }
+  // scrollEdgeEffectHidden — suppress the fade on chosen edges.
+  if (m.scrollEdgeEffectHidden !== undefined) {
+    const hidden =
+      m.scrollEdgeEffectHidden === true ||
+      (typeof m.scrollEdgeEffectHidden === "object" &&
+        m.scrollEdgeEffectHidden.hidden !== false);
+    const edges =
+      typeof m.scrollEdgeEffectHidden === "object"
+        ? edgesOf(m.scrollEdgeEffectHidden.edges)
+        : edgesOf("all");
+    if (hidden) rest["data-scroll-edge-hidden"] = edges.join(" ");
+  }
+
   // ---- CONTROL / ENV (Part G) ----------------------------------------------
   if (m.controlSize) rest["data-control-size"] = m.controlSize;
   if (m.labelsHidden) cls.push("sui-labels-hidden");
@@ -939,6 +1065,70 @@ export function clipShapeToCSS(shape: ClipShape): React.CSSProperties {
   if (shape === "circle") return { borderRadius: "50%", overflow: "hidden" };
   if (shape === "capsule") return { borderRadius: "9999px", overflow: "hidden" };
   return { borderRadius: px(shape.rounded), overflow: "hidden" };
+}
+
+/**
+ * glassEffect (prop alias) → the `sui-glass*` classes + tint/shape inline style.
+ *
+ * Mirrors effects.ts `glassClass()` / `glassStyle()` / `glassEffectProps()` WITHOUT
+ * importing them (modifiers.ts has no runtime dep on effects.ts — it only emits the
+ * stable class strings the `effects.global.css` cascade styles). Pushes the glass
+ * classes onto `cls` and returns the inline shape + tint-var style.
+ */
+export function glassEffectToCSS(
+  g: NonNullable<ViewModifierProps["glassEffect"]>,
+  cls: string[],
+): React.CSSProperties {
+  const cfg = typeof g === "object" ? g : {};
+  const variant = cfg.variant ?? "regular";
+  cls.push("sui-glass");
+  if (variant === "clear") cls.push("sui-glass-clear");
+  if (variant === "identity") cls.push("sui-glass-identity");
+  if (cfg.tint) cls.push("sui-glass-tinted");
+  if (cfg.interactive) cls.push("sui-glass-interactive");
+
+  const out: React.CSSProperties = {};
+  // clip shape (default capsule = DefaultGlassEffectShape)
+  const shape = cfg.shape ?? "capsule";
+  if (shape === "capsule") out.borderRadius = 9999;
+  else if (shape === "circle") {
+    out.borderRadius = "50%";
+    out.aspectRatio = "1 / 1";
+  } else out.borderRadius = px(shape.rounded);
+  if (cfg.tint) setVar(out, "--sui-glass-tint-color", resolveColor(cfg.tint));
+  return out;
+}
+
+/**
+ * scrollEdgeEffectStyle (`.scrollEdgeEffectStyle(_:for:)`) → resolved style +
+ * edges published as data-attrs / CSS vars on the scroll container.
+ *
+ * We don't render the fade strip here (the bar agent owns `.sui-scroll-edge-*`
+ * overlay strips); instead we expose `data-scroll-edge-style` (resolved soft/hard)
+ * and `data-scroll-edge-edges`, plus a `--sui-scroll-edge-style` var, so a scroll
+ * container's own edge layer (or the bar agent's overlay) can read which fade to
+ * draw on which edges. `.automatic` resolves to `soft` (the iOS-26 default);
+ * `null` clears the effect.
+ */
+export function scrollEdgeStyleToCSS(
+  p: ScrollEdgeEffectStyleProp,
+  rest: Record<string, any>,
+): React.CSSProperties {
+  const out: React.CSSProperties = {};
+  const rawStyle = typeof p === "object" && p !== null ? p.style : p;
+  if (rawStyle == null) {
+    // null → clear: mark it off so any reader removes its fade.
+    rest["data-scroll-edge-style"] = "none";
+    return out;
+  }
+  // .automatic → soft (the iOS-26 default edge fade).
+  const resolved = rawStyle === "automatic" ? "soft" : rawStyle;
+  const edges =
+    typeof p === "object" && p !== null ? edgesOf(p.edges) : edgesOf("all");
+  rest["data-scroll-edge-style"] = resolved;
+  rest["data-scroll-edge-edges"] = edges.join(" ");
+  setVar(out, "--sui-scroll-edge-style", resolved);
+  return out;
 }
 
 /**

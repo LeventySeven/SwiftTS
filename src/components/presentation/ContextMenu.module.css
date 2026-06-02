@@ -53,6 +53,22 @@
   opacity: 1;
 }
 
+/* Liquid-Glass long-press menu: drop the opaque Material backing + flat shadow
+ * (the .sui-glass layer paints the refraction + specular rim + sheen). */
+.menuGlass {
+  background: transparent;
+  box-shadow: none;
+}
+/* glass preview frame: a faint translucent backing behind the caller's preview
+ * so a content-less preview still reads as a lifted glass card. */
+.preview[data-glass="true"] {
+  background: var(--sui-glass-tint, rgba(255, 255, 255, 0.18));
+  -webkit-backdrop-filter: blur(var(--sui-glass-blur, 12px))
+    saturate(var(--sui-glass-saturate, 1.8));
+  backdrop-filter: blur(var(--sui-glass-blur, 12px))
+    saturate(var(--sui-glass-saturate, 1.8));
+}
+
 .row {
   display: flex;
   align-items: center;

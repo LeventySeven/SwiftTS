@@ -20,6 +20,7 @@ import { SectionNavigation } from "./_gallery/SectionNavigation";
 import { SectionPresentation } from "./_gallery/SectionPresentation";
 import { SectionShapes } from "./_gallery/SectionShapes";
 import { SectionMaterials } from "./_gallery/SectionMaterials";
+import { SectionBlocks } from "./_gallery/SectionBlocks";
 import { SectionCharts } from "./_gallery/SectionCharts";
 import { SectionExtras } from "./_gallery/SectionExtras";
 
@@ -48,6 +49,7 @@ const NAV = [
   ["presentation", "Modals"],
   ["shapes", "Shapes"],
   ["materials", "Materials"],
+  ["blocks", "Blocks"],
   ["charts", "Charts"],
   ["extras", "More"],
 ];
@@ -234,6 +236,7 @@ export default function Home(): React.ReactElement {
           <SectionPresentation />
           <SectionShapes />
           <SectionMaterials />
+          <SectionBlocks />
           <SectionCharts />
           <SectionExtras />
         </main>

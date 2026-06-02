@@ -61,15 +61,20 @@ src/
   tokens/        # the design system: variables.css (251 CSS custom properties,
                  #   light/dark/elevated) + tokens.ts (typed) — colors, typography,
                  #   spacing, animation (springs as exact linear() easings), materials
-  system/        # modifiers.ts (applyModifiers engine) · environment.tsx (SwiftUIProvider)
-                 #   animation.ts · gestures.ts · styles.ts (*Style system) · effects.ts (materials)
-                 #   types.ts (shared SwiftUI vocabulary) · lifecycle.ts (onAppear/onChange/task)
-  components/    # ~50 component families (104 files): View, Text, Image, Label, Button,
-                 #   Toggle, Slider, Stepper, Picker, DatePicker, TextField, List, Form,
-                 #   Section, ScrollView, navigation/ (NavigationStack/SplitView/TabView),
-                 #   presentation/ (Sheet/Alert/Popover/ContextMenu), shapes/, charts/,
-                 #   layout/ (VStack/HStack/ZStack/Grid/…), AsyncImage, GroupBox, …
-app/             # the demo gallery (one section per cluster, light/dark/tint toggle)
+  system/        # modifiers.ts (applyModifiers engine) · environment.tsx (SwiftUIProvider +
+                 #   designMode: 'liquidGlass'|'classic') · animation.ts · gestures.ts · search.ts
+                 #   drag-drop.ts · focus.ts · matched-geometry.ts · styles.ts · effects.ts
+                 #   (Materials + the full iOS-26 Liquid Glass system) · lifecycle.ts
+  components/    # all 64 SwiftUI components: View, Text, Image, Label, Button, Toggle, Slider,
+                 #   Picker, DatePicker, TextField, List, Form, Section, ScrollView, Table,
+                 #   navigation/ (NavigationStack/SplitView/TabView — Liquid Glass chrome),
+                 #   presentation/ (Sheet/Alert/Popover/ContextMenu/Menu — glass surfaces),
+                 #   shapes/ (+ ConcentricRectangle), charts/, layout/, controls/ (~310 SF-Symbol
+                 #   icons → inline SVG), AnyView/EmptyView/Color/TimelineView/PhaseAnimator/…
+  blocks/        # composed kit blocks: shells/ (AppShell, GlassNavBar, GlassSidebar, GlassTabBar),
+                 #   cards/ (Card, StatTile, MetricGrid, SettingsGroup, ProfileCard, Banner),
+                 #   screens/ (Settings/Dashboard/Profile/Search/MediaPlayer templates)
+app/             # the demo gallery (one section per cluster + Liquid Glass + Kit Blocks)
 research/        # the reverse-engineering evidence this kit was built from:
                  #   teardowns/ (16 per-cluster RE files, 15,922 lines) · tokens/ (6 design-token
                  #   specs) · INVENTORY.json · CLUSTERS.md · COMPLETENESS.md · DESIGN.md · tools/
@@ -93,7 +98,7 @@ A 6-stage reverse-engineering → replication pipeline (documented in [`research
 Verified 1:1 (light + dark) across: typography ramp, all button styles, Toggle/Slider/Stepper/Progress, **List/Form** (iOS Settings anatomy: inset-grouped cards, inset hairline separators, leading-label/trailing-value rows), segmented/wheel/inline Pickers, **NavigationStack + bottom TabView**, Sheets with detents, Shapes/gradients, Materials (frosted-glass thicknesses), Charts.
 
 **DESIGNED approximations** (proprietary or runtime-only, can't be shipped verbatim):
-- **SF Symbols** — proprietary; ~130 common names mapped to open inline-SVG equivalents (`src/components/controls/sf-symbols-map.ts`). Visually close, not identical.
+- **SF Symbols** — proprietary; **~310 common names** mapped to open inline-SVG equivalents (`src/components/controls/sf-symbols-map.ts` + `controls/symbols/*`). Visually close, not identical.
 - **Materials / Liquid Glass** — `backdrop-filter: blur() saturate()` + tint recipes approximating `UIBlurEffect`.
 - **Continuous corners (squircle)** — approximated via `clip-path`; CSS `border-radius` is circular.
 

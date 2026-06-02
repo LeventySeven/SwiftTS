@@ -426,6 +426,42 @@
   --sui-glass-interactive-scale: 0.97;
   --sui-glass-hover-brightness: 1.06;
   --sui-glass-hover-scale: 1.02;
+  /* press-time backdrop bulge: the contact point lenses harder (saturate pop) */
+  --sui-glass-interactive-saturate: 2.1;
+
+  /* --- specular sheen second highlight (the lower wet glint) --- */
+  --sui-glass-sheen-2: rgba(255, 255, 255, 0.18);
+
+  /* --- .sui-glass-bar (floating chrome bar variant) ---
+   * A nav/tab bar that FLOATS as glass over content (content extends behind via
+   * backgroundExtensionEffect). Heavier blur than a free pane so dense UI behind
+   * stays legible, slightly more opaque body, a stronger floor shadow for lift. */
+  --sui-glass-bar-blur: 28px;
+  --sui-glass-bar-saturate: 1.9;
+  --sui-glass-bar-brightness: 1.06;
+  --sui-glass-bar-tint: rgba(255, 255, 255, 0.55);
+  --sui-glass-bar-rim: rgba(255, 255, 255, 0.6);
+  --sui-glass-bar-hairline: rgba(255, 255, 255, 0.4);
+  --sui-glass-bar-shadow: rgba(0, 0, 0, 0.16);
+
+  /* --- scroll-edge effect fades (ScrollEdgeEffectStyle .soft / .hard) ---
+   * The strip of content scrolling UNDER a floating bar gets a glass fade so it
+   * doesn't hard-clip at the bar edge. `.soft` = a long translucent blur ramp;
+   * `.hard` = a short crisp scrim line. The mask scrim color matches the page
+   * base so the fade reads as the bar's frosted under-shadow. */
+  --sui-scroll-edge-soft-size: 44px;
+  --sui-scroll-edge-soft-blur: 8px;
+  --sui-scroll-edge-soft-scrim: rgba(255, 255, 255, 0.55);
+  --sui-scroll-edge-hard-size: 14px;
+  --sui-scroll-edge-hard-scrim: rgba(255, 255, 255, 0.85);
+
+  /* --- gooey droplet-merge (GlassEffectContainer) ---
+   * The blur radius fed to the SVG feGaussianBlur+feColorMatrix "goo" filter that
+   * fuses adjacent glass capsules into liquid droplets, and the contraction the
+   * companion threshold applies. CSS alone can't do this; the merge container
+   * references an inline SVG filter parameterised by these. */
+  --sui-glass-merge-radius: 8px;
+  --sui-glass-merge-spread: 18;
 }
 
 /* =============================================================================
@@ -516,6 +552,20 @@
     --sui-glass-glow: rgba(255, 255, 255, 0.1);
     --sui-glass-shadow: rgba(0, 0, 0, 0.45);
     --sui-glass-clear-tint: rgba(255, 255, 255, 0.04);
+    --sui-glass-sheen-2: rgba(255, 255, 255, 0.08);
+    --sui-glass-interactive-saturate: 1.9;
+
+    /* Bar variant — dark: a near-black frosted floating bar with a faint rim. */
+    --sui-glass-bar-saturate: 1.7;
+    --sui-glass-bar-brightness: 1.1;
+    --sui-glass-bar-tint: rgba(30, 30, 32, 0.6);
+    --sui-glass-bar-rim: rgba(255, 255, 255, 0.22);
+    --sui-glass-bar-hairline: rgba(255, 255, 255, 0.12);
+    --sui-glass-bar-shadow: rgba(0, 0, 0, 0.5);
+
+    /* Scroll-edge fades — dark: the scrim is the dark page base, not white. */
+    --sui-scroll-edge-soft-scrim: rgba(20, 20, 22, 0.6);
+    --sui-scroll-edge-hard-scrim: rgba(20, 20, 22, 0.88);
 
     /* Vibrancy — dark alphas (secondary/quaternary differ from light) */
     --sui-vibrancy-secondary: 0.55;
@@ -602,6 +652,20 @@
   --sui-glass-glow: rgba(255, 255, 255, 0.1);
   --sui-glass-shadow: rgba(0, 0, 0, 0.45);
   --sui-glass-clear-tint: rgba(255, 255, 255, 0.04);
+  --sui-glass-sheen-2: rgba(255, 255, 255, 0.08);
+  --sui-glass-interactive-saturate: 1.9;
+
+  /* Bar variant — dark (see @media block above for rationale). */
+  --sui-glass-bar-saturate: 1.7;
+  --sui-glass-bar-brightness: 1.1;
+  --sui-glass-bar-tint: rgba(30, 30, 32, 0.6);
+  --sui-glass-bar-rim: rgba(255, 255, 255, 0.22);
+  --sui-glass-bar-hairline: rgba(255, 255, 255, 0.12);
+  --sui-glass-bar-shadow: rgba(0, 0, 0, 0.5);
+
+  /* Scroll-edge fades — dark scrim. */
+  --sui-scroll-edge-soft-scrim: rgba(20, 20, 22, 0.6);
+  --sui-scroll-edge-hard-scrim: rgba(20, 20, 22, 0.88);
 
   /* Vibrancy */
   --sui-vibrancy-secondary: 0.55;

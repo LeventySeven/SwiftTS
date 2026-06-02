@@ -19,6 +19,15 @@ import type {
   LayoutDirection,
 } from "./types";
 
+/**
+ * The design language the kit renders in (C12-local, not part of the shared
+ * `types.ts` vocabulary). `liquidGlass` is the iOS-26 refractive glass (bright
+ * specular rim, lensing, floating bars); `classic` rolls back to the pre-26
+ * frosted Material look. Projected onto the provider wrapper as
+ * `data-design-mode` so CSS (effects.global.css §4e) and chrome read it.
+ */
+export type DesignMode = "liquidGlass" | "classic";
+
 export interface SwiftUIEnvironment {
   colorScheme: ColorScheme;
   controlSize: ControlSize;
@@ -29,6 +38,12 @@ export interface SwiftUIEnvironment {
   tint: string;
   isEnabled: boolean;
   reduceMotion: boolean;
+  /**
+   * The active design language. `liquidGlass` (iOS 26, default) uses the full
+   * refractive-glass recipe; `classic` falls back to the pre-26 frosted material.
+   * Read by glass/chrome CSS via the wrapper's `data-design-mode`.
+   */
+  designMode: DesignMode;
 }
 
 const DEFAULTS: SwiftUIEnvironment = {
@@ -39,6 +54,7 @@ const DEFAULTS: SwiftUIEnvironment = {
   tint: "var(--sui-color-tint)",
   isEnabled: true,
   reduceMotion: false,
+  designMode: "liquidGlass",
 };
 
 const EnvironmentContext = createContext<SwiftUIEnvironment>(DEFAULTS);
@@ -94,6 +110,7 @@ export function SwiftUIProvider({
   tint,
   isEnabled,
   reduceMotion,
+  designMode,
   children,
   className,
   style,
@@ -128,8 +145,18 @@ export function SwiftUIProvider({
       tint: tint ?? DEFAULTS.tint,
       isEnabled: isEnabled ?? DEFAULTS.isEnabled,
       reduceMotion: reduceMotion ?? DEFAULTS.reduceMotion,
+      designMode: designMode ?? DEFAULTS.designMode,
     }),
-    [resolvedScheme, controlSize, dynamicTypeScale, layoutDirection, tint, isEnabled, reduceMotion],
+    [
+      resolvedScheme,
+      controlSize,
+      dynamicTypeScale,
+      layoutDirection,
+      tint,
+      isEnabled,
+      reduceMotion,
+      designMode,
+    ],
   );
 
   const cssVars: React.CSSProperties = {
@@ -145,6 +172,7 @@ export function SwiftUIProvider({
         className={className ? `sui-root ${className}` : "sui-root"}
         data-theme={env.colorScheme}
         data-control-size={env.controlSize}
+        data-design-mode={env.designMode}
         dir={CONTROL_DIR[env.layoutDirection]}
         style={cssVars}
       >

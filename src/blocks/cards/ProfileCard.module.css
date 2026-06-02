@@ -1,0 +1,49 @@
+/* ProfileCard / ProfileHeader — avatar + identity + actions.
+   Identity layout comes from kit VStack/HStack/Text; this owns the avatar
+   circle, its image fit, and the fallback bubble. */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.actions {
+  margin-top: 4px;
+}
+
+.avatar {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--sui-color-system-gray5);
+  box-shadow: inset 0 0 0 0.5px var(--sui-color-separator);
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.initials {
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-family: var(--sui-font-rounded, var(--sui-font-stack));
+  line-height: 1;
+}

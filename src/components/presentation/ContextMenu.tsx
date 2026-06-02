@@ -20,6 +20,15 @@ import {
 } from "./PresentationRoot";
 import { useLongPressGesture } from "../../system/gestures";
 import { springCss } from "../../system/animation";
+import { glass, glassClass } from "../../system/effects";
+import {
+  useLiquidGlass,
+  glassRowClass,
+  glassPreviewClass,
+  glassScrimClass,
+  concentricVars,
+  chromeClasses,
+} from "./glassChrome";
 import styles from "./ContextMenu.module.css";
 
 /* ===========================================================================
@@ -89,6 +98,11 @@ export interface ContextMenuProps {
   onPrimaryAction?: () => void;
   /** Long-press duration in seconds (default 0.5). */
   longPressDuration?: number;
+  /**
+   * Liquid-Glass override. Unset ⇒ follow `useEnvironment().liquidGlass` (default
+   * glass). `false` ⇒ classic frosted Material menu + plain preview card.
+   */
+  glass?: boolean;
   /** The anchor view (the wrapper's children). */
   children: React.ReactNode;
 }
@@ -108,9 +122,11 @@ export function ContextMenu(props: ContextMenuProps): React.JSX.Element {
     preview,
     onPrimaryAction,
     longPressDuration = 0.5,
+    glass: glassProp,
     children,
   } = props;
 
+  const glassy = useLiquidGlass(glassProp);
   const anchorRef = React.useRef<HTMLDivElement>(null);
   const [state, setState] = React.useState<OpenState>({ open: false, rect: null });
 
@@ -157,6 +173,7 @@ export function ContextMenu(props: ContextMenuProps): React.JSX.Element {
         rect={state.rect}
         menu={menu}
         preview={preview}
+        glassy={glassy}
         onClose={close}
       />
     </>
@@ -175,6 +192,7 @@ interface OverlayProps {
   rect: DOMRect | null;
   menu: React.ReactNode;
   preview?: React.ReactNode;
+  glassy: boolean;
   onClose: () => void;
 }
 
@@ -183,6 +201,7 @@ function ContextMenuOverlay({
   rect,
   menu,
   preview,
+  glassy,
   onClose,
 }: OverlayProps): React.JSX.Element {
   const { mounted, dataState, reduceMotion, surfaceProps } = usePresentation({
@@ -247,11 +266,15 @@ function ContextMenuOverlay({
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className={styles.backdrop} onClick={onClose} />
+        <div
+          className={chromeClasses(styles.backdrop, glassScrimClass(glassy))}
+          onClick={onClose}
+        />
         {preview != null && (
           <div
-            className={styles.preview}
-            style={previewStyle}
+            className={chromeClasses(styles.preview, glassPreviewClass(glassy))}
+            data-glass={glassy ? "true" : undefined}
+            style={glassy ? { ...previewStyle, ...concentricVars(14) } : previewStyle}
             onTransitionEnd={surfaceProps.onTransitionEnd}
           >
             {preview}
@@ -259,10 +282,15 @@ function ContextMenuOverlay({
         )}
         <div
           ref={menuRef}
-          className={styles.menu}
+          className={chromeClasses(
+            styles.menu,
+            glassy && styles.menuGlass,
+            glassy && `${glassClass(glass.regular)} sui-glass-chrome`,
+          )}
           role="menu"
           data-state={dataState}
-          style={menuStyle}
+          data-glass={glassy ? "true" : undefined}
+          style={glassy ? { ...menuStyle, ...concentricVars(13) } : menuStyle}
           // When no preview, the menu drives the exit transitionend.
           onTransitionEnd={preview == null ? surfaceProps.onTransitionEnd : undefined}
         >
@@ -274,7 +302,7 @@ function ContextMenuOverlay({
                 key={i}
                 type="button"
                 role="menuitem"
-                className={styles.row}
+                className={chromeClasses(styles.row, glassRowClass(glassy))}
                 data-role={row.role}
                 onClick={() => runRow(row)}
               >
