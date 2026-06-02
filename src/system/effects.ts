@@ -61,9 +61,9 @@ export type BlendMode =
   | "plusLighter";
 
 // Side-effect import: registers the global .sui-material-* / .sui-vibrant-* /
-// .sui-glass classes. CSS Modules normally locally-scope names, but every class
-// in effects.global.css is wrapped in :global(...), so the literal names below
-// resolve at runtime.
+// .sui-glass classes. effects.global.css is authored with BARE (un-scoped)
+// class names — no `:global(...)` (it breaks under Turbopack) — so the literal
+// class strings the helpers below emit resolve verbatim at runtime.
 import "./effects.global.css";
 
 /* ============================================================================
@@ -415,105 +415,251 @@ export const COMPOSITING_GROUP_CLASS = "sui-compositing-group";
 export const DRAWING_GROUP_CLASS = "sui-drawing-group";
 
 /* ============================================================================
- * 4. Liquid Glass (iOS 26) — DESIGNED approximation (§9). Kept separate from
- *    the canonical material (§1) so material fidelity for iOS 17/18 is unchanged.
+ * 4. Liquid Glass (iOS 26) — DESIGNED recipe (§9). Kept separate from the
+ *    canonical material (§1) so material fidelity for iOS 17/18 is unchanged.
+ *
+ *    This is the iOS-26 `glassEffect`/`Glass` surface: lighter and MORE
+ *    translucent than the frosted Material, with a bright specular RIM, a soft
+ *    inner glow, a diagonal sheen, and (on `.interactive`) hover/press lensing.
+ *    The numbers are token-driven (--sui-glass-* in variables.css), so light /
+ *    dark are handled entirely by the cascade — this module never hardcodes a
+ *    tint, only the class strings and the shape geometry.
+ *
+ *    API mirrors SwiftUICore.swiftinterface:
+ *      glassEffect(_:in:)  (arm64e-apple-macos.swiftinterface:2529)
+ *      struct Glass        (:5753) — .regular/.clear/.identity + .tint/.interactive
+ *      GlassEffectContainer(spacing:) (:9045)
+ *    True backdrop refraction (feDisplacementMap) and the native droplet-merge
+ *    (glassEffectUnion/ID) are out of scope for pure CSS — flagged DESIGNED.
  * ========================================================================== */
 
-/** Liquid-glass variants: adaptive / transparent dimming / passthrough. */
-export type GlassKind = "regular" | "clear" | "identity";
+/** Liquid-glass variants: `.regular` adaptive / `.clear` transparent / `.identity` passthrough. */
+export type GlassVariant = "regular" | "clear" | "identity";
+/** @deprecated alias kept for back-compat; use {@link GlassVariant}. */
+export type GlassKind = GlassVariant;
 
 /** Base class for the layered liquid-glass surface. */
 export const GLASS_BASE_CLASS = "sui-glass";
 
-/** Build the liquid-glass class string for a variant + interactivity. */
-export function glassClass(
-  kind: GlassKind = "regular",
-  interactive = false,
-): string {
+/**
+ * The resolved Liquid-Glass configuration — the web analog of SwiftUI's
+ * `struct Glass`. Immutable + chainable: `.tint(color)` and `.interactive(bool)`
+ * each return a NEW `Glass` (matching the Swift value-type builder), so
+ * `glass.regular.tint("#0a84ff").interactive()` reads 1:1 with the Swift call.
+ */
+export interface Glass {
+  /** `.regular` / `.clear` / `.identity`. */
+  readonly variant: GlassVariant;
+  /** `.tint(color)` color, or null/undefined for untinted. */
+  readonly tintColor?: string | null;
+  /** `.interactive()` state. */
+  readonly isInteractive: boolean;
+  /** `.tint(_:)` — return a colored copy (pass null to clear the tint). */
+  tint(color: string | null): Glass;
+  /** `.interactive(_:)` — return an interactive copy (default true). */
+  interactive(isEnabled?: boolean): Glass;
+}
+
+/** Internal: build a frozen Glass value with the chainable builders bound. */
+function buildGlass(
+  variant: GlassVariant,
+  tintColor: string | null = null,
+  isInteractive = false,
+): Glass {
+  const self: Glass = {
+    variant,
+    tintColor,
+    isInteractive,
+    tint(color: string | null) {
+      return buildGlass(variant, color, isInteractive);
+    },
+    interactive(isEnabled = true) {
+      return buildGlass(variant, tintColor, isEnabled);
+    },
+  };
+  return Object.freeze(self);
+}
+
+/**
+ * `makeGlass({ variant, tint, interactive })` — factory for a Glass value when
+ * the chainable form (`glass.regular.tint(...)`) is inconvenient.
+ */
+export function makeGlass(opts?: {
+  variant?: GlassVariant;
+  tint?: string | null;
+  interactive?: boolean;
+}): Glass {
+  return buildGlass(
+    opts?.variant ?? "regular",
+    opts?.tint ?? null,
+    opts?.interactive ?? false,
+  );
+}
+
+/**
+ * `glass` — the SwiftUI `Glass` statics. `glass.regular` / `glass.clear` /
+ * `glass.identity`, each chainable: `glass.clear.tint("#34c759").interactive()`.
+ */
+export const glass = {
+  /** `.regular` — the default adaptive Liquid Glass. */
+  get regular(): Glass {
+    return buildGlass("regular");
+  },
+  /** `.clear` — the most transparent variant (media-rich backdrops). */
+  get clear(): Glass {
+    return buildGlass("clear");
+  },
+  /** `.identity` — a no-op passthrough (no glass layer). */
+  get identity(): Glass {
+    return buildGlass("identity");
+  },
+} as const;
+
+/** Coerce a `Glass | GlassVariant` into a concrete `Glass` value. */
+function resolveGlass(g: Glass | GlassVariant = "regular"): Glass {
+  return typeof g === "string" ? buildGlass(g) : g;
+}
+
+/**
+ * `glassClass(glass)` → the stable global class string for a Glass config.
+ * Accepts either a `Glass` value or a bare variant name. e.g.
+ * `glassClass(glass.clear.interactive())` →
+ *   "sui-glass sui-glass-clear sui-glass-interactive".
+ */
+export function glassClass(g: Glass | GlassVariant = "regular"): string {
+  const cfg = resolveGlass(g);
   return [
     GLASS_BASE_CLASS,
-    kind === "clear" ? "sui-glass-clear" : "",
-    kind === "identity" ? "sui-glass-identity" : "",
-    interactive ? "sui-glass-interactive" : "",
+    cfg.variant === "clear" ? "sui-glass-clear" : "",
+    cfg.variant === "identity" ? "sui-glass-identity" : "",
+    cfg.tintColor ? "sui-glass-tinted" : "",
+    cfg.isInteractive ? "sui-glass-interactive" : "",
   ]
     .filter(Boolean)
     .join(" ");
 }
 
-/** Props for the <Glass> liquid-glass surface (iOS 26 delta). */
-export interface GlassProps
+/**
+ * `glassStyle(glass)` → the inline style carrying the tint custom property.
+ * The CSS overlay (`.sui-glass-tinted::after`) reads `--sui-glass-tint-color`;
+ * `.regular`/`.clear` already get their body/rim/sheen from the token cascade,
+ * so the only inline bit is the optional tint color.
+ */
+export function glassStyle(g: Glass | GlassVariant = "regular"): React.CSSProperties {
+  const cfg = resolveGlass(g);
+  if (!cfg.tintColor) return {};
+  return { ["--sui-glass-tint-color" as string]: cfg.tintColor } as React.CSSProperties;
+}
+
+/** The shape a glass layer is clipped to (DefaultGlassEffectShape = capsule). */
+export type GlassShape =
+  | "capsule"
+  | "circle"
+  | { rounded: number }
+  | Pick<React.CSSProperties, "borderRadius" | "clipPath">;
+
+/** Resolve a GlassShape into the border-radius / clip CSS for the glass layer. */
+function shapeStyle(shape: GlassShape = "capsule"): React.CSSProperties {
+  if (shape === "capsule") return { borderRadius: 9999 };
+  if (shape === "circle") return { borderRadius: "50%", aspectRatio: "1 / 1" };
+  if (typeof shape === "object" && "rounded" in shape) {
+    return { borderRadius: shape.rounded };
+  }
+  return shape;
+}
+
+/**
+ * `glassEffectProps(glass, shape)` → `{ className, style }` to SPREAD onto any
+ * element, the web analog of the `.glassEffect(_:in:)` view modifier. Clips the
+ * glass layer to `shape` (default capsule = DefaultGlassEffectShape).
+ *
+ *   <div {...glassEffectProps(glass.regular.tint("#0a84ff"), { rounded: 22 })}>…</div>
+ */
+export function glassEffectProps(
+  g: Glass | GlassVariant = "regular",
+  shape: GlassShape = "capsule",
+): { className: string; style: React.CSSProperties } {
+  return {
+    className: glassClass(g),
+    style: { ...shapeStyle(shape), ...glassStyle(g) },
+  };
+}
+
+/** Props for the <GlassEffect> / <Glass> liquid-glass surface (iOS 26 delta). */
+export interface GlassEffectProps
   extends React.HTMLAttributes<HTMLDivElement> {
-  /** `.regular` adaptive / `.clear` transparent / `.identity` passthrough. */
-  glass?: GlassKind;
-  /** `.tint(color)` — colored glass; mixed at 25% into transparent. */
-  tint?: string;
-  /** `.interactive()` — scale + brightness shift on press. */
-  interactive?: boolean;
   /**
-   * `in: shape` — override the default Capsule. Pass `{ borderRadius }` or
-   * `{ clipPath }`. Default is a capsule (border-radius: 9999px).
+   * The Glass config — a `Glass` value (`glass.regular.tint(...).interactive()`)
+   * or a bare variant name. Defaults to `.regular`.
    */
-  shape?: Pick<React.CSSProperties, "borderRadius" | "clipPath">;
+  glass?: Glass | GlassVariant;
+  /**
+   * `in: shape` — clip the glass to a shape. `'capsule'` (default) | `'circle'`
+   * | `{ rounded: n }` | raw `{ borderRadius | clipPath }`.
+   */
+  shape?: GlassShape;
   children?: React.ReactNode;
 }
 
 /**
- * <Glass> — the iOS-26 Liquid-Glass approximation: layered backdrop blur +
- * specular box-shadows + diagonal sheen. NOT a flat frosted scrim. True
- * refraction / droplet-merge needs SVG feDisplacementMap or WebGL and is out of
- * scope; this is the CSS-only DESIGNED approximation.
+ * `<GlassEffect glass shape>` — the iOS-26 Liquid-Glass surface: a token-driven
+ * layered backdrop blur + bright specular rim + diagonal sheen + soft inner
+ * glow, with optional tint and interactive lensing. NOT a flat frosted scrim.
+ * True refraction / droplet-merge needs SVG feDisplacementMap or WebGL and is
+ * out of scope; this is the CSS-only DESIGNED recipe.
+ *
+ * `<GlassEffect>` is the modifier-style name; `<Glass>` is exported as an alias.
  */
-export const Glass: React.FC<GlassProps> = ({
-  glass = "regular",
-  tint,
-  interactive = false,
-  shape,
+export const GlassEffect: React.FC<GlassEffectProps> = ({
+  glass: g = "regular",
+  shape = "capsule",
   className,
   style,
   children,
   ...rest
 }) => {
-  const classes = [glassClass(glass, interactive), className ?? ""]
-    .filter(Boolean)
-    .join(" ");
-
-  const mergedStyle: React.CSSProperties = {
-    ...(tint
-      ? { background: `color-mix(in srgb, ${tint} 25%, transparent)` }
-      : {}),
-    ...(shape ?? {}),
-    ...style,
-  };
-
+  const props = glassEffectProps(g, shape);
+  const classes = [props.className, className ?? ""].filter(Boolean).join(" ");
   return React.createElement(
     "div",
-    { className: classes, style: mergedStyle, ...rest },
+    { className: classes, style: { ...props.style, ...style }, ...rest },
     children,
   );
 };
-Glass.displayName = "Glass";
+GlassEffect.displayName = "GlassEffect";
+
+/** `<Glass>` — alias of `<GlassEffect>` (the surface component name). */
+export const Glass = GlassEffect;
 
 /**
- * <GlassEffectContainer> — groups glass children with a shared isolation
- * context. CSS cannot merge glass blobs like native liquid droplets; this is a
- * flex group whose `spacing` ≈ gap. The native droplet-merge
- * (GlassEffectContainer + glassEffectUnion/ID) is intentionally not reproduced.
+ * <GlassEffectContainer spacing> — groups glass children so nearby panes blend
+ * (shared isolation context + a `spacing` gap, the web analog of
+ * `GlassEffectContainer(spacing:)`, :9045). CSS cannot truly merge glass blobs
+ * like native liquid droplets — that needs feDisplacementMap/WebGL — so this is
+ * a flex group whose `spacing` ≈ the SwiftUI fuse distance, with a NEGATIVE
+ * effective overlap option so capsules can visually kiss/merge at the rim. The
+ * native droplet-merge (glassEffectUnion/ID) is intentionally approximated.
  */
 export interface GlassEffectContainerProps
   extends React.HTMLAttributes<HTMLDivElement> {
-  /** Gap between glass children (≈ SwiftUI `spacing:` fuse distance). */
+  /** Gap between glass children (≈ SwiftUI `spacing:` fuse distance). Default 8. */
   spacing?: number;
+  /** Stack axis for the group (default horizontal, like a capsule cluster). */
+  axis?: "horizontal" | "vertical";
   children?: React.ReactNode;
 }
 
 export const GlassEffectContainer: React.FC<GlassEffectContainerProps> = ({
   spacing = 8,
+  axis = "horizontal",
   style,
   children,
   ...rest
 }) => {
   const mergedStyle: React.CSSProperties = {
-    display: "flex",
+    display: "inline-flex",
+    flexDirection: axis === "vertical" ? "column" : "row",
+    alignItems: "center",
     gap: spacing,
     isolation: "isolate",
     ...style,

@@ -36,16 +36,45 @@ export interface HStackProps extends Omit<ViewProps, "as"> {
   children?: React.ReactNode;
 }
 
+/**
+ * SwiftUI: a stack hugs its content (child disposes) UNLESS a child opts into
+ * growth. A `Spacer` grows the stack's MAIN axis; a `frame(maxWidth/maxHeight:
+ * .infinity)` child grows that specific axis. These helpers detect both so e.g.
+ * `HStack { Text; Spacer; Text }` spreads to the full width instead of
+ * collapsing to content width, and a `VStack` with a `maxWidth:.infinity` child
+ * stretches its width.
+ */
+export function stackHasSpacer(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).some((c) => {
+    if (!React.isValidElement(c)) return false;
+    const t = c.type as { suiRole?: string; displayName?: string } | undefined;
+    return t?.suiRole === "spacer" || t?.displayName === "Spacer";
+  });
+}
+export function stackHasFrameInfinity(
+  children: React.ReactNode,
+  axis: "maxWidth" | "maxHeight",
+): boolean {
+  return React.Children.toArray(children).some((c) => {
+    if (!React.isValidElement(c)) return false;
+    const frame = (c.props as { frame?: Record<string, unknown> } | undefined)?.frame;
+    const v = frame?.[axis];
+    return v === "infinity" || v === Infinity;
+  });
+}
+
 export const HStack = React.forwardRef<HTMLElement, HStackProps>(function HStack(
   { alignment = "center", spacing = null, style, children, ...rest },
   ref,
 ) {
+  // main axis = width: a Spacer or maxWidth:.infinity child fills it
+  const fillW = stackHasSpacer(children) || stackHasFrameInfinity(children, "maxWidth");
   const stackStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: "row",
     alignItems: V_ALIGN_TO_ITEMS[alignment],
     gap: spacing != null ? `${spacing}px` : "var(--sui-space-stack-default, 8px)",
-    width: "max-content",
+    width: fillW ? "100%" : "max-content",
   };
   return (
     <View ref={ref} style={mergeStyles(stackStyle, style)} {...rest}>

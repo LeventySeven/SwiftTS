@@ -2,9 +2,11 @@
  * effects.module.css — SwiftUI Cluster C12 (Materials & Visual Effects)
  *
  * Backdrop materials, vibrancy hierarchy, content filter/blend helpers, and the
- * Liquid-Glass (iOS 26) approximation. All class names are GLOBAL (...)
- * so `materialClass()` / `<Material>` can hand out stable, literal class strings
- * that match the var system in tokens/variables.css.
+ * Liquid-Glass (iOS 26) recipe. This is a `.global.css` side-effect stylesheet:
+ * every selector is a BARE, un-scoped class name (NEVER `:global(...)`, which
+ * breaks under Turbopack), so `materialClass()` / `glassClass()` / `<Material>`
+ * / `<GlassEffect>` can hand out stable, literal class strings that match the
+ * var system in tokens/variables.css.
  *
  * Numbers come from the W1 token vars (--sui-material-*). Light values live on
  * :root in variables.css; the dark overrides are ALSO already in variables.css
@@ -197,74 +199,169 @@
 }
 
 /* -----------------------------------------------------------------------------
- * 4. Liquid Glass (iOS 26) — DESIGNED multi-layer approximation (§9.4).
- *    Refractive lensing layer: blurred+saturated+brightened backdrop, low-alpha
- *    white body, inset top specular highlight + bottom counter-light, drop
- *    shadow, and a moving diagonal sheen (::before, screen blend).
- *    The specular geometry has no token, so its literals live here (DESIGNED).
- *    Default shape is a Capsule → border-radius: 9999px.
+ * 4. Liquid Glass (iOS 26) — DESIGNED multi-layer recipe (shapes-effects.md
+ *    §Liquid Glass). This is the iOS-26 glass, NOT the heavy frosted Material:
+ *    lighter, more translucent, with a BRIGHT specular RIM and an airy lift.
+ *
+ *    Layer stack (back → front), all token-driven (--sui-glass-*):
+ *      backdrop  : blur() saturate(180%) brightness(1.08)  — refractive lift
+ *      body      : a THIN translucent white tint (~0.18α light / 0.08α dark)
+ *      rim       : layered box-shadow — inset top specular + bottom counter-
+ *                  light + a hairline white border + a soft outer drop shadow
+ *      ::before  : a top-down diagonal SHEEN gradient (the wet-glass highlight)
+ *      ::after   : a soft radial inner GLOW pooled at the top edge
+ *      tint      : optional colored wash via --sui-glass-tint-color overlay
+ *      .interactive: hover lift + press lensing (scale + brightness), springy
+ *
+ *    Default shape is a Capsule (DefaultGlassEffectShape) → border-radius:9999px;
+ *    `glassEffectProps`/`<GlassEffect shape>` override the radius/clip per call.
+ *    True backdrop refraction (feDisplacementMap) + droplet-merge are out of
+ *    scope for pure CSS and flagged DESIGNED in the teardown.
  * -------------------------------------------------------------------------- */
 .sui-glass {
   position: relative;
+  isolation: isolate; /* keep ::before/::after sheen+glow off siblings */
   border-radius: 9999px; /* Capsule default; override per `in: shape` */
-  -webkit-backdrop-filter: blur(8px) saturate(1.5) brightness(1.08);
-  backdrop-filter: blur(8px) saturate(1.5) brightness(1.08);
-  background: rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(var(--sui-glass-blur))
+    saturate(var(--sui-glass-saturate)) brightness(var(--sui-glass-brightness));
+  backdrop-filter: blur(var(--sui-glass-blur)) saturate(var(--sui-glass-saturate))
+    brightness(var(--sui-glass-brightness));
+  background: var(--sui-glass-tint);
+  /* Specular rim: bright top edge + dim bottom counter-light + hairline border
+   * + soft outer drop shadow. The hairline is a 0.5px inset spread so it traces
+   * the rounded/capsule corner exactly. */
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.55),
-    /* top specular highlight */ inset 0 -1px 1px rgba(255, 255, 255, 0.12),
-    /* bottom counter-light  */ 0 4px 16px rgba(0, 0, 0, 0.18); /* drop shadow */
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px var(--sui-glass-hairline),
+    0 6px 20px var(--sui-glass-shadow);
 }
 
-@media (prefers-color-scheme: dark) {
-  .sui-glass {
-    background: rgba(255, 255, 255, 0.1);
-  }
-}
-[data-theme="dark"] .sui-glass {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* Moving diagonal specular sheen. */
+/* Top diagonal specular SHEEN — the wet, light-catching highlight that makes
+ * glass read as glass. Screen-blended so it only ADDS light, never darkens. */
 .sui-glass::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
+  z-index: 1;
   background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.4) 0%,
-    transparent 40%
+    125deg,
+    var(--sui-glass-sheen) 0%,
+    transparent 38%,
+    transparent 100%
   );
   mix-blend-mode: screen;
+  opacity: 0.9;
 }
 
-/* .clear — more transparent dimming layer (media-rich backgrounds). */
+/* Soft inner GLOW pooled at the top — the diffuse self-lit look of the pane. */
+.sui-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    120% 80% at 50% -10%,
+    var(--sui-glass-glow) 0%,
+    transparent 60%
+  );
+}
+
+/* Children sit above the sheen/glow layers. */
+.sui-glass > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* -------- .clear — most transparent (media-rich backdrops) -------- */
 .sui-glass-clear {
-  -webkit-backdrop-filter: blur(4px) saturate(1.2) brightness(1.04);
-  backdrop-filter: blur(4px) saturate(1.2) brightness(1.04);
-  background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(var(--sui-glass-clear-blur))
+    saturate(var(--sui-glass-clear-saturate))
+    brightness(var(--sui-glass-clear-brightness));
+  backdrop-filter: blur(var(--sui-glass-clear-blur))
+    saturate(var(--sui-glass-clear-saturate))
+    brightness(var(--sui-glass-clear-brightness));
+  background: var(--sui-glass-clear-tint);
+}
+/* clear keeps the rim faint so the media reads through almost untinted. */
+.sui-glass-clear::before {
+  opacity: 0.55;
+}
+.sui-glass-clear::after {
+  opacity: 0.6;
 }
 
-/* .identity — passthrough, no glass. */
+/* -------- .identity — passthrough, no glass -------- */
 .sui-glass-identity {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: transparent;
   box-shadow: none;
 }
-.sui-glass-identity::before {
+.sui-glass-identity::before,
+.sui-glass-identity::after {
   display: none;
 }
 
-/* .interactive() — react to touch/pointer: scale + brightness shift on press. */
+/* -------- .tint(color) — translucent colored wash over the glass body --------
+ * The author sets `--sui-glass-tint-color` (from glassStyle/glassEffectProps);
+ * a low-alpha overlay tints the pane while the backdrop blur shows through. */
+.sui-glass-tinted::after {
+  background:
+    radial-gradient(
+      120% 80% at 50% -10%,
+      var(--sui-glass-glow) 0%,
+      transparent 60%
+    ),
+    color-mix(in srgb, var(--sui-glass-tint-color, transparent) 22%, transparent);
+}
+/* The hairline picks up the tint hue so the edge glows in-color. */
+.sui-glass-tinted {
+  box-shadow:
+    inset 0 1px 0.5px var(--sui-glass-rim),
+    inset 0 -1px 1px var(--sui-glass-rim-bottom),
+    inset 0 0 0 0.5px
+      color-mix(in srgb, var(--sui-glass-tint-color, white) 45%, var(--sui-glass-hairline)),
+    0 6px 20px var(--sui-glass-shadow);
+}
+
+/* -------- .interactive() — hover lift + press lensing -------- */
 .sui-glass-interactive {
+  cursor: pointer;
   transition:
-    transform 0.15s ease,
-    filter 0.15s ease;
+    transform 0.4s var(--sui-anim-snappy-css, var(--sui-anim-snappy-fallback)),
+    box-shadow 0.3s ease,
+    filter 0.18s ease;
+}
+@media (hover: hover) {
+  .sui-glass-interactive:hover {
+    transform: scale(var(--sui-glass-hover-scale));
+    filter: brightness(var(--sui-glass-hover-brightness));
+    box-shadow:
+      inset 0 1px 0.5px var(--sui-glass-rim),
+      inset 0 -1px 1px var(--sui-glass-rim-bottom),
+      inset 0 0 0 0.5px var(--sui-glass-hairline),
+      0 10px 28px var(--sui-glass-shadow);
+  }
 }
 .sui-glass-interactive:active {
-  transform: scale(0.97);
-  filter: brightness(1.12);
+  transform: scale(var(--sui-glass-interactive-scale));
+  filter: brightness(var(--sui-glass-interactive-brightness));
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease;
+}
+
+/* @supports fallback: no backdrop-filter → fall back to a slightly more opaque
+ * tinted body so the pane is still legible (loses the live refraction only). */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .sui-glass {
+    background: color-mix(in srgb, var(--sui-glass-tint) 70%, rgba(200, 200, 200, 0.5));
+  }
 }

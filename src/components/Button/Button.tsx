@@ -28,7 +28,7 @@ import { applyModifiers } from "../../system/modifiers";
 import type { ButtonStyleName } from "../../system/styles";
 import { useResolvedStyle } from "../../system/styles";
 import type { ControlSize } from "../../system/types";
-import { materialClass } from "../../system/effects";
+import { glassClass } from "../../system/effects";
 import {
   useControlSize,
   useIsDisabled,
@@ -127,9 +127,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       children ??
       (title != null ? title : role != null ? ROLE_DEFAULT_LABEL[role] : null);
 
+    // .glass / .glassProminent render as real Liquid Glass: the `glassClass`
+    // backdrop (blur + specular rim + sheen + glow) plus the Button.module.css
+    // `data-style` rules for the label color / prominent tint wash. The
+    // `.button` rule overrides border-radius back to the squircle control radius
+    // (the glass default capsule is opt-in via `.buttonBorderShape(.capsule)`).
     const mergedClassName = [
       styles.button,
-      isGlass ? materialClass("regular") : undefined,
+      isGlass ? glassClass("regular") : undefined,
       modClass || undefined,
       className,
     ]

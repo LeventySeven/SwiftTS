@@ -17,6 +17,7 @@
  */
 import * as React from "react";
 import { View, mergeStyles, type ViewProps } from "../View";
+import { stackHasSpacer, stackHasFrameInfinity } from "./HStack";
 import type { HorizontalAlignment } from "../../system/types";
 
 /** HorizontalAlignment (cross axis) → flex `align-items`. */
@@ -38,12 +39,18 @@ export const VStack = React.forwardRef<HTMLElement, VStackProps>(function VStack
   { alignment = "center", spacing = null, style, children, ...rest },
   ref,
 ) {
+  // main axis = height: a Spacer or maxHeight:.infinity child fills it (needs a
+  // bounded parent height to be visible). cross axis = width: a maxWidth:.infinity
+  // child stretches the stack's width so the child can fill it.
+  const fillH = stackHasSpacer(children) || stackHasFrameInfinity(children, "maxHeight");
+  const fillW = stackHasFrameInfinity(children, "maxWidth");
   const stackStyle: React.CSSProperties = {
     display: "flex",
     flexDirection: "column",
     alignItems: H_ALIGN_TO_ITEMS[alignment],
     gap: spacing != null ? `${spacing}px` : "var(--sui-space-stack-default, 8px)",
-    width: "max-content",
+    width: fillW ? "100%" : "max-content",
+    ...(fillH ? { height: "100%" } : null),
   };
   return (
     <View ref={ref} style={mergeStyles(stackStyle, style)} {...rest}>

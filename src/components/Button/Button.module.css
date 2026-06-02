@@ -102,26 +102,45 @@
   text-decoration: underline;
 }
 
-/* .glass / .glassProminent — Liquid Glass (iOS26); moderate continuous corner
-   (height-based `--ctl-radius`, squircle via `corner-shape` inherited from
-   .button), specular sheen. A full pill is opt-in via `.buttonBorderShape(.capsule)`.
-   The frosted layer comes from the .sui-material backdrop applied by the TSX. */
+/* .glass / .glassProminent — REAL Liquid Glass (iOS26). The TSX adds the
+   `.sui-glass` global class, which supplies the whole recipe (translucent
+   backdrop blur + saturate/brightness lift, bright specular rim, diagonal
+   sheen, soft inner glow). These module rules only carry what the bare glass
+   layer can't know: the LABEL color and the prominent TINT wash.
+
+   Moderate continuous corner (height-based `--ctl-radius`, squircle via
+   `corner-shape` inherited from .button); this overrides the .sui-glass capsule
+   default. A full pill is opt-in via `.buttonBorderShape(.capsule)`.
+
+   `data-style` wins the box-shadow cascade over `.sui-glass` (higher
+   specificity), so we must NOT set box-shadow here — leaving it unset lets the
+   .sui-glass rim show through. */
 .button[data-style="glass"] {
   border-radius: var(--ctl-radius, 8px);
   color: var(--sui-color-label);
-  background: var(--sui-material-regular-tint, rgba(245, 245, 245, 0.72));
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.25);
+  background: var(--sui-glass-tint); /* same thin body the .sui-glass uses */
 }
+/* .glassProminent — the glass body is washed with the tint color (the
+   `Glass.tint(...)` look): a translucent tint over the live backdrop, white
+   label, and a tint-colored rim. We re-tint the body and hairline here; the
+   sheen/glow/blur still come from .sui-glass. */
 .button[data-style="glassProminent"] {
   border-radius: var(--ctl-radius, 8px);
   color: #fff;
-  background: var(--sui-color-tint);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--sui-color-tint) 62%, transparent);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.12),
+    inset 0 0 0 0.5px
+      color-mix(in srgb, var(--sui-color-tint) 50%, rgba(255, 255, 255, 0.4)),
+    0 6px 20px color-mix(in srgb, var(--sui-color-tint) 35%, transparent);
 }
+/* Press lensing: brighten + a hair of scale, matching .sui-glass-interactive. */
 .button[data-style="glass"]:active,
 .button[data-style="glassProminent"]:active {
   opacity: 1;
-  filter: brightness(0.96);
+  filter: brightness(1.1);
+  transform: scale(0.98);
 }
 
 /* ============================ roles ============================ */

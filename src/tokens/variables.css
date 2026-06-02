@@ -13,7 +13,9 @@
  *     alpha; dark ELEVATED surfaces live under .sui-elevated scopes.
  * ========================================================================== */
 
-:root {
+:root,
+[data-theme="light"] {
+  color-scheme: light;
   /* ===========================================================================
    * COLORS — light mode (colors.md)
    * ======================================================================== */
@@ -393,6 +395,37 @@
   --sui-vibrancy-tertiary: 0.25;
   --sui-vibrancy-quaternary: 0.18;
   --sui-vibrancy-quinary: 0.1;
+
+  /* ===========================================================================
+   * LIQUID GLASS (iOS 26) — DESIGNED tokens (shapes-effects.md §Liquid Glass).
+   * The iOS 26 glass is LIGHTER and MORE translucent than the frosted Material:
+   * a thinner tint, a stronger saturate+brightness backdrop, and a bright
+   * specular RIM on the edges. Light values on :root; dark overrides below.
+   * `.clear` is the most transparent (media backdrops); `.regular` is default.
+   * ======================================================================== */
+  /* --- .regular (adaptive default glass) --- */
+  --sui-glass-blur: 12px;
+  --sui-glass-saturate: 1.8;          /* saturate(180%) */
+  --sui-glass-brightness: 1.08;        /* brightness(1.08) — airy lift */
+  --sui-glass-tint: rgba(255, 255, 255, 0.18); /* thin body, not a frosted scrim */
+  --sui-glass-rim: rgba(255, 255, 255, 0.5);   /* bright specular edge (light) */
+  --sui-glass-rim-bottom: rgba(255, 255, 255, 0.12); /* counter-light at base */
+  --sui-glass-hairline: rgba(255, 255, 255, 0.28);   /* 0.5px outline border */
+  --sui-glass-sheen: rgba(255, 255, 255, 0.45);      /* top diagonal sheen peak */
+  --sui-glass-glow: rgba(255, 255, 255, 0.22);       /* soft inner glow */
+  --sui-glass-shadow: rgba(0, 0, 0, 0.18);           /* soft outer drop shadow */
+
+  /* --- .clear (most transparent — for media-rich backdrops) --- */
+  --sui-glass-clear-blur: 5px;
+  --sui-glass-clear-saturate: 1.3;
+  --sui-glass-clear-brightness: 1.04;
+  --sui-glass-clear-tint: rgba(255, 255, 255, 0.06);
+
+  /* --- interactive accent (tint wash + press brightness) --- */
+  --sui-glass-interactive-brightness: 1.14;
+  --sui-glass-interactive-scale: 0.97;
+  --sui-glass-hover-brightness: 1.06;
+  --sui-glass-hover-scale: 1.02;
 }
 
 /* =============================================================================
@@ -402,7 +435,8 @@
  * ========================================================================== */
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
+    color-scheme: dark;
     /* Label hierarchy (alpha-carrying — stay rgba) */
     --sui-color-label: #ffffff;
     --sui-color-secondary-label: rgba(235, 235, 245, 0.6);
@@ -469,6 +503,20 @@
     --sui-material-bar-tint: rgba(30, 30, 30, 0.82);
     --sui-material-rim: rgba(255, 255, 255, 0.1);
 
+    /* Liquid Glass — dark overrides (dimmer body, softer rim, deeper shadow).
+     * Glass over a dark backdrop reads as a faint luminous pane, not a white
+     * scrim — so the body alpha drops and a slim dark floor keeps it legible. */
+    --sui-glass-tint: rgba(255, 255, 255, 0.08);
+    --sui-glass-saturate: 1.6;
+    --sui-glass-brightness: 1.12;
+    --sui-glass-rim: rgba(255, 255, 255, 0.38);
+    --sui-glass-rim-bottom: rgba(255, 255, 255, 0.06);
+    --sui-glass-hairline: rgba(255, 255, 255, 0.16);
+    --sui-glass-sheen: rgba(255, 255, 255, 0.22);
+    --sui-glass-glow: rgba(255, 255, 255, 0.1);
+    --sui-glass-shadow: rgba(0, 0, 0, 0.45);
+    --sui-glass-clear-tint: rgba(255, 255, 255, 0.04);
+
     /* Vibrancy — dark alphas (secondary/quaternary differ from light) */
     --sui-vibrancy-secondary: 0.55;
     --sui-vibrancy-quaternary: 0.16;
@@ -476,6 +524,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   /* Label hierarchy */
   --sui-color-label: #ffffff;
   --sui-color-secondary-label: rgba(235, 235, 245, 0.6);
@@ -542,6 +591,18 @@
   --sui-material-bar-tint: rgba(30, 30, 30, 0.82);
   --sui-material-rim: rgba(255, 255, 255, 0.1);
 
+  /* Liquid Glass — dark overrides (see @media block above for rationale). */
+  --sui-glass-tint: rgba(255, 255, 255, 0.08);
+  --sui-glass-saturate: 1.6;
+  --sui-glass-brightness: 1.12;
+  --sui-glass-rim: rgba(255, 255, 255, 0.38);
+  --sui-glass-rim-bottom: rgba(255, 255, 255, 0.06);
+  --sui-glass-hairline: rgba(255, 255, 255, 0.16);
+  --sui-glass-sheen: rgba(255, 255, 255, 0.22);
+  --sui-glass-glow: rgba(255, 255, 255, 0.1);
+  --sui-glass-shadow: rgba(0, 0, 0, 0.45);
+  --sui-glass-clear-tint: rgba(255, 255, 255, 0.04);
+
   /* Vibrancy */
   --sui-vibrancy-secondary: 0.55;
   --sui-vibrancy-quaternary: 0.16;
@@ -554,7 +615,7 @@
  * ========================================================================== */
 
 @media (prefers-color-scheme: dark) {
-  .sui-elevated {
+  :root:not([data-theme]) .sui-elevated {
     /* Base family (elevated) */
     --sui-color-system-background: #1c1c1e;
     --sui-color-secondary-system-background: #2c2c2e;

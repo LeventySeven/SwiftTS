@@ -66,6 +66,14 @@ export interface SwiftUIProviderProps extends Partial<Omit<SwiftUIEnvironment, "
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  /**
+   * When true (default), the resolved scheme is also written to <html> as
+   * `data-theme` + `color-scheme`, so page chrome (body background, native
+   * scrollbars/controls) follows the forced theme and overrides the OS
+   * `@media (prefers-color-scheme)` fallback. Set false for a scheme-scoped
+   * provider nested inside another.
+   */
+  applyToDocument?: boolean;
 }
 
 const CONTROL_DIR: Record<LayoutDirection, "ltr" | "rtl"> = {
@@ -89,10 +97,27 @@ export function SwiftUIProvider({
   children,
   className,
   style,
+  applyToDocument = true,
 }: SwiftUIProviderProps) {
   const prefersDark = usePrefersDark();
   const resolvedScheme: ColorScheme =
     colorScheme === "system" ? (prefersDark ? "dark" : "light") : colorScheme;
+
+  // Project the resolved scheme onto <html> so the whole document (body bg,
+  // native scrollbars/controls) follows it and overrides the OS @media fallback.
+  useEffect(() => {
+    if (!applyToDocument || typeof document === "undefined") return;
+    const html = document.documentElement;
+    const prevTheme = html.getAttribute("data-theme");
+    const prevScheme = html.style.colorScheme;
+    html.setAttribute("data-theme", resolvedScheme);
+    html.style.colorScheme = resolvedScheme;
+    return () => {
+      if (prevTheme === null) html.removeAttribute("data-theme");
+      else html.setAttribute("data-theme", prevTheme);
+      html.style.colorScheme = prevScheme;
+    };
+  }, [applyToDocument, resolvedScheme]);
 
   const env = useMemo<SwiftUIEnvironment>(
     () => ({

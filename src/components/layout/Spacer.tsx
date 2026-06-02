@@ -35,3 +35,7 @@ export const Spacer = React.forwardRef<HTMLElement, SpacerProps>(function Spacer
 });
 
 Spacer.displayName = "Spacer";
+// Stable marker so HStack/VStack can detect a Spacer child and fill their main
+// axis (SwiftUI: a stack with a Spacer expands to the proposed size), surviving
+// minification that may mangle displayName.
+(Spacer as unknown as { suiRole?: string }).suiRole = "spacer";

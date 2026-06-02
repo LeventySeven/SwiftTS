@@ -1058,3 +1058,140 @@ These are the implementation structs each public modifier wraps (`modifier(_XxxE
 **Freshness:** the content-filter + blend + shadow + mask APIs and the `0.33` shadow default are **durable** (unchanged iOS 13→18; signatures verbatim above). `Material` names are durable; the blur/tint *numbers* are INFERRED and must be eyedrop-calibrated. `Glass`/Liquid Glass is iOS 26-new and recorded strictly as a delta. `MaterialActiveAppearance` is iOS 18+/desktop-only.
 
 **Implementation note for the kit author:** emit one CSS custom property per leaf token (`--sui-material-regular-blur: 30px;` etc.), build composite `backdrop-filter`/`filter` from the vars, put Light on `:root` and Dark under `[data-theme="dark"]`. Content filters compose in a single `filter:` string in the documented order (brightness→contrast→saturate→grayscale→hue-rotate→blur). Backdrop and content filters never share a CSS property, so a frosted panel with blurred content needs `backdrop-filter` on the panel **and** `filter` on the inner content — two different elements.
+
+---
+
+## Liquid Glass (iOS 26)
+
+> **Scope of this section.** §9 above first recorded Liquid Glass as a *labeled delta* against the canonical Material (§1). This section is the **authoritative, implemented spec**: the verbatim API, the visual recipe, and the *exact* CSS mapping the SwiftTS kit ships (`src/system/effects.ts`, `src/system/effects.global.css`, `src/tokens/variables.css`, `src/components/Button/`). Every claim is labeled **KNOWN** (verbatim from the swiftinterface), **INFERRED** (eyedropped visual recipe — calibrate against a device), or **DESIGNED** (our CSS engineering for a proprietary/native-only gap).
+
+**Source (all line numbers KNOWN, verbatim):**
+`/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/SwiftUICore.framework/Versions/A/Modules/SwiftUICore.swiftmodule/arm64e-apple-macos.swiftinterface` (iOS 26 / macOS 26 SDK).
+
+### A. Exact API — KNOWN (verbatim from the swiftinterface)
+
+```swift
+// :2529 — the glassEffect view modifier. Default glass = .regular; default
+// clip shape = DefaultGlassEffectShape() (a concentric capsule).
+nonisolated public func glassEffect(_ glass: SwiftUICore.Glass = .regular,
+                                    in shape: some Shape = DefaultGlassEffectShape()) -> some SwiftUICore.View
+
+// :2534 — the default clip shape (a Capsule-like concentric shape).
+public struct DefaultGlassEffectShape : SwiftUICore.Shape {
+  public init()
+  nonisolated public func path(in rect: CoreFoundation.CGRect) -> SwiftUICore.Path
+  // role / layoutDirectionBehavior / sizeThatFits … (Shape conformance)
+}
+
+// :5753 — the Glass value type. A frozen, Equatable+Sendable value with three
+// statics and two chainable builders (each returns a NEW Glass — value semantics).
+public struct Glass : Swift.Equatable, Swift.Sendable {
+  public static var regular: SwiftUICore.Glass { get }   // :5754
+  public static var clear:   SwiftUICore.Glass { get }   // :5757
+  public static var identity: SwiftUICore.Glass { get }  // :5760
+  public func tint(_ color: SwiftUICore.Color?) -> SwiftUICore.Glass            // :5763
+  public func interactive(_ isEnabled: Swift.Bool = true) -> SwiftUICore.Glass  // :5764
+  public static func == (a: SwiftUICore.Glass, b: SwiftUICore.Glass) -> Swift.Bool
+}
+
+// :9045 — groups multiple glass shapes so nearby ones blend/merge (shared blur
+// sampling; capsule-merge when close). `spacing:` = the fuse distance.
+@MainActor public struct GlassEffectContainer<Content> : SwiftUICore.View where Content : SwiftUICore.View {
+  @MainActor public init(spacing: CoreFoundation.CGFloat? = nil,
+                         @ViewBuilder content: () -> Content)   // :9046
+  @MainActor public var body: some SwiftUICore.View { get }
+}
+
+// :2847 — the transition value for matched-geometry glass morphs.
+public struct GlassEffectTransition : Swift.Sendable {
+  public static var matchedGeometry: SwiftUICore.GlassEffectTransition { get }  // :2848
+  public static var materialize:     SwiftUICore.GlassEffectTransition { get }  // :2851
+  public static var identity:        SwiftUICore.GlassEffectTransition { get }  // :2854
+}
+@MainActor public func glassEffectTransition(_ transition: SwiftUICore.GlassEffectTransition) -> some SwiftUICore.View  // :2861
+
+// :17372 / :9880 — morph/merge identity for matched-geometry glass transitions.
+nonisolated public func glassEffectID(_ id: (some (Hashable & Sendable))?,
+                                      in namespace: SwiftUICore.Namespace.ID) -> some SwiftUICore.View   // :17372
+@MainActor public func glassEffectUnion(id: (some (Hashable & Sendable))?,
+                                        namespace: SwiftUICore.Namespace.ID) -> some SwiftUICore.View     // :9880
+```
+
+**Button styles (the SwiftUI module, not SwiftUICore):** `GlassButtonStyle` (`.glass`) and `GlassProminentButtonStyle` (`.glassProminent`) render a button *as* Liquid Glass — `.glass` = adaptive glass body + label color; `.glassProminent` = the glass washed with the tint/accent color, white label. **KNOWN** (the style names are public SwiftUI API).
+
+### B. The Liquid-Glass character vs. the older frosted `Material` — INFERRED
+
+Liquid Glass is **not** the iOS-13→18 frosted `Material`. The differences that drive the recipe:
+
+1. **More translucent / lighter.** A *thin* body tint (~0.18 α light, ~0.08 α dark) instead of a heavy frosted scrim (`.regularMaterial` is ~0.72 α). The backdrop reads through almost clearly.
+2. **Real-time backdrop refraction.** The pane samples and lenses the pixels behind it — `saturate(180%) brightness(1.08)` lift the backdrop so it looks energized through the glass. (True optical *refraction* — edge light-bending — is native-only.)
+3. **A bright specular RIM.** A crisp white highlight on the top edge, a dim counter-light on the bottom edge, and a hairline outline — the "wet edge" that makes it read as a solid pane of glass.
+4. **A soft inner glow.** A diffuse self-lit pooling near the top, as if the pane catches ambient light.
+5. **`.interactive` lensing.** On hover/press the glass scales slightly and brightens — a subtle physical lensing/response.
+6. **Variants:** `.clear` is the **most transparent** (minimal tint, for media-rich backdrops); `.regular` is the default adaptive glass; `.identity` is a no-op passthrough (renders nothing). `.tint(color)` washes the glass with a *translucent* color (not opaque).
+
+### C. The visual recipe — INFERRED (eyedrop; calibrate per device)
+
+Back→front layer stack of a single glass pane:
+
+| Layer | What it does | Recipe |
+|---|---|---|
+| backdrop | refractive lift | `backdrop-filter: blur(12px) saturate(1.8) brightness(1.08)` |
+| body | thin translucent tint | `rgba(255,255,255,0.18)` light / `0.08` dark |
+| rim (top) | bright specular highlight | `inset 0 1px 0.5px rgba(255,255,255,0.5)` |
+| rim (bottom) | counter-light | `inset 0 -1px 1px rgba(255,255,255,0.12)` |
+| hairline | edge outline (traces the shape) | `inset 0 0 0 0.5px rgba(255,255,255,0.28)` |
+| drop shadow | soft elevation | `0 6px 20px rgba(0,0,0,0.18)` |
+| sheen (`::before`) | top diagonal highlight | `linear-gradient(125deg, rgba(255,255,255,0.45) 0%, transparent 38%)`, `mix-blend-mode: screen` |
+| glow (`::after`) | soft inner pooling | `radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.22), transparent 60%)` |
+| tint wash | `.tint(color)` overlay | `color-mix(in srgb, <color> 22%, transparent)` over the glow + tint-colored hairline |
+
+`.clear` lowers everything (blur 5px, saturate 1.3, body 0.06 α, fainter sheen/glow). `.identity` zeroes the backdrop-filter / background / shadow and hides both pseudo-elements.
+
+### D. The exact CSS mapping the kit implements — DESIGNED
+
+The kit is **token-driven**: one custom property per leaf (`--sui-glass-*` in `src/tokens/variables.css`), Light on `:root`, Dark under both `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`. The CSS (`src/system/effects.global.css`) only consumes vars — it never hardcodes a tint. All selectors are **BARE** (un-scoped) class names (no `:global(...)`, which breaks under Turbopack), so the `glassClass()` strings resolve verbatim.
+
+**Tokens** (`variables.css`): `--sui-glass-blur` (12px), `--sui-glass-saturate` (1.8), `--sui-glass-brightness` (1.08), `--sui-glass-tint` (body), `--sui-glass-rim` / `--sui-glass-rim-bottom` / `--sui-glass-hairline` (specular rim), `--sui-glass-sheen` / `--sui-glass-glow` / `--sui-glass-shadow`, the `.clear` set (`--sui-glass-clear-*`), and the interactive set (`--sui-glass-interactive-brightness/scale`, `--sui-glass-hover-brightness/scale`).
+
+**CSS classes** (`effects.global.css §4`):
+
+- `.sui-glass` — `isolation: isolate` + capsule default radius + the composite `backdrop-filter` + body `background` + the 4-part rim `box-shadow`. `::before` = the diagonal screen-blended sheen; `::after` = the radial inner glow; `> *` lifts children above both. An `@supports not (backdrop-filter)` fallback thickens the body so it stays legible without live refraction.
+- `.sui-glass-clear` — the `.clear` variant: lower blur/saturate/brightness/body, fainter sheen+glow.
+- `.sui-glass-identity` — passthrough: backdrop-filter/background/shadow off, pseudo-elements hidden.
+- `.sui-glass-tinted` — `.tint(color)`: re-tints `::after` with `color-mix(... <color> 22%, transparent)` and re-tints the hairline in-color. The color is delivered via the `--sui-glass-tint-color` custom property (set inline by `glassStyle`).
+- `.sui-glass-interactive` — `.interactive()`: a snappy-spring `transform` transition; `@media (hover:hover)` hover scales `1.02` + brightens + lifts the shadow; `:active` scales `0.97` + brightens (the press lensing).
+
+**The TS API** (`src/system/effects.ts`, public via the barrel):
+
+- `Glass` (interface) — the resolved config (`variant`, `tintColor`, `isInteractive`) with chainable `.tint(color|null)` / `.interactive(bool=true)`; each returns a **new** frozen value (1:1 with the Swift value-type builder).
+- `glass` — the statics object: `glass.regular` / `glass.clear` / `glass.identity` (getters), chainable: `glass.clear.tint("#34c759").interactive()`.
+- `makeGlass({ variant, tint, interactive })` — factory alternative.
+- `glassClass(glass)` → the class string; `glassStyle(glass)` → the inline `{ "--sui-glass-tint-color": … }` (empty when untinted).
+- `glassEffectProps(glass, shape)` → `{ className, style }` to spread — the analog of `.glassEffect(_:in:)`. `shape`: `'capsule'` (default = `DefaultGlassEffectShape`) | `'circle'` | `{ rounded: n }` | raw `{ borderRadius | clipPath }`.
+- `<GlassEffect glass shape>` component (and `Glass` alias) — wraps the props onto a `<div>`.
+- `<GlassEffectContainer spacing axis>` — an `inline-flex` group with `isolation: isolate` and `gap: spacing`. A **negative** `spacing` lets adjacent capsules visually kiss/overlap (the closest CSS gets to the native droplet-merge).
+
+**SwiftUI → CSS map:**
+
+| SwiftUI | CSS the kit emits | Label |
+|---|---|---|
+| `.glassEffect(.regular)` | `.sui-glass` (token-driven backdrop+rim+sheen+glow) | DESIGNED recipe |
+| `.glassEffect(.clear)` | `.sui-glass .sui-glass-clear` | DESIGNED |
+| `.glassEffect(.identity)` | `.sui-glass .sui-glass-identity` (passthrough) | DESIGNED |
+| `Glass.tint(color)` | `.sui-glass-tinted` + `--sui-glass-tint-color` overlay | DESIGNED |
+| `Glass.interactive()` | `.sui-glass-interactive` (hover lift + press lensing, snappy spring) | DESIGNED |
+| `in: DefaultGlassEffectShape()` | `border-radius: 9999px` (capsule) | DESIGNED |
+| `in: RoundedRectangle(cornerRadius: n)` | `glassEffectProps(g, { rounded: n })` → `border-radius: n` | DESIGNED |
+| `in: Circle()` | `glassEffectProps(g, 'circle')` → `border-radius:50%; aspect-ratio:1` | DESIGNED |
+| `GlassButtonStyle` (`.glass`) | `.button` + `glassClass('regular')` + `data-style="glass"` (label color only) | DESIGNED |
+| `GlassProminentButtonStyle` (`.glassProminent`) | `.button` + `.sui-glass` + `data-style="glassProminent"` (tint wash + white label + tint rim) | DESIGNED |
+| `GlassEffectContainer(spacing:)` | `<GlassEffectContainer>` `inline-flex; gap: spacing; isolation: isolate` (negative gap ≈ merge) | DESIGNED (approximation) |
+
+### E. Honest gaps — DESIGNED-with-shortfall
+
+- **True backdrop refraction** (edge light-bending) requires an SVG `feDisplacementMap` or a WebGL pass. The CSS recipe approximates the *look* (blur + saturate + brightness + specular rim) but does **not** bend the backdrop. Flagged.
+- **Droplet-merge** (`GlassEffectContainer` + `glassEffectUnion`/`glassEffectID` fusing adjacent capsules into one liquid blob) is native-only. The kit groups children with a shared isolation context and a negative `spacing` so capsules can visually overlap, but does not seam-merge their blur fields. Flagged.
+- **`glassEffectTransition(.matchedGeometry / .materialize)`** — the morph between matched glass IDs could be approximated with a FLIP / View Transitions API animation; not wired in this pass. `.identity` (no transition) is trivially the default. Flagged as future work.
+
+**Freshness:** the API signatures above are **iOS 26-new and KNOWN** (verbatim, cited). The *numbers* in the recipe (blur radius, body alpha, rim alphas, sheen/glow) are **INFERRED** and must be eyedrop-calibrated against a real iOS 26 device. The architecture (token-per-leaf, bare global classes, two-pass backdrop-vs-content split) is **durable**.
