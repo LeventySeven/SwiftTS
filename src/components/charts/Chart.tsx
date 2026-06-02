@@ -54,6 +54,22 @@ export interface ChartPlotPadding {
   bottom?: number;
 }
 
+/**
+ * `chartPlotStyle { plotContent in … }` — style the plot rectangle itself (the
+ * drawing area inside the axes). On the web this is the cheap subset the modifier
+ * is used for: a background fill, a border, and a corner radius around the plot.
+ */
+export interface ChartPlotStyle {
+  /** Fill behind the marks (CSS color). */
+  background?: string;
+  /** Border around the plot rect (CSS color). */
+  borderColor?: string;
+  /** Border width in px (default 1 when `borderColor` set). */
+  borderWidth?: number;
+  /** Corner radius of the plot rect (px). */
+  cornerRadius?: number;
+}
+
 export interface ChartProps extends Omit<ViewProps, "children" | "id"> {
   /** Data-driven form: `Chart(data){ row in … }`. Omit for static children. */
   data?: readonly unknown[];
@@ -73,9 +89,13 @@ export interface ChartProps extends Omit<ViewProps, "children" | "id"> {
   yAxisLabel?: string;
   legend?: LegendOption;
   plotPadding?: ChartPlotPadding;
+  /** `chartPlotStyle { … }` — background/border/corner for the plot rectangle. */
+  plotStyle?: ChartPlotStyle;
 
   /** `chartXSelection(value:)` — selected x domain key. §13 */
   xSelection?: { value: unknown; onChange?: (value: unknown) => void };
+  /** `chartYSelection(value:)` — selected y value (pointer y → yScale.invert). §13 */
+  ySelection?: { value: unknown; onChange?: (value: unknown) => void };
 }
 
 /** Default gutters sized to fit a 12px caption tick label (§0.4, DESIGNED). */
@@ -104,7 +124,9 @@ export function Chart({
   yAxisLabel,
   legend = "automatic",
   plotPadding,
+  plotStyle,
   xSelection,
+  ySelection,
   ...viewProps
 }: ChartProps) {
   const env = useEnvironment();
@@ -307,14 +329,22 @@ export function Chart({
     (styleDomainSet.length > 1 || symbolDomainSet.length > 1 || hasSector);
 
   // ---- selection pointer handler (§13) ------------------------------------
-  const onPointer = xSelection?.onChange
-    ? (e: React.PointerEvent<SVGRectElement>) => {
-        const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
-        const px = e.clientX - rect.left + plot.x; // overlay sits at plot origin
-        const val = xScale.invert(px);
-        xSelection.onChange?.(val);
-      }
-    : undefined;
+  // A pointer over the plot maps to an x value (xScale.invert) and/or a y value
+  // (yScale.invert). Either or both selection bindings may be present.
+  const onPointer =
+    xSelection?.onChange || ySelection?.onChange
+      ? (e: React.PointerEvent<SVGRectElement>) => {
+          const rect = (e.currentTarget as SVGRectElement).getBoundingClientRect();
+          if (xSelection?.onChange) {
+            const px = e.clientX - rect.left + plot.x; // overlay sits at plot origin
+            xSelection.onChange(xScale.invert(px));
+          }
+          if (ySelection?.onChange) {
+            const py = e.clientY - rect.top + plot.y;
+            ySelection.onChange(yScale.invert(py));
+          }
+        }
+      : undefined;
 
   const reduce = env.reduceMotion;
 
@@ -345,6 +375,22 @@ export function Chart({
             <rect x={plot.x} y={plot.y} width={plot.w} height={plot.h} />
           </clipPath>
         </defs>
+
+        {/* chartPlotStyle — background/border around the plot rectangle */}
+        {!hasSector && plotStyle && (plotStyle.background || plotStyle.borderColor) && (
+          <rect
+            className="sui-chart-plot-bg"
+            x={plot.x}
+            y={plot.y}
+            width={plot.w}
+            height={plot.h}
+            rx={plotStyle.cornerRadius ?? 0}
+            ry={plotStyle.cornerRadius ?? 0}
+            fill={plotStyle.background ?? "none"}
+            stroke={plotStyle.borderColor ?? "none"}
+            strokeWidth={plotStyle.borderColor ? (plotStyle.borderWidth ?? 1) : 0}
+          />
+        )}
 
         {!hasSector && (
           <AxisLayer

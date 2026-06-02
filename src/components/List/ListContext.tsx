@@ -26,6 +26,12 @@ export interface ListContextValue {
   editMode: ListEditMode;
   isForm: boolean;
   selection?: ListSelection;
+  /** headerProminence(_:) — `.increased` enlarges section headers. */
+  headerProminence?: "standard" | "increased";
+  /** selectionDisabled(_:) set list-wide. */
+  selectionDisabled?: boolean;
+  /** listSectionSeparator(_:) visibility for the whole list. */
+  sectionSeparator?: "automatic" | "visible" | "hidden";
 }
 
 export const ListContext = React.createContext<ListContextValue | null>(null);

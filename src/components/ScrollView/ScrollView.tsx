@@ -38,6 +38,21 @@ export type ScrollDismissesKeyboardMode =
   | "interactively"
   | "never";
 
+/** `scrollContentBackground(_:)` — `.hidden` drops the scroller's own background. */
+export type ScrollContentBackgroundVisibility = "automatic" | "visible" | "hidden";
+
+/** `defaultScrollAnchor(_:)` — where the content settles when first shown / on growth. */
+export type ScrollAnchorUnitPoint =
+  | "top"
+  | "center"
+  | "bottom"
+  | "leading"
+  | "trailing"
+  | "topLeading"
+  | "topTrailing"
+  | "bottomLeading"
+  | "bottomTrailing";
+
 export interface ScrollContentMargins {
   top?: number;
   leading?: number;
@@ -70,6 +85,20 @@ export interface ScrollViewProps extends Omit<ViewProps, "as" | "onScroll"> {
   contentMargins?: ScrollContentMargins;
   /** `scrollDismissesKeyboard(_:)`. */
   dismissesKeyboard?: ScrollDismissesKeyboardMode;
+  /** `scrollContentBackground(_:)` — `.hidden` makes the scroller transparent. */
+  contentBackground?: ScrollContentBackgroundVisibility;
+  /**
+   * `scrollIndicatorsFlash(onAppear:)` / `scrollIndicatorsFlash(trigger:)` — briefly
+   * flash the scroll indicators on mount (`true`) and whenever `trigger` changes.
+   */
+  indicatorsFlashOnAppear?: boolean;
+  indicatorsFlashTrigger?: unknown;
+  /**
+   * `defaultScrollAnchor(_:)` — the resting anchor for the content. The common case
+   * is `"bottom"` (chat logs that pin to the newest message). Applied once on mount
+   * and re-applied when the content grows past the viewport.
+   */
+  defaultScrollAnchor?: ScrollAnchorUnitPoint;
   /** Reported scroll offset on every scroll event. */
   onScroll?: (offset: { x: number; y: number }) => void;
   /** Controlled `scrollPosition(id:)` — `[id, setId]`. */
@@ -107,6 +136,10 @@ export const ScrollView = React.forwardRef<HTMLDivElement, ScrollViewProps>(
       viewAlignedLimit = "automatic",
       contentMargins,
       dismissesKeyboard,
+      contentBackground,
+      indicatorsFlashOnAppear = false,
+      indicatorsFlashTrigger,
+      defaultScrollAnchor,
       onScroll,
       scrollPosition,
       anchor,
@@ -118,6 +151,7 @@ export const ScrollView = React.forwardRef<HTMLDivElement, ScrollViewProps>(
     forwardedRef,
   ) {
     const innerRef = React.useRef<HTMLDivElement | null>(null);
+    const [flashing, setFlashing] = React.useState(false);
     const setRefs = React.useCallback(
       (node: HTMLDivElement | null) => {
         innerRef.current = node;
@@ -159,6 +193,42 @@ export const ScrollView = React.forwardRef<HTMLDivElement, ScrollViewProps>(
       );
       target?.scrollIntoView({ block: anchorToBlock(anchor), inline: anchorToBlock(anchor) });
     }, [positionId, anchor]);
+
+    // defaultScrollAnchor(_:) — settle the content at the anchor on mount. For a
+    // `bottom`/`trailing` anchor (chat logs) we jump to the end of the scroll axis.
+    React.useEffect(() => {
+      if (!defaultScrollAnchor) return;
+      const el = innerRef.current;
+      if (!el) return;
+      const vertical = axes !== "horizontal";
+      const a = defaultScrollAnchor;
+      const isEnd = a === "bottom" || a === "trailing" || a === "bottomLeading" || a === "bottomTrailing";
+      const isStart = a === "top" || a === "leading" || a === "topLeading" || a === "topTrailing";
+      const isCenter = a === "center";
+      if (isEnd) {
+        if (vertical) el.scrollTop = el.scrollHeight;
+        else el.scrollLeft = el.scrollWidth;
+      } else if (isCenter) {
+        if (vertical) el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
+        else el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+      } else if (isStart) {
+        if (vertical) el.scrollTop = 0;
+        else el.scrollLeft = 0;
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [defaultScrollAnchor, axes]);
+
+    // scrollIndicatorsFlash(onAppear:) / (trigger:) — flash the indicators briefly.
+    const firstFlash = React.useRef(true);
+    React.useEffect(() => {
+      const onMount = firstFlash.current;
+      firstFlash.current = false;
+      // skip the mount run unless onAppear is requested; always run on trigger change.
+      if (onMount && !indicatorsFlashOnAppear) return;
+      setFlashing(true);
+      const t = window.setTimeout(() => setFlashing(false), 700);
+      return () => window.clearTimeout(t);
+    }, [indicatorsFlashOnAppear, indicatorsFlashTrigger]);
 
     const handleScroll = React.useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
@@ -246,6 +316,10 @@ export const ScrollView = React.forwardRef<HTMLDivElement, ScrollViewProps>(
             targetBehavior === "viewAligned" ? viewAlignedLimit : undefined
           }
           data-dismiss-keyboard={dismissesKeyboard}
+          data-content-bg={
+            contentBackground && contentBackground !== "automatic" ? contentBackground : undefined
+          }
+          data-flash={flashing ? "true" : undefined}
           data-refreshing={refreshing ? "true" : undefined}
           style={containerStyle}
           onScroll={handleScroll}

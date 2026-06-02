@@ -46,6 +46,35 @@
   overflow: visible;
 }
 
+/* scrollContentBackground(.hidden) — the scroller paints no background (so a
+   parent material/gradient shows through). `.visible` forces the system bg. */
+.sui-scrollview[data-content-bg="hidden"] {
+  background: transparent;
+}
+.sui-scrollview[data-content-bg="visible"] {
+  background: var(--sui-color-system-background);
+}
+
+/* scrollIndicatorsFlash — briefly force a visible (thicker, more opaque) thumb */
+.sui-scrollview[data-flash="true"] {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sui-color-label) 55%, transparent) transparent;
+}
+.sui-scrollview[data-flash="true"]::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.sui-scrollview[data-flash="true"]::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--sui-color-label) 55%, transparent);
+}
+/* keep the flash visible even when indicators are normally hidden */
+.sui-scrollview[data-indicators="hidden"][data-flash="true"] {
+  scrollbar-width: thin;
+}
+.sui-scrollview[data-indicators="hidden"][data-flash="true"]::-webkit-scrollbar {
+  display: block;
+}
+
 /* Translucent capsule thumb (WebKit) to match the iOS/macOS indicator */
 .sui-scrollview::-webkit-scrollbar {
   width: 7px;

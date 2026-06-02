@@ -17,12 +17,15 @@
  * CSS for each modifier follows the spec's "Web mapping (DESIGNED)" tables
  * verbatim (frame→flex grid, shadow blur = 2×radius, brightness = 1+a, etc.).
  */
+import "./modifiers.global.css";
 import type * as React from "react";
 import type {
   Alignment,
+  Axis,
   ColorToken,
   ControlSize,
   Edge,
+  EdgeSet,
   FontDesign,
   FontTextStyle,
   FontWeight,
@@ -125,6 +128,92 @@ export type MaskProp =
   | { image: string; mode?: "alpha" | "luminance" }
   | { content: React.ReactNode; alignment?: Alignment; mode?: "alpha" | "luminance" };
 
+/**
+ * `.fontWidth(_:)` — SwiftUICore `Font.Width` (compressed/condensed/standard/
+ * expanded). KNOWN cases from the swiftinterface; the web target is the
+ * `font-stretch` percentage axis (condensed < 100% < expanded).
+ */
+export type FontWidth = "compressed" | "condensed" | "standard" | "expanded";
+
+/** `.symbolEffect(_:)` — the SF-Symbol animation names (Symbols framework). */
+export type SymbolEffectName =
+  | "bounce" | "pulse" | "scale" | "variableColor"
+  | "wiggle" | "rotate" | "breathe" | "appear" | "disappear";
+
+/**
+ * `.symbolEffect(_:isActive:)` — bare name plays it; the object form mirrors the
+ * `isActive:` parameter (KNOWN, default `true`) so the effect can be toggled off
+ * without removing the prop.
+ */
+export type SymbolEffectProp =
+  | SymbolEffectName
+  | { effect: SymbolEffectName; isActive?: boolean };
+
+/** `.contentTransition(_:)` — SwiftUICore.ContentTransition statics. */
+export type ContentTransitionProp =
+  | "identity" | "opacity" | "interpolate" | "numericText";
+
+/**
+ * `.ignoresSafeArea(_:edges:)` — KNOWN signature `(regions: SafeAreaRegions =
+ * .all, edges: Edge.Set = .all)`. `true` → ignore all edges (the bare/common
+ * call); the object form selects edges and/or the region.
+ */
+export type IgnoresSafeAreaProp =
+  | boolean
+  | {
+      edges?: EdgeSet;
+      regions?: "all" | "container" | "keyboard";
+    };
+
+/**
+ * `.safeAreaPadding(_:_:)` — KNOWN overloads: `(EdgeInsets)`, `(Edge.Set, CGFloat?)`,
+ * `(CGFloat)`. `true`/number → all edges (system inset if no length); object →
+ * per-edge inset added ON TOP of the safe-area inset.
+ */
+export type SafeAreaPaddingProp =
+  | boolean
+  | number
+  | Partial<Record<Edge | "horizontal" | "vertical" | "all", number>>;
+
+/**
+ * `.scenePadding(_:edges:)` — KNOWN `ScenePadding` cases `.minimum` /
+ * `.navigationBar` (+ default). `true` → standard scene padding on all edges;
+ * the object form selects the variant and/or edges.
+ */
+export type ScenePaddingProp =
+  | boolean
+  | "minimum" | "navigationBar"
+  | { padding?: "minimum" | "navigationBar"; edges?: EdgeSet };
+
+/**
+ * `.containerRelativeFrame(_:…)` — KNOWN overloads. The simple form sizes the
+ * view to 100% of the nearest container along the given axes. The grid form
+ * (`count:span:spacing:`) sizes it to `span` of `count` columns minus the
+ * inter-column spacing — compiled to a CSS `calc()`.
+ */
+export interface ContainerRelativeFrameProp {
+  axes: Axis | "both";
+  /** grid form — total columns the container is divided into */
+  count?: number;
+  /** grid form — how many of those columns this view spans (default 1) */
+  span?: number;
+  /** grid form — gap between columns in px */
+  spacing?: number;
+  alignment?: Alignment;
+}
+
+/**
+ * `.visualEffect { content, proxy in … }` — a geometry-aware effect closure. The
+ * web can't pass a live GeometryProxy into a build-time compiler, so the
+ * DESIGNED contract is: accept a ready CSS style object and/or class string to
+ * merge onto the view (the common use — a transform/opacity/blur keyed off
+ * scroll position is applied by the caller's own effect).
+ */
+export type VisualEffectProp =
+  | string
+  | React.CSSProperties
+  | { style?: React.CSSProperties; className?: string };
+
 /* =============================================================================
  * ViewModifierProps — the idiomatic prop bag (1:1 with SwiftUI modifier names)
  * ========================================================================== */
@@ -144,6 +233,24 @@ export interface ViewModifierProps {
   aspectRatio?: AspectRatioProps;
   scaledToFit?: boolean;
   scaledToFill?: boolean;
+  /** `.containerRelativeFrame(_:…)` → width/height as a % of the nearest container. */
+  containerRelativeFrame?: ContainerRelativeFrameProp;
+  /**
+   * `.alignmentGuide(_:computeValue:)` — best-effort: SwiftUI recomputes a stack's
+   * alignment from an arbitrary closure over `ViewDimensions`, which has no pure
+   * CSS analog. We accept a static nudge `{ horizontal?, vertical? }` (px) applied
+   * as a `translate(...)` so simple constant guides work; complex closures are a
+   * documented no-op (see applyModifiers).
+   */
+  alignmentGuide?: { horizontal?: number; vertical?: number };
+
+  // ---- SAFE AREA (SwiftUICore) ----
+  /** `.ignoresSafeArea(_:edges:)` → negative margins via `env(safe-area-inset-*)`. */
+  ignoresSafeArea?: IgnoresSafeAreaProp;
+  /** `.safeAreaPadding(_:_:)` → padding via `env(safe-area-inset-*)`. */
+  safeAreaPadding?: SafeAreaPaddingProp;
+  /** `.scenePadding(_:edges:)` → standard scene/reading-width padding token. */
+  scenePadding?: ScenePaddingProp;
 
   // ---- FILL / STROKE (Part C) ----
   foregroundStyle?: ColorToken | string;
@@ -201,12 +308,45 @@ export interface ViewModifierProps {
   monospaced?: boolean;
   monospacedDigit?: boolean;
   textScale?: "default" | "secondary";
+  /** `.fontWidth(_:)` → `font-stretch` percentage (condensed < 100% < expanded). */
+  fontWidth?: FontWidth;
+  /** `.textSelection(_:)` → `user-select: text | none`. */
+  textSelection?: "enabled" | "disabled";
+  /** `.flipsForRightToLeftLayoutDirection(_:)` → mirror via `scaleX(-1)` in RTL. */
+  flipsForRightToLeftLayoutDirection?: boolean;
 
   // ---- STATE / VISIBILITY (Part E) ----
   opacity?: number;
   hidden?: boolean;
   disabled?: boolean;
   redacted?: "placeholder" | "privacy";
+  /** `.unredacted()` → force-clear any inherited redaction (wins over `redacted`). */
+  unredacted?: boolean;
+  /** `.privacySensitive(_:)` → blur/obscure content on capture (default `true`). */
+  privacySensitive?: boolean;
+  /** `.help(_:)` → native tooltip via the `title` attribute. */
+  help?: string;
+  /** `.contentTransition(_:)` → a class enabling smooth value-change transitions. */
+  contentTransition?: ContentTransitionProp;
+  /** `.badgeProminence(_:)` → `data-badge-prominence` for badge-styling CSS. */
+  badgeProminence?: "standard" | "increased";
+  /** `.headerProminence(_:)` → `data-header-prominence` for section-header CSS. */
+  headerProminence?: "standard" | "increased";
+  // ---- Accessibility (SwiftUI `.accessibility*` → ARIA) --------------------
+  /** `.accessibilityLabel(_:)` → `aria-label`. */
+  accessibilityLabel?: string;
+  /** `.accessibilityHint(_:)` → `aria-description` (falls back to `title`). */
+  accessibilityHint?: string;
+  /** `.accessibilityValue(_:)` → `aria-valuetext`. */
+  accessibilityValue?: string;
+  /** `.accessibilityHidden(_:)` → `aria-hidden`. */
+  accessibilityHidden?: boolean;
+  /** `.accessibilityIdentifier(_:)` → stable test id (`data-testid`). */
+  accessibilityIdentifier?: string;
+  /** `.accessibilityAddTraits`/role → the ARIA `role`. */
+  accessibilityRole?: React.AriaRole;
+  /** `.accessibilitySortPriority(_:)` → DOM tab order hint. */
+  accessibilitySortPriority?: number;
   allowsHitTesting?: boolean;
   contentShape?: "rectangle" | "circle" | "capsule";
 
@@ -215,6 +355,17 @@ export interface ViewModifierProps {
   scaleEffect?: ScaleEffectProp;
   rotation3DEffect?: Rotation3DEffectProps;
   transformEffect?: [number, number, number, number, number, number];
+  /**
+   * `.projectionEffect(_:)` — a 3×3 ProjectionTransform (homogeneous matrix).
+   * Compiled to a CSS `matrix3d(...)`. Row-major `[a,b,c, d,e,f, g,h,i]` where
+   * the bottom row `[g,h,i]` carries the perspective/projection terms.
+   */
+  projectionEffect?: [number, number, number, number, number, number, number, number, number];
+  /**
+   * `.visualEffect { … }` — merge an arbitrary CSS style object / class onto the
+   * view (DESIGNED closure substitute; see `VisualEffectProp`).
+   */
+  visualEffect?: VisualEffectProp;
   blur?: number;
   brightness?: number;
   contrast?: number;
@@ -233,6 +384,10 @@ export interface ViewModifierProps {
   imageScale?: "small" | "medium" | "large";
   symbolRenderingMode?: "monochrome" | "multicolor" | "hierarchical" | "palette";
   symbolVariant?: "none" | "circle" | "square" | "rectangle" | "fill" | "slash";
+  /** `.symbolEffect(_:isActive:)` → a CSS keyframe-animation class (bounce/pulse/…). */
+  symbolEffect?: SymbolEffectProp;
+  /** `.symbolColorRenderingMode(_:)` → `data-symbol-color-mode` (flat | gradient). */
+  symbolColorRenderingMode?: "flat" | "gradient";
   preferredColorScheme?: "light" | "dark";
 }
 
@@ -241,7 +396,9 @@ const MODIFIER_KEYS = new Set<string>([
   // layout
   "frame", "padding", "position", "offset", "fixedSize", "layoutPriority",
   "zIndex", "clipped", "clipShape", "cornerRadius", "aspectRatio",
-  "scaledToFit", "scaledToFill",
+  "scaledToFit", "scaledToFill", "containerRelativeFrame", "alignmentGuide",
+  // safe area
+  "ignoresSafeArea", "safeAreaPadding", "scenePadding",
   // fill/stroke
   "foregroundStyle", "foregroundColor", "background", "backgroundStyle",
   "tint", "border", "shadow",
@@ -253,16 +410,23 @@ const MODIFIER_KEYS = new Set<string>([
   "strikethrough", "kerning", "tracking", "baselineOffset", "lineLimit",
   "lineSpacing", "lineHeight", "multilineTextAlignment", "minimumScaleFactor",
   "truncationMode", "allowsTightening", "textCase", "monospaced",
-  "monospacedDigit", "textScale",
+  "monospacedDigit", "textScale", "fontWidth", "textSelection",
+  "flipsForRightToLeftLayoutDirection",
   // state
-  "opacity", "hidden", "disabled", "redacted", "allowsHitTesting", "contentShape",
+  "opacity", "hidden", "disabled", "redacted", "unredacted", "privacySensitive",
+  "help", "contentTransition", "badgeProminence", "headerProminence",
+  "accessibilityLabel", "accessibilityHint", "accessibilityValue", "accessibilityHidden",
+  "accessibilityIdentifier", "accessibilityRole", "accessibilitySortPriority",
+  "allowsHitTesting", "contentShape",
   // transform
   "rotationEffect", "scaleEffect", "rotation3DEffect", "transformEffect",
+  "projectionEffect", "visualEffect",
   "blur", "brightness", "contrast", "saturation", "grayscale", "hueRotation",
   "colorInvert", "blendMode", "compositingGroup", "drawingGroup", "geometryGroup",
   // control/env
   "controlSize", "labelsHidden", "imageScale", "symbolRenderingMode",
-  "symbolVariant", "preferredColorScheme",
+  "symbolVariant", "symbolEffect", "symbolColorRenderingMode",
+  "preferredColorScheme",
 ]);
 
 /* =============================================================================
@@ -497,6 +661,39 @@ export function applyModifiers(
     style.height = "100%";
   }
 
+  // containerRelativeFrame → % of the nearest container (the grid form solves a
+  // single column-span width via calc against the spacing). `both` sizes both axes.
+  if (m.containerRelativeFrame) {
+    const c = m.containerRelativeFrame;
+    const dim = columnSpanCSS(c);
+    if (c.axes === "horizontal" || c.axes === "both") style.width = dim;
+    if (c.axes === "vertical" || c.axes === "both") style.height = dim;
+    if (c.alignment) {
+      style.display = "flex";
+      const [ai, jc] = alignToFlex(c.alignment);
+      style.alignItems = ai;
+      style.justifyContent = jc;
+    }
+  }
+
+  // alignmentGuide → best-effort static nudge (a translate); a closure-driven
+  // guide has no CSS analog, so only the constant offset case is honoured.
+  if (m.alignmentGuide) {
+    const dx = m.alignmentGuide.horizontal ?? 0;
+    const dy = m.alignmentGuide.vertical ?? 0;
+    if (dx !== 0 || dy !== 0) transforms.push(`translate(${px(dx)}, ${px(dy)})`);
+  }
+
+  // ---- SAFE AREA -----------------------------------------------------------
+  // ignoresSafeArea → negative margins pulling the edge out under the inset.
+  if (m.ignoresSafeArea) Object.assign(style, ignoresSafeAreaToCSS(m.ignoresSafeArea));
+  // safeAreaPadding → padding driven by env(safe-area-inset-*) (+ any extra).
+  if (m.safeAreaPadding !== undefined) {
+    Object.assign(style, safeAreaPaddingToCSS(m.safeAreaPadding));
+  }
+  // scenePadding → the standard scene/reading-width padding token.
+  if (m.scenePadding) Object.assign(style, scenePaddingToCSS(m.scenePadding));
+
   // ---- FILL / STROKE (Part C) ----------------------------------------------
   if (m.foregroundStyle != null) style.color = resolveColor(m.foregroundStyle);
   if (m.foregroundColor != null) style.color = resolveColor(m.foregroundColor);
@@ -575,6 +772,18 @@ export function applyModifiers(
     style.fontFeatureSettings = '"tnum"';
   }
   if (m.textScale === "secondary") style.fontSize = "0.8em";
+  if (m.fontWidth) style.fontStretch = FONT_WIDTH_TO_STRETCH[m.fontWidth];
+  if (m.textSelection) {
+    style.userSelect = m.textSelection === "enabled" ? "text" : "none";
+    (style as Record<string, string>).WebkitUserSelect =
+      m.textSelection === "enabled" ? "text" : "none";
+  }
+  if (m.flipsForRightToLeftLayoutDirection) {
+    // mirror the view only in an RTL context; LTR is untouched. The :dir()
+    // selector can't be inline, so we flag it for the consumer's CSS via a
+    // data-attr AND apply the cheap unconditional default of a CSS var hook.
+    rest["data-flips-rtl"] = "true";
+  }
 
   // ---- STATE / VISIBILITY (Part E) -----------------------------------------
   if (m.opacity != null) style.opacity = m.opacity;
@@ -586,7 +795,30 @@ export function applyModifiers(
     style.opacity = base * 0.35; // iOS dimmed-control look (DESIGNED; calibrate)
     style.cursor = "default";
   }
-  if (m.redacted) cls.push(`sui-redacted--${m.redacted}`);
+  // `.unredacted()` wins over `.redacted(...)` — emit no redaction class when set.
+  if (m.redacted && !m.unredacted) cls.push(`sui-redacted--${m.redacted}`);
+  // `.privacySensitive()` — blur/obscure on capture (independent of redaction).
+  if (m.privacySensitive && !m.unredacted) cls.push("sui-privacy-sensitive");
+  // `.help(_:)` — native tooltip via the `title` attribute (pass-through to DOM).
+  if (m.help != null) rest["title"] = m.help;
+  // `.contentTransition(_:)` — smooth value-change transitions (class-driven).
+  if (m.contentTransition) {
+    cls.push("sui-content-transition");
+    if (m.contentTransition !== "opacity" && m.contentTransition !== "interpolate") {
+      cls.push(`sui-content-transition--${m.contentTransition}`);
+    }
+  }
+  // badge/header prominence — data-attrs read by badge/section-header CSS.
+  if (m.badgeProminence) rest["data-badge-prominence"] = m.badgeProminence;
+  if (m.headerProminence) rest["data-header-prominence"] = m.headerProminence;
+  // accessibility (.accessibility* → ARIA)
+  if (m.accessibilityLabel != null) rest["aria-label"] = m.accessibilityLabel;
+  if (m.accessibilityHint != null) rest["aria-description"] = m.accessibilityHint;
+  if (m.accessibilityValue != null) rest["aria-valuetext"] = m.accessibilityValue;
+  if (m.accessibilityHidden != null) rest["aria-hidden"] = m.accessibilityHidden;
+  if (m.accessibilityIdentifier != null) rest["data-testid"] = m.accessibilityIdentifier;
+  if (m.accessibilityRole != null) rest["role"] = m.accessibilityRole;
+  if (m.accessibilitySortPriority != null) rest["tabIndex"] = m.accessibilitySortPriority;
   if (m.allowsHitTesting === false) style.pointerEvents = "none";
   if (m.contentShape === "circle") style.clipPath = "circle(50%)";
 
@@ -612,6 +844,10 @@ export function applyModifiers(
     if (origin) style.transformOrigin = origin;
   }
   if (m.transformEffect) transforms.push(`matrix(${m.transformEffect.join(", ")})`);
+  // projectionEffect → 3×3 ProjectionTransform → CSS matrix3d. Map the 3×3
+  // homogeneous matrix [a,b,c, d,e,f, g,h,i] (row-major, last row = projection)
+  // into the 4×4 column-major matrix3d, with z held identity.
+  if (m.projectionEffect) transforms.push(projectionToCSS(m.projectionEffect));
 
   if (m.blur != null) filters.push(`blur(${px(m.blur)})`);
   if (m.brightness != null) filters.push(`brightness(${1 + m.brightness})`); // SwiftUI offset → CSS multiplier
@@ -636,7 +872,29 @@ export function applyModifiers(
   }
   if (m.symbolRenderingMode) rest["data-symbol-mode"] = m.symbolRenderingMode;
   if (m.symbolVariant) rest["data-symbol-variant"] = m.symbolVariant;
+  if (m.symbolColorRenderingMode) {
+    rest["data-symbol-color-mode"] = m.symbolColorRenderingMode;
+  }
+  if (m.symbolEffect) {
+    const eff = typeof m.symbolEffect === "string" ? m.symbolEffect : m.symbolEffect.effect;
+    const active = typeof m.symbolEffect === "string" ? true : m.symbolEffect.isActive !== false;
+    cls.push("sui-symbol-effect");
+    cls.push(active ? `sui-symbol-effect--${eff}` : "sui-symbol-effect--inactive");
+  }
   if (m.preferredColorScheme) cls.push(m.preferredColorScheme);
+
+  // visualEffect — merge a caller-supplied style/class LAST so it composes over
+  // the compiled modifiers (mirrors `.visualEffect` running after layout).
+  if (m.visualEffect) {
+    if (typeof m.visualEffect === "string") {
+      cls.push(m.visualEffect);
+    } else if ("style" in m.visualEffect || "className" in m.visualEffect) {
+      if (m.visualEffect.style) Object.assign(style, m.visualEffect.style);
+      if (m.visualEffect.className) cls.push(m.visualEffect.className);
+    } else {
+      Object.assign(style, m.visualEffect);
+    }
+  }
 
   if (transforms.length) style.transform = transforms.join(" ");
   if (filters.length) style.filter = filters.join(" ");
@@ -806,4 +1064,172 @@ export function maskToCSS(
     if (prefix === "mask") set("mask-mode", mode);
   }
   return out;
+}
+
+/* =============================================================================
+ * fontWidth — Font.Width → CSS font-stretch percentage axis
+ *
+ * SwiftUI's four named widths map onto the CSS `font-stretch` percentage
+ * keywords (condensed < 100% normal < expanded). KNOWN cases from the
+ * swiftinterface (`compressed`/`condensed`/`standard`/`expanded`); `compressed`
+ * is the tightest, so it gets the smallest stretch (≈ "ultra-condensed").
+ * ========================================================================== */
+const FONT_WIDTH_TO_STRETCH: Record<FontWidth, string> = {
+  compressed: "75%", // ultra-condensed
+  condensed: "87.5%", // semi-condensed
+  standard: "100%", // normal
+  expanded: "125%", // expanded
+};
+
+/* =============================================================================
+ * containerRelativeFrame — % / column-span sizing against the nearest container
+ *
+ * Simple form (no count) → `100%` of the container along the axis.
+ * Grid form (`count` columns, `span` of them, `spacing` gap) → the width of one
+ * span block. With `count` columns there are `count - 1` gaps of `spacing`, so a
+ * single column is `(100% - (count-1)*spacing) / count`; a `span`-wide block is
+ * `span` columns plus the `span - 1` inner gaps it absorbs:
+ *   span/count * (100% - (count-1)*spacing) + (span-1)*spacing
+ * ========================================================================== */
+function columnSpanCSS(c: ContainerRelativeFrameProp): string {
+  const count = c.count ?? 0;
+  if (count <= 0) return "100%";
+  const span = c.span ?? 1;
+  const spacing = c.spacing ?? 0;
+  // total spacing removed from the container before dividing into columns
+  const totalGap = `${count - 1} * ${spacing}px`;
+  const innerGap = `${span - 1} * ${spacing}px`;
+  return `calc(${span} / ${count} * (100% - (${totalGap})) + (${innerGap}))`;
+}
+
+/* =============================================================================
+ * Safe-area modifiers — env(safe-area-inset-*) plumbing
+ * ========================================================================== */
+
+/** Normalize an EdgeSet to the concrete edge list it selects. */
+function edgesOf(set: EdgeSet | undefined): Edge[] {
+  const ALL: Edge[] = ["top", "leading", "bottom", "trailing"];
+  if (set === undefined || set === true || set === "all") return ALL;
+  if (set === "horizontal") return ["leading", "trailing"];
+  if (set === "vertical") return ["top", "bottom"];
+  if (Array.isArray(set)) return set;
+  return [set];
+}
+
+/**
+ * The physical CSS side for a SwiftUI edge. Note `leading`/`trailing` are
+ * LOGICAL in SwiftUI; `env(safe-area-inset-*)` only exposes physical left/right,
+ * so for the safe-area family we map leading→left / trailing→right (the inset is
+ * a device-physical quantity, not a writing-direction one).
+ */
+const EDGE_TO_PHYSICAL: Record<Edge, "top" | "bottom" | "left" | "right"> = {
+  top: "top",
+  bottom: "bottom",
+  leading: "left",
+  trailing: "right",
+};
+
+/**
+ * ignoresSafeArea → pull the element OUT under the safe-area inset with a
+ * negative margin equal to the inset on each selected edge. `keyboard` region is
+ * a no-op on the web (no keyboard inset env var), so only the container/all
+ * regions produce margins.
+ */
+export function ignoresSafeAreaToCSS(p: IgnoresSafeAreaProp): React.CSSProperties {
+  const edges =
+    p === true ? edgesOf("all") : edgesOf(typeof p === "object" ? p.edges : "all");
+  const region = typeof p === "object" ? (p.regions ?? "all") : "all";
+  const out: React.CSSProperties = {};
+  if (region === "keyboard") return out; // no env() for the keyboard on the web
+  for (const e of edges) {
+    const side = EDGE_TO_PHYSICAL[e];
+    const key = (`margin${side[0].toUpperCase()}${side.slice(1)}`) as keyof React.CSSProperties;
+    (out as Record<string, string>)[key] = `calc(-1 * env(safe-area-inset-${side}, 0px))`;
+  }
+  return out;
+}
+
+/**
+ * safeAreaPadding → padding equal to the safe-area inset on each edge, plus any
+ * explicit extra length. `true` → inset only; a number → inset + that length on
+ * all edges; an object → inset + the per-edge length.
+ */
+export function safeAreaPaddingToCSS(p: SafeAreaPaddingProp): React.CSSProperties {
+  const out: React.CSSProperties = {};
+  const pad = (side: "top" | "bottom" | "left" | "right", extra: number) => {
+    const key = (`padding${side[0].toUpperCase()}${side.slice(1)}`) as keyof React.CSSProperties;
+    (out as Record<string, string>)[key] = `calc(env(safe-area-inset-${side}, 0px) + ${extra}px)`;
+  };
+  if (typeof p === "boolean") {
+    if (p) for (const e of edgesOf("all")) pad(EDGE_TO_PHYSICAL[e], 0);
+    return out; // `false` → no-op
+  }
+  if (typeof p === "number") {
+    for (const e of edgesOf("all")) pad(EDGE_TO_PHYSICAL[e], p);
+    return out;
+  }
+  // per-edge object — resolve the convenience keys first, then explicit edges
+  const all = p.all ?? 0;
+  const h = p.horizontal;
+  const v = p.vertical;
+  const top = p.top ?? v ?? all;
+  const bottom = p.bottom ?? v ?? all;
+  const left = p.leading ?? h ?? all;
+  const right = p.trailing ?? h ?? all;
+  pad("top", top);
+  pad("bottom", bottom);
+  pad("left", left);
+  pad("right", right);
+  return out;
+}
+
+/**
+ * scenePadding → the standard scene/reading-width padding token. `.minimum` uses
+ * the system layout margin; `.navigationBar` aligns to the nav-bar content
+ * inset. Both fall back to the default padding token when the var is unset.
+ */
+export function scenePaddingToCSS(p: ScenePaddingProp): React.CSSProperties {
+  const obj = typeof p === "object" ? p : null;
+  const variant =
+    obj != null ? (obj.padding ?? "minimum") : typeof p === "string" ? p : "minimum";
+  const edges = obj != null ? edgesOf(obj.edges) : edgesOf("all");
+  const token =
+    variant === "navigationBar"
+      ? "var(--sui-scene-padding-navbar, var(--sui-space-padding-default, 16px))"
+      : "var(--sui-scene-padding-minimum, var(--sui-space-padding-default, 16px))";
+  const out: React.CSSProperties = {};
+  for (const e of edges) {
+    const side = EDGE_TO_PHYSICAL[e];
+    const key =
+      e === "leading" || e === "trailing"
+        ? ((`padding${e === "leading" ? "InlineStart" : "InlineEnd"}`) as keyof React.CSSProperties)
+        : ((`padding${side[0].toUpperCase()}${side.slice(1)}`) as keyof React.CSSProperties);
+    (out as Record<string, string>)[key] = token;
+  }
+  return out;
+}
+
+/**
+ * projectionEffect — a 3×3 ProjectionTransform → CSS `matrix3d(...)`.
+ *
+ * SwiftUI's `ProjectionTransform` is a 3×3 homogeneous matrix laid out
+ * row-major as `[m11,m12,m13, m21,m22,m23, m31,m32,m33]` operating on (x, y, w).
+ * CSS `matrix3d` is a 4×4 COLUMN-major matrix on (x, y, z, w). We embed the 3×3
+ * into the 4×4 keeping z identity:
+ *   x' col = (m11, m12, 0, m13)   ← first matrix3d column
+ *   y' col = (m21, m22, 0, m23)
+ *   z' col = (0,   0,   1, 0)
+ *   w  col = (m31, m32, 0, m33)   ← projection/perspective terms
+ */
+export function projectionToCSS(
+  p: [number, number, number, number, number, number, number, number, number],
+): string {
+  const [m11, m12, m13, m21, m22, m23, m31, m32, m33] = p;
+  const m = [
+    m11, m12, 0, m13,
+    m21, m22, 0, m23,
+    0, 0, 1, 0,
+    m31, m32, 0, m33,
+  ];
+  return `matrix3d(${m.join(", ")})`;
 }

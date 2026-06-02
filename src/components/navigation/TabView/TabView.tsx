@@ -42,10 +42,15 @@ export interface TabViewProps {
   selection: unknown;
   /** Fired when a tab is chosen (or a page is swiped to). */
   onSelectionChange: (value: unknown) => void;
-  /** `bar` (bottom bar, default) | `page` (swipeable carousel + dots). */
+  /**
+   * `bar` (bottom bar, default) | `page` / `verticalPage` (swipeable carousel + dots)
+   * | `sidebarAdaptable` (bottom bar in compact width, leading sidebar in regular).
+   */
   style?: TabViewStyle;
   /** Page-dot visibility for `style="page"` (`.page(indexDisplayMode:)`). */
   indexDisplayMode?: "automatic" | "always" | "never";
+  /** sidebarAdaptable: width (px) below which the bar shows instead of the sidebar. */
+  sidebarBreakpoint?: number;
   /** `<Tab>` descriptors or legacy `tabItem`-carrying children. */
   children: React.ReactNode;
   className?: string;
@@ -57,6 +62,7 @@ export function TabView({
   onSelectionChange,
   style = "bar",
   indexDisplayMode = "automatic",
+  sidebarBreakpoint = 768,
   children,
   className,
   style2,
@@ -77,6 +83,9 @@ export function TabView({
     );
   }
 
+  // .tabViewStyle(.sidebarAdaptable) — sidebar in regular width, bottom bar in compact.
+  const adaptive = style === "sidebarAdaptable";
+
   return (
     <BarTabView
       tabs={tabs}
@@ -84,6 +93,8 @@ export function TabView({
       onSelectionChange={onSelectionChange}
       className={className}
       style={style2}
+      adaptive={adaptive}
+      sidebarBreakpoint={sidebarBreakpoint}
     />
   );
 }
@@ -100,35 +111,104 @@ function BarTabView({
   onSelectionChange,
   className,
   style,
+  adaptive = false,
+  sidebarBreakpoint = 768,
 }: {
   tabs: TabSpec[];
   selection: unknown;
   onSelectionChange: (v: unknown) => void;
   className?: string;
   style?: React.CSSProperties;
+  adaptive?: boolean;
+  sidebarBreakpoint?: number;
 }) {
+  const hostRef = React.useRef<HTMLDivElement | null>(null);
+  // sidebarAdaptable: measure width → "sidebar" (regular) vs "bar" (compact).
+  const [layout, setLayout] = React.useState<"bar" | "sidebar">("bar");
+  React.useEffect(() => {
+    if (!adaptive) {
+      setLayout("bar");
+      return;
+    }
+    const el = hostRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        setLayout(e.contentRect.width >= sidebarBreakpoint ? "sidebar" : "bar");
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [adaptive, sidebarBreakpoint]);
+
+  const showSidebar = adaptive && layout === "sidebar";
+
+  const pages = (
+    <div className="sui-tab-pages">
+      {tabs.map((t, i) => {
+        const selected = sameValue(t.value, selection);
+        return (
+          <div
+            key={tabKey(t, i)}
+            className="sui-tab-page"
+            role="tabpanel"
+            data-selected={String(selected)}
+            hidden={!selected}
+          >
+            {t.content}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  if (showSidebar) {
+    return (
+      <div
+        ref={hostRef}
+        className={["sui-tabview", className].filter(Boolean).join(" ")}
+        data-style="sidebarAdaptable"
+        data-layout="sidebar"
+        style={style}
+      >
+        <nav className="sui-tab-sidebar" role="tablist">
+          {tabs.map((t, i) => {
+            const selected = sameValue(t.value, selection);
+            return (
+              <button
+                key={tabKey(t, i)}
+                type="button"
+                className="sui-tab-sidebar-item"
+                role="tab"
+                aria-selected={selected}
+                data-selected={String(selected)}
+                onClick={() => onSelectionChange(t.value)}
+              >
+                <span className="sui-tab-sidebar-icon">
+                  <TabIcon spec={t} />
+                </span>
+                {t.title ? <span className="sui-tab-sidebar-label">{t.title}</span> : null}
+                {t.badge != null ? (
+                  <span className="sui-tab-sidebar-badge">{t.badge}</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+        {pages}
+      </div>
+    );
+  }
+
   return (
     <div
+      ref={hostRef}
       className={["sui-tabview", className].filter(Boolean).join(" ")}
-      data-style="bar"
+      data-style={adaptive ? "sidebarAdaptable" : "bar"}
+      data-layout="bar"
       style={style}
     >
-      <div className="sui-tab-pages">
-        {tabs.map((t, i) => {
-          const selected = sameValue(t.value, selection);
-          return (
-            <div
-              key={tabKey(t, i)}
-              className="sui-tab-page"
-              role="tabpanel"
-              data-selected={String(selected)}
-              hidden={!selected}
-            >
-              {t.content}
-            </div>
-          );
-        })}
-      </div>
+      {pages}
       <nav className={`sui-tabbar ${materialClass("bar")} sui-material-no-rim`} role="tablist">
         {tabs.map((t, i) => {
           const selected = sameValue(t.value, selection);

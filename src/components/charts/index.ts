@@ -6,7 +6,7 @@
  * (`Chart { … marks … }`) rendered as an SVG layer (scales → SVG coordinates).
  */
 export { Chart } from "./Chart";
-export type { ChartProps, ChartPlotPadding } from "./Chart";
+export type { ChartProps, ChartPlotPadding, ChartPlotStyle } from "./Chart";
 
 export { BarMark } from "./BarMark";
 export type { BarMarkProps } from "./BarMark";

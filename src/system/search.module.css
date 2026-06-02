@@ -1,0 +1,164 @@
+/* SwiftUI `.searchable(text:)` — the iOS search bar chrome.
+ * Field metrics mirror UIKit's UISearchBar: 36px tall rounded field on a
+ * tertiary fill, magnifyingglass leading glyph, clear button trailing,
+ * and a "Cancel" affordance that slides in while focused. CSS-module: local
+ * class names (per the .module.css rule). Tokens are the kit's CSS vars. */
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  font:
+    var(--sui-text-body-weight) var(--sui-text-body-size) / var(--sui-text-body-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  letter-spacing: var(--sui-text-body-tracking);
+}
+
+.field {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 10px; /* iOS search-field continuous corner */
+  background: var(--sui-color-tertiary-system-fill, var(--sui-color-tertiary-system-background));
+  color: var(--sui-color-label);
+  transition: background-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.searchBar[data-searching] .field {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sui-color-tint) 35%, transparent);
+}
+
+.searchIcon {
+  flex: 0 0 auto;
+  color: var(--sui-color-secondary-label);
+  font-size: 15px;
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  caret-color: var(--sui-color-tint);
+  outline: none;
+  padding: 0;
+  margin: 0;
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--sui-color-secondary-label, var(--sui-color-placeholder-text));
+  opacity: 1;
+}
+
+/* kill the native WebKit search decorations — we render our own clear button */
+.input::-webkit-search-decoration,
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-results-button,
+.input::-webkit-search-results-decoration {
+  appearance: none;
+  display: none;
+}
+
+.clearButton {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sui-color-system-gray2, var(--sui-color-secondary-label));
+  cursor: default;
+  padding: 0;
+  font-size: 16px;
+}
+
+.cancelButton {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--sui-color-tint);
+  font: inherit;
+  cursor: default;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+/* ---- scope segmented control (`.searchScopes`) ---- */
+.scopesBar {
+  display: inline-flex;
+  width: 100%;
+  margin-top: 8px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--sui-color-tertiary-system-fill, var(--sui-color-tertiary-system-background));
+  box-sizing: border-box;
+}
+
+.scopeSegment {
+  flex: 1 1 0;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  padding: 4px 10px;
+  font:
+    var(--sui-text-subheadline-weight) var(--sui-text-subheadline-size) / var(--sui-text-subheadline-lineHeight)
+    "SF Pro Text", -apple-system, system-ui, sans-serif;
+  color: var(--sui-color-label);
+  cursor: default;
+  transition: background-color 0.15s ease-out;
+}
+
+.scopeSelected {
+  background: var(--sui-color-system-background, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-weight: 600;
+}
+
+/* ---- suggestions dropdown (`.searchSuggestions`) ---- */
+.suggestions {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  border-radius: 10px;
+  background: var(--sui-color-secondary-system-background);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.suggestionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--sui-color-label);
+  cursor: default;
+}
+
+.suggestionRow:hover {
+  background: var(--sui-color-system-fill, color-mix(in srgb, var(--sui-color-label) 8%, transparent));
+}
+
+.suggestionIcon {
+  flex: 0 0 auto;
+  color: var(--sui-color-secondary-label);
+}
+
+.suggestionText {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

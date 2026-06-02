@@ -6,6 +6,12 @@ export * from "./system/animation";
 export * from "./system/gestures";
 export * from "./system/styles";
 export * from "./system/effects";
+export * from "./system/lifecycle";
+export * from "./system/search";
+export * from "./system/drag-drop";
+export * from "./system/focus";
+export * from "./system/matched-geometry";
+export * from "./system/geometry";
 export { tokens, cssVar } from "./tokens";
 export type { Tokens, SpaceToken, RadiusToken, AnimToken, ShadowToken, MaterialToken } from "./tokens";
 // --- Components ---
@@ -54,6 +60,17 @@ export * from "./components/AsyncImage";
 export * from "./components/GroupBox";
 export * from "./components/LabeledContent";
 export * from "./components/ContentUnavailableView";
+// --- Full-coverage additions ---
+export * from "./components/AnyView";
+export * from "./components/EmptyView";
+export * from "./components/Color";
+export * from "./components/AnyLayout";
+export * from "./components/TimelineView";
+export * from "./components/PhaseAnimator";
+export * from "./components/KeyframeAnimator";
+export * from "./components/HSplitView";
+export * from "./components/VSplitView";
+export * from "./components/NavigationView";
 
 // --- Collision resolution: explicit canonical exports override `export *` ambiguity ---
 export type { UnitPoint } from "./system/modifiers";

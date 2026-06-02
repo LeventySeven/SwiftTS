@@ -48,6 +48,29 @@
   text-align: center;
   border-bottom: 0.5px solid var(--sui-color-separator, rgba(60, 60, 67, 0.29));
 }
+/* dialogIcon — centered icon above the title/message */
+.icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+/* dialogSeverity(.critical) — emphasize the title in red */
+.stack[data-severity="critical"] .title,
+[data-severity="critical"] > .header .title {
+  color: var(--sui-color-system-red, #ff3b30);
+}
+/* dialogSuppressionToggle — a centered "Don't ask again" row */
+.suppression {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font: 400 13px -apple-system, system-ui, sans-serif;
+  color: var(--sui-color-secondary-label, #6e6e73);
+  border-bottom: 0.5px solid var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+  cursor: pointer;
+}
 .title {
   font: 600 13px -apple-system, system-ui, sans-serif;
   color: var(--sui-color-secondary-label, #6e6e73);

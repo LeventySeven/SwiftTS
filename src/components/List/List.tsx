@@ -34,6 +34,15 @@ import "./List.global.css";
 
 export type ListSectionSpacingName = "default" | "compact";
 
+/** `listSectionSeparator(_:edges:)` / `listRowSeparator(_:)` visibility. */
+export type SeparatorVisibility = "automatic" | "visible" | "hidden";
+
+/** `AlternatingRowBackgroundBehavior` — `.enabled` paints odd/even rows differently. */
+export type AlternatingRowBackgroundBehavior = "enabled" | "disabled";
+
+/** `Prominence` (`headerProminence(_:)`). `.increased` → larger, non-uppercased header. */
+export type Prominence = "standard" | "increased";
+
 /** `List(selection:)` binding: `[Set, setSet]` (multi) or `[value|null, set]` (single). */
 export type ListSelectionBinding =
   | [
@@ -56,6 +65,20 @@ export interface ListProps extends Omit<ViewProps, "as"> {
   rowSpacing?: number;
   /** listSectionSpacing(_:) — gap between sections (px or named). */
   sectionSpacing?: number | ListSectionSpacingName;
+  /** listSectionSeparator(_:edges:) — show/hide the separator above/below each section. */
+  sectionSeparator?: SeparatorVisibility;
+  /** listSectionSeparatorTint(_:edges:) — color of the inter-section separators. */
+  sectionSeparatorTint?: string;
+  /** listRowSeparatorTint(_:edges:) set list-wide — overridden per-row by `ListRow.separatorTint`. */
+  rowSeparatorTint?: string;
+  /** listItemTint(_:) — accent tint applied to interactive row content (toggles, chevrons). */
+  itemTint?: string;
+  /** alternatingRowBackgrounds(_:) — zebra-stripe rows (macOS/`.plain` tables). */
+  alternatingRowBackgrounds?: boolean | AlternatingRowBackgroundBehavior;
+  /** headerProminence(_:) — `.increased` enlarges section headers (no uppercasing). */
+  headerProminence?: Prominence;
+  /** selectionDisabled(_:) — disable selection for the whole list (rows opt out individually too). */
+  selectionDisabled?: boolean;
   /** scrollContentBackground(.hidden) — drop the gray page background. */
   contentBackgroundHidden?: boolean;
   /** Mark this List as a Form (label/control row layout). Internal — set by `<Form>`. */
@@ -81,6 +104,13 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
     editMode = "inactive",
     rowSpacing,
     sectionSpacing,
+    sectionSeparator,
+    sectionSeparatorTint,
+    rowSeparatorTint,
+    itemTint,
+    alternatingRowBackgrounds = false,
+    headerProminence = "standard",
+    selectionDisabled = false,
     contentBackgroundHidden = false,
     asForm = false,
     cssStyle,
@@ -91,6 +121,9 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
 ) {
   const resolvedName = useResolvedStyle("list", listStyle);
   const style = resolveAutomatic(resolvedName);
+
+  const alternating =
+    alternatingRowBackgrounds === true || alternatingRowBackgrounds === "enabled";
 
   // ---- selection binding → ListSelection ----
   const listSelection = React.useMemo<ListSelection | undefined>(() => {
@@ -122,8 +155,16 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
   }, [selection]);
 
   const ctxValue = React.useMemo<ListContextValue>(
-    () => ({ style, editMode, isForm: asForm, selection: listSelection }),
-    [style, editMode, asForm, listSelection],
+    () => ({
+      style,
+      editMode,
+      isForm: asForm,
+      selection: selectionDisabled ? undefined : listSelection,
+      headerProminence,
+      selectionDisabled,
+      sectionSeparator,
+    }),
+    [style, editMode, asForm, listSelection, selectionDisabled, headerProminence, sectionSeparator],
   );
 
   const sectionSpacingPx =
@@ -141,6 +182,15 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
       ...(sectionSpacingPx != null
         ? { ["--sui-list-section-spacing" as string]: `${sectionSpacingPx}px` }
         : null),
+      ...(sectionSeparatorTint != null
+        ? { ["--sui-list-section-separator-tint" as string]: sectionSeparatorTint }
+        : null),
+      ...(rowSeparatorTint != null
+        ? { ["--sui-row-separator-tint" as string]: rowSeparatorTint }
+        : null),
+      ...(itemTint != null
+        ? { ["--sui-list-item-tint" as string]: itemTint }
+        : null),
     },
     cssStyle,
   );
@@ -157,6 +207,12 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
         data-form={asForm ? "true" : undefined}
         data-content-bg={contentBackgroundHidden ? "hidden" : undefined}
         data-row-spacing={rowSpacing != null ? "true" : undefined}
+        data-alternating={alternating ? "true" : undefined}
+        data-header-prominence={headerProminence !== "standard" ? headerProminence : undefined}
+        data-section-separator={
+          sectionSeparator && sectionSeparator !== "automatic" ? sectionSeparator : undefined
+        }
+        data-selection-disabled={selectionDisabled ? "true" : undefined}
         style={rootStyle}
         {...rest}
       >

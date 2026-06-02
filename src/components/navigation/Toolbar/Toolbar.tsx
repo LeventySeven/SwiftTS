@@ -29,9 +29,16 @@ import {
   type TitleDisplayMode,
   type BarBackground,
   type BarColorScheme,
+  type ToolbarTitleDisplayMode,
+  type ToolbarRoleName,
 } from "../NavigationContext";
 
-export type { ToolbarPlacement, TitleDisplayMode } from "../NavigationContext";
+export type {
+  ToolbarPlacement,
+  TitleDisplayMode,
+  ToolbarTitleDisplayMode,
+  ToolbarRoleName,
+} from "../NavigationContext";
 
 /* ===========================================================================
  * ToolbarItem — one placed bar control (§7)
@@ -166,16 +173,32 @@ Toolbar.displayName = "Toolbar";
 export interface NavigationBarConfigProps {
   /** `navigationTitle(_:)` — static title, or `{value,onChange}` for the editable form. */
   navigationTitle?: string | { value: string; onChange: (v: string) => void };
+  /** `navigationSubtitle(_:)` — a secondary line under the title. */
+  navigationSubtitle?: string;
   /** `navigationBarTitleDisplayMode(_:)`. */
   navigationBarTitleDisplayMode?: TitleDisplayMode;
   /** `navigationBarBackButtonHidden(_:)`. */
   navigationBarBackButtonHidden?: boolean;
   /** `navigationBarHidden(_:)` — hide the whole bar. */
   navigationBarHidden?: boolean;
+  /**
+   * `navigationDocument(_:)` — associates a file/URL with the screen for the
+   * proxy-icon / share affordance. There is no web analogue for the macOS proxy
+   * icon, so this is accepted and intentionally inert (no-op) for API parity.
+   */
+  navigationDocument?: string | { url: string };
   /** `toolbarBackground(_:for:)` — force-visible/hidden or a solid style. */
   toolbarBackground?: BarBackground;
+  /** `toolbarBackgroundVisibility(_:for:)` — visibility-only form of `toolbarBackground`. */
+  toolbarBackgroundVisibility?: "automatic" | "visible" | "hidden";
   /** `toolbarColorScheme(_:for:)` — force light/dark bar content. */
   toolbarColorScheme?: BarColorScheme;
+  /** `toolbarForegroundStyle(_:for:)` — tint of bar content (CSS color/token). */
+  toolbarForegroundStyle?: string;
+  /** `toolbarTitleDisplayMode(_:)`. */
+  toolbarTitleDisplayMode?: ToolbarTitleDisplayMode;
+  /** `toolbarRole(_:)`. */
+  toolbarRole?: ToolbarRoleName;
 }
 
 /**
@@ -184,32 +207,72 @@ export interface NavigationBarConfigProps {
  * top of a screen's view tree (it renders nothing). This is the single
  * declarative surface for all of §6/§8/§11.
  */
-export function NavigationBarConfig({
-  navigationTitle,
-  navigationBarTitleDisplayMode,
-  navigationBarBackButtonHidden,
-  navigationBarHidden,
-  toolbarBackground,
-  toolbarColorScheme,
-}: NavigationBarConfigProps): React.ReactElement | null {
+/** Merge a `toolbarBackground` object with the visibility-only convenience form. */
+function resolveToolbarBackground(
+  bg: BarBackground | undefined,
+  visibility: "automatic" | "visible" | "hidden" | undefined,
+): BarBackground | undefined {
+  if (!bg && !visibility) return undefined;
+  return { ...(bg ?? {}), ...(visibility ? { visibility } : {}) };
+}
+
+/** Build the `NavBarConfig` from the declarative props (shared by component + hook). */
+function buildBarConfig(props: NavigationBarConfigProps) {
+  // navigationDocument has no web rendering — reference it so it's a real accepted prop.
+  void props.navigationDocument;
+  return {
+    title: typeof props.navigationTitle === "string" ? props.navigationTitle : undefined,
+    subtitle: props.navigationSubtitle,
+    editableTitle:
+      props.navigationTitle && typeof props.navigationTitle === "object"
+        ? props.navigationTitle
+        : undefined,
+    displayMode: props.navigationBarTitleDisplayMode,
+    backButtonHidden: props.navigationBarBackButtonHidden,
+    barHidden: props.navigationBarHidden,
+    toolbarBackground: resolveToolbarBackground(
+      props.toolbarBackground,
+      props.toolbarBackgroundVisibility,
+    ),
+    toolbarColorScheme: props.toolbarColorScheme,
+    toolbarForegroundStyle: props.toolbarForegroundStyle,
+    toolbarTitleDisplayMode: props.toolbarTitleDisplayMode,
+    toolbarRole: props.toolbarRole,
+  };
+}
+
+export function NavigationBarConfig(
+  props: NavigationBarConfigProps,
+): React.ReactElement | null {
+  const {
+    navigationTitle,
+    navigationSubtitle,
+    navigationBarTitleDisplayMode,
+    navigationBarBackButtonHidden,
+    navigationBarHidden,
+    navigationDocument,
+    toolbarBackground,
+    toolbarBackgroundVisibility,
+    toolbarColorScheme,
+    toolbarForegroundStyle,
+    toolbarTitleDisplayMode,
+    toolbarRole,
+  } = props;
   const config = React.useMemo(
-    () => ({
-      title: typeof navigationTitle === "string" ? navigationTitle : undefined,
-      editableTitle:
-        navigationTitle && typeof navigationTitle === "object" ? navigationTitle : undefined,
-      displayMode: navigationBarTitleDisplayMode,
-      backButtonHidden: navigationBarBackButtonHidden,
-      barHidden: navigationBarHidden,
-      toolbarBackground,
-      toolbarColorScheme,
-    }),
+    () => buildBarConfig(props),
     [
       navigationTitle,
+      navigationSubtitle,
       navigationBarTitleDisplayMode,
       navigationBarBackButtonHidden,
       navigationBarHidden,
+      navigationDocument,
       toolbarBackground,
+      toolbarBackgroundVisibility,
       toolbarColorScheme,
+      toolbarForegroundStyle,
+      toolbarTitleDisplayMode,
+      toolbarRole,
     ],
   );
   useNavigationBar(config);
@@ -219,18 +282,7 @@ NavigationBarConfig.displayName = "NavigationBarConfig";
 
 /** Hook form: `useNavigationBarModifiers({ navigationTitle, … })` for prop-style use. */
 export function useNavigationBarModifiers(props: NavigationBarConfigProps): void {
-  useNavigationBar({
-    title: typeof props.navigationTitle === "string" ? props.navigationTitle : undefined,
-    editableTitle:
-      props.navigationTitle && typeof props.navigationTitle === "object"
-        ? props.navigationTitle
-        : undefined,
-    displayMode: props.navigationBarTitleDisplayMode,
-    backButtonHidden: props.navigationBarBackButtonHidden,
-    barHidden: props.navigationBarHidden,
-    toolbarBackground: props.toolbarBackground,
-    toolbarColorScheme: props.toolbarColorScheme,
-  });
+  useNavigationBar(buildBarConfig(props));
 }
 
 /** A flexible spacer for `.bottomBar` layouts (`Spacer()` between bar items). */

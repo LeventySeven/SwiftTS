@@ -50,6 +50,32 @@
   transition: none !important;
 }
 
+/* presentationSizing(.fitted / .form) — float a centered, content-hugging card
+   with all four corners rounded (not pinned to the bottom edge). */
+.card[data-sizing="fitted"],
+.card[data-sizing="form"],
+.card[data-sizing="fixed"] {
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  top: 50%;
+  margin: 0;
+  border-radius: var(--sheet-radius, var(--sui-radius-sheet, 14px));
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  /* the JS sets translateY for the slide-in; offset to true-center via the parent
+     transform combine is approximate — use a wrapping translate here. */
+  transform: translate(-50%, calc(-50% + 100%));
+}
+.card[data-sizing="fitted"][data-state="presented"],
+.card[data-sizing="form"][data-state="presented"],
+.card[data-sizing="fixed"][data-state="presented"] {
+  transform: translate(-50%, -50%);
+}
+/* .page — full-bleed sheet, square top corners against the safe area. */
+.card[data-sizing="page"] {
+  border-radius: 0;
+}
+
 .grabber {
   flex: 0 0 auto;
   width: 36px;

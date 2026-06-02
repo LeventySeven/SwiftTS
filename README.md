@@ -85,7 +85,7 @@ A 6-stage reverse-engineering → replication pipeline (documented in [`research
 2. **Tokens** — extract the design system (colors, Dynamic-Type ramp, springs, shadows, materials, squircle) → 251 CSS vars + typed `tokens.ts`.
 3. **Teardowns** — one RE doc per cluster (verbatim API + `file:line` + anatomy + behavior + web mapping), 15,922 lines total.
 4. **Replication** — the `applyModifiers` engine + `<View>` base, then every component on top.
-5. **Integrate** — barrel, demo gallery, completeness audit (90% user-facing components / 77% modifiers).
+5. **Integrate** — barrel, demo gallery, and an exhaustive **coverage ledger** ([`research/COMPLETENESS.md`](./research/COMPLETENESS.md), regenerable via `research/tools/coverage_ledger.py`): **100% of user-facing components** (67 implemented, 0 web-applicable gaps) and 234 modifiers covered. The remaining inventory entries are internal/private types, the `*Style` system, AppKit-interop, app-scene, or platform-specific modifiers with no web analog (windows, visionOS/immersive, Apple Pencil, speech, Touch Bar, Metal shaders) — each individually justified in the ledger.
 6. **Fidelity loop** — screenshot the gallery, diff against SwiftUI/HIG, fix, repeat.
 
 ## Fidelity & honest gaps

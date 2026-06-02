@@ -20,7 +20,7 @@ import * as React from "react";
 import { useListContext } from "./ListContext";
 import "./List.global.css";
 
-export type RowSeparatorVisibility = "automatic" | "hidden";
+export type RowSeparatorVisibility = "automatic" | "visible" | "hidden";
 export type SwipeEdge = "leading" | "trailing";
 
 /** Built-in trailing accessory (NavigationLink chevron, multi-select checkmark, etc.). */
@@ -82,8 +82,18 @@ export interface ListRowProps {
   separator?: RowSeparatorVisibility;
   /** listRowSeparatorTint(_:). */
   separatorTint?: string;
+  /** listItemTint(_:) — accent tint for this row's interactive content (overrides list-wide `itemTint`). */
+  itemTint?: string;
   /** swipeActions(...). */
   swipeActions?: SwipeActionsConfig;
+  /** badge(_:) — trailing count/text pill (Settings "12" badge, list-row form). */
+  badge?: number | string | React.ReactNode;
+  /** selectionDisabled(_:) — this row cannot be selected (greyed in edit/selection mode). */
+  selectionDisabled?: boolean;
+  /** deleteDisabled(_:) — suppress this row's destructive (delete) swipe/edit action. */
+  deleteDisabled?: boolean;
+  /** moveDisabled(_:) — this row cannot be reordered in edit mode (hides the grip). */
+  moveDisabled?: boolean;
   /** Shows the chevron disclosure indicator (NavigationLink-style rows). Alias for `accessory="chevron"`. */
   showsChevron?: boolean;
   className?: string;
@@ -140,8 +150,13 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       insets,
       separator = "automatic",
       separatorTint,
+      itemTint,
       swipeActions,
       showsChevron,
+      badge,
+      selectionDisabled = false,
+      deleteDisabled = false,
+      moveDisabled = false,
       className,
       style,
       children,
@@ -150,15 +165,20 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     ref,
   ) {
     const ctx = useListContext();
-    const sel = ctx.selection;
+    // A row whose selection is disabled (per-row or list-wide) cannot toggle.
+    const selectable = !selectionDisabled && !ctx.selectionDisabled;
+    const sel = selectable ? ctx.selection : undefined;
     const editing = ctx.editMode === "active" || ctx.editMode === "transient";
     const isSelected =
       id != null && sel?.enabled ? sel.selected.has(id) : false;
     const tappable = !!onTap || (sel?.enabled ?? false);
 
     // ---- swipe drawer drag state ----
-    const trailingActions = swipeActions?.trailing ?? [];
-    const leadingActions = swipeActions?.leading ?? [];
+    // deleteDisabled(_) drops the destructive action from both swipe edges.
+    const filterDestructive = (a: SwipeAction) =>
+      !(deleteDisabled && a.role === "destructive");
+    const trailingActions = (swipeActions?.trailing ?? []).filter(filterDestructive);
+    const leadingActions = (swipeActions?.leading ?? []).filter(filterDestructive);
     const allowsFullSwipe = swipeActions?.allowsFullSwipe ?? true;
     const hasSwipe = trailingActions.length > 0 || leadingActions.length > 0;
     const trailingW = trailingActions.length * SWIPE_BTN_W;
@@ -270,6 +290,12 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
         <span className="sui-list__checkmark" aria-hidden="true" />
       ) : null;
 
+    // badge(_:) — a trailing grey count/text pill, placed before the accessory.
+    const badgeNode =
+      badge != null ? (
+        <span className="sui-list__badge">{badge}</span>
+      ) : null;
+
     const row = (
       <div
         ref={ref}
@@ -278,7 +304,10 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
         tabIndex={tappable ? 0 : undefined}
         data-tappable={tappable ? "true" : undefined}
         data-selected={isSelected ? "true" : undefined}
-        data-separator={separator === "hidden" ? "hidden" : undefined}
+        data-separator={
+          separator === "hidden" ? "hidden" : separator === "visible" ? "visible" : undefined
+        }
+        data-selection-disabled={selectionDisabled ? "true" : undefined}
         data-scroll-id={id != null ? String(id) : undefined}
         onClick={tappable || hasSwipe ? handleClick : undefined}
         onKeyDown={
@@ -295,6 +324,9 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
           ...(background ? {} : null),
           ...(separatorTint
             ? { ["--sui-row-separator-tint" as string]: separatorTint }
+            : null),
+          ...(itemTint
+            ? { ["--sui-list-item-tint" as string]: itemTint }
             : null),
           ...insetStyle,
           ...style,
@@ -315,8 +347,9 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
         ) : null}
         {editing ? <span className="sui-list__select" aria-hidden="true" /> : null}
         {usePropApi ? propContent : children}
+        {badgeNode}
         {accessoryNode}
-        {editing ? (
+        {editing && !moveDisabled ? (
           <span className="sui-list__grip" aria-hidden="true">
             <span />
             <span />

@@ -1,0 +1,72 @@
+/*
+ * HSplitView / split-view shared styling.
+ * Spec: macOS NSSplitView — thin 1px divider inside a wider drag gutter.
+ *
+ * The container is a flexbox; panes are flex items sized by inline flex-basis
+ * (set in JS from live state). The gutter is the draggable divider; the inner
+ * line is the visible 1px hairline in the separator color.
+ */
+.container {
+  box-sizing: border-box;
+}
+
+.pane {
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* The draggable divider track. Wide hit target, centered hairline. */
+.gutter {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gutter:hover .gutterLine,
+.gutter:focus-visible .gutterLine {
+  background: var(--sui-color-accent, #0a84ff);
+}
+
+.gutter:focus-visible {
+  outline: none;
+}
+
+/* horizontal split → vertical divider line (a tall 1px column). */
+.gutterH {
+  cursor: col-resize;
+  align-self: stretch;
+}
+.gutterH .gutterLine {
+  width: 1px;
+  height: 100%;
+}
+
+/* vertical split → horizontal divider line (a wide 1px row). */
+.gutterV {
+  cursor: row-resize;
+  align-self: stretch;
+}
+.gutterV .gutterLine {
+  height: 1px;
+  width: 100%;
+}
+
+.gutterLine {
+  display: block;
+  background: var(--sui-color-separator, rgba(60, 60, 67, 0.29));
+  transition: background 120ms ease;
+}
+
+@media (min-resolution: 2dppx) {
+  .gutterH .gutterLine {
+    width: 0.5px;
+  }
+  .gutterV .gutterLine {
+    height: 0.5px;
+  }
+}

@@ -98,9 +98,17 @@ export interface BarBackground {
   style?: string;
 }
 
+/** `toolbarTitleDisplayMode(_:)` — like `displayMode` but only the title's chrome. */
+export type ToolbarTitleDisplayMode = "automatic" | "inline" | "inlineLarge" | "large";
+
+/** `toolbarRole(_:)` — `.browser` widens the title area & left-aligns it (web/files apps). */
+export type ToolbarRoleName = "automatic" | "navigationStack" | "browser" | "editor";
+
 /** The mutable bar state a screen contributes to the enclosing stack. */
 export interface NavBarConfig {
   title?: string;
+  /** `navigationSubtitle(_:)` — a secondary line under the (inline/large) title. */
+  subtitle?: string;
   /** Editable-title binding (`navigationTitle(Binding<String>)`). */
   editableTitle?: { value: string; onChange: (v: string) => void };
   displayMode?: TitleDisplayMode;
@@ -110,6 +118,12 @@ export interface NavBarConfig {
   barHidden?: boolean;
   toolbarBackground?: BarBackground;
   toolbarColorScheme?: BarColorScheme;
+  /** `toolbarForegroundStyle(_:for:)` — tint of the bar's content (buttons/title). */
+  toolbarForegroundStyle?: string;
+  /** `toolbarTitleDisplayMode(_:)`. */
+  toolbarTitleDisplayMode?: ToolbarTitleDisplayMode;
+  /** `toolbarRole(_:)`. */
+  toolbarRole?: ToolbarRoleName;
 }
 
 export interface NavigationBarContextValue {
@@ -139,6 +153,7 @@ const NOOP_BAR: NavigationBarContextValue = { setBar: () => {} };
 function serializeBar(c: NavBarConfig): string {
   return [
     c.title ?? "",
+    c.subtitle ?? "",
     c.displayMode ?? "",
     c.backButtonHidden ? "1" : "",
     c.barHidden ? "1" : "",
@@ -147,6 +162,9 @@ function serializeBar(c: NavBarConfig): string {
       ? `bg:${c.toolbarBackground.visibility ?? ""}:${c.toolbarBackground.style ?? ""}`
       : "",
     c.toolbarColorScheme ?? "",
+    c.toolbarForegroundStyle ?? "",
+    c.toolbarTitleDisplayMode ?? "",
+    c.toolbarRole ?? "",
   ].join("|");
 }
 

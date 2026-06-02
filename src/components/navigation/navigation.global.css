@@ -193,6 +193,65 @@
   color: inherit;
 }
 
+/* ---- navigationSubtitle(_:) ---- */
+/* inline title+subtitle stack: title 17pt over subtitle 11pt centered */
+.sui-navbar-title-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+.sui-navbar-subtitle-inline {
+  font:
+    400 11px/1.1 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  color: var(--sui-color-secondary-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  /* tracks the inline title's collapse opacity */
+  opacity: var(--lt-progress, 0);
+  transition: opacity 0.2s ease;
+}
+.sui-navstack[data-collapsed="true"] .sui-navbar-subtitle-inline,
+.sui-navstack[data-display-mode="inline"] .sui-navbar-subtitle-inline {
+  opacity: 1;
+}
+/* large-title becomes a column so the subtitle sits under the big title */
+.sui-navbar-largetitle:has(.sui-navbar-subtitle-large) {
+  flex-direction: column;
+  align-items: flex-start;
+  height: auto;
+  min-height: 52px;
+}
+.sui-navbar-subtitle-large {
+  font:
+    400 15px/1.2 var(--sui-font-default, -apple-system, system-ui, sans-serif);
+  letter-spacing: normal;
+  color: var(--sui-color-secondary-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ---- toolbarForegroundStyle(_:for:) — tint all bar content ---- */
+.sui-navstack[data-bar-fg="true"] .sui-navbar-title-inline,
+.sui-navstack[data-bar-fg="true"] .sui-navbar-largetitle,
+.sui-navstack[data-bar-fg="true"] .sui-toolbar-btn,
+.sui-navstack[data-bar-fg="true"] .sui-navbar-back {
+  color: var(--bar-fg);
+}
+
+/* ---- toolbarRole(.browser) — wide, leading-aligned title (files/web apps) ---- */
+.sui-navstack[data-toolbar-role="browser"] .sui-navbar-center {
+  justify-content: flex-start;
+}
+.sui-navstack[data-toolbar-role="browser"] .sui-navbar-largetitle {
+  font-size: var(--sui-text-title1-size, 28px);
+}
+
 .sui-navstack-scroll {
   position: absolute;
   inset: 0;
@@ -452,6 +511,76 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+/* .tabViewStyle(.sidebarAdaptable) — leading sidebar in regular width */
+.sui-tabview[data-layout="sidebar"] {
+  flex-direction: row;
+}
+.sui-tab-sidebar {
+  flex: 0 0 auto;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  box-sizing: border-box;
+  background: var(--sui-color-secondary-system-background);
+  border-right: 0.5px solid var(--sui-color-separator);
+  overflow-y: auto;
+}
+.sui-tab-sidebar-item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-height: 34px;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+  cursor: pointer;
+}
+.sui-tab-sidebar-item:hover {
+  background: var(--sui-color-quaternary-system-fill, rgba(120, 120, 128, 0.08));
+}
+.sui-tab-sidebar-item[data-selected="true"] {
+  background: var(--sui-color-tint, var(--sui-color-system-blue));
+  color: #fff;
+}
+.sui-tab-sidebar-icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+.sui-tab-sidebar-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.sui-tab-sidebar-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sui-tab-sidebar-badge {
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: var(--sui-color-system-red);
+  color: #fff;
+}
+.sui-tab-sidebar-item[data-selected="true"] .sui-tab-sidebar-badge {
+  background: rgba(255, 255, 255, 0.3);
 }
 .sui-tab-pages {
   flex: 1;

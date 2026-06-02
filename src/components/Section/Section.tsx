@@ -46,13 +46,16 @@ export function Section({
 }: SectionProps): React.ReactElement {
   const collapsible = isExpanded !== undefined;
   const expanded = isExpanded !== false;
-  useListContext(); // ensure rows resolve the enclosing list style
+  const ctx = useListContext(); // ensure rows resolve the enclosing list style
+  // headerProminence(.increased) → larger, non-uppercased header (data-attr on header).
+  const prominent = ctx.headerProminence === "increased";
 
   const headerNode = header != null ? (
     collapsible ? (
       <button
         type="button"
         className="sui-list__header"
+        data-prominence={prominent ? "increased" : undefined}
         style={{
           all: "unset",
           display: "flex",
@@ -79,7 +82,11 @@ export function Section({
         />
       </button>
     ) : (
-      <div className="sui-list__header" role="presentation">
+      <div
+        className="sui-list__header"
+        role="presentation"
+        data-prominence={prominent ? "increased" : undefined}
+      >
         {header}
       </div>
     )

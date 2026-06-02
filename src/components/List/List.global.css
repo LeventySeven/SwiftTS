@@ -75,6 +75,20 @@
   margin-bottom: var(--sui-list-row-spacing, 0);
 }
 
+/* ---- alternatingRowBackgrounds(.enabled) — zebra stripe (plain/sidebar lists) ---- */
+.sui-list[data-alternating="true"] .sui-list__row:nth-child(even) {
+  background: var(--sui-color-quaternary-system-fill, rgba(120, 120, 128, 0.08));
+}
+
+/* ---- selectionDisabled — dim a non-selectable row ---- */
+.sui-list__row[data-selection-disabled="true"] {
+  cursor: default;
+}
+.sui-list[data-edit="active"] .sui-list__row[data-selection-disabled="true"] .sui-list__select,
+.sui-list[data-edit="transient"] .sui-list__row[data-selection-disabled="true"] .sui-list__select {
+  opacity: 0.3;
+}
+
 /* ================================================================ */
 /* Section                                                          */
 /* ================================================================ */
@@ -86,6 +100,21 @@
 .sui-list[data-style="grouped"] .sui-list__section + .sui-list__section,
 .sui-list[data-style="insetGrouped"] .sui-list__section + .sui-list__section {
   margin-top: var(--sui-list-section-spacing, var(--sui-list-section-gap));
+}
+
+/* listSectionSeparator(.visible) — a full-width hairline above each section card
+   (the plain-list group divider). listSectionSeparatorTint colors it. */
+.sui-list[data-section-separator="visible"] .sui-list__section + .sui-list__section::before {
+  content: "";
+  display: block;
+  height: 0.5px;
+  margin-bottom: var(--sui-list-section-spacing, var(--sui-list-section-gap));
+  background: var(--sui-list-section-separator-tint, var(--sui-separator));
+  transform: scaleY(0.5);
+}
+/* listSectionSeparator(.hidden) — suppress the inter-card gap divider entirely */
+.sui-list[data-section-separator="hidden"] .sui-list__section + .sui-list__section::before {
+  display: none;
 }
 
 /* ---- header / footer ---- */
@@ -101,6 +130,16 @@
 .sui-list[data-style="insetGrouped"] .sui-list__header {
   padding-left: calc(var(--sui-list-side-inset) + var(--sui-list-content-inset));
   padding-right: calc(var(--sui-list-side-inset) + var(--sui-list-content-inset));
+}
+/* headerProminence(.increased) — a larger, non-uppercased title-2 header */
+.sui-list__header[data-prominence="increased"] {
+  font-size: var(--sui-text-title2-size, 22px);
+  font-weight: var(--sui-text-title2-weight, 700);
+  line-height: 1.2;
+  letter-spacing: var(--sui-text-title2-tracking, normal);
+  text-transform: none;
+  color: var(--sui-color-label);
+  padding-bottom: 8px;
 }
 .sui-list__footer {
   font-size: var(--sui-text-footnote-size);
@@ -169,6 +208,18 @@
 /* listRowSeparator(.hidden) */
 .sui-list__row[data-separator="hidden"]::after {
   display: none;
+}
+/* listRowSeparator(.visible) — force the hairline even on the card's last row */
+.sui-list__row[data-separator="visible"]:last-child::after {
+  content: "";
+  position: absolute;
+  left: var(--sui-list-content-inset);
+  right: 0;
+  bottom: 0;
+  height: 0.5px;
+  background: var(--sui-row-separator-tint, var(--sui-separator));
+  transform: scaleY(0.5);
+  transform-origin: bottom;
 }
 
 /* row content slots */
@@ -257,6 +308,32 @@
   border-right: 2px solid var(--sui-color-system-blue, var(--sui-color-tint));
   border-bottom: 2px solid var(--sui-color-system-blue, var(--sui-color-tint));
   transform: rotate(45deg);
+}
+
+/* badge(_:) — trailing grey count/text pill (list-row form) */
+.sui-list__badge {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--sui-color-secondary-label);
+  font-size: var(--sui-text-body-size);
+  font-weight: var(--sui-text-body-weight);
+  letter-spacing: var(--sui-text-body-tracking);
+  white-space: nowrap;
+}
+/* a badge that follows a value sits right after it, not re-claiming the auto margin */
+.sui-list__value ~ .sui-list__badge,
+.sui-list__trailing ~ .sui-list__badge {
+  margin-left: 8px;
+}
+/* a chevron after a badge keeps the row's flex gap (no extra margin) */
+.sui-list__badge ~ .sui-list__chevron {
+  margin-left: 0;
+}
+
+/* listItemTint(_:) — accent for interactive row content (checkmark, controls) */
+.sui-list__row[style*="--sui-list-item-tint"] .sui-list__checkmark::before,
+.sui-list[style*="--sui-list-item-tint"] .sui-list__checkmark::before {
+  border-color: var(--sui-list-item-tint);
 }
 
 /* states */

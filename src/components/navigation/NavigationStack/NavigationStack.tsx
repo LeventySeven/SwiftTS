@@ -146,12 +146,21 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
     // Resolve the bar title + display mode (automatic = large at root, inline pushed).
     const title =
       activeBar.title ?? (depth === 0 ? rootTitle : path[depth - 1]?.title) ?? "";
+    const subtitle = activeBar.subtitle;
+    // toolbarTitleDisplayMode(_:) refines `displayMode` when set (title-only chrome).
+    const ttdm = activeBar.toolbarTitleDisplayMode;
+    const effectiveDisplay =
+      ttdm === "inline"
+        ? "inline"
+        : ttdm === "large" || ttdm === "inlineLarge"
+          ? "large"
+          : activeBar.displayMode;
     const displayMode =
-      activeBar.displayMode === "automatic" || activeBar.displayMode === undefined
+      effectiveDisplay === "automatic" || effectiveDisplay === undefined
         ? depth === 0
           ? "large"
           : "inline"
-        : activeBar.displayMode;
+        : effectiveDisplay;
     const prevTitle =
       depth === 0 ? undefined : depth === 1 ? rootTitle : (path[depth - 2]?.title ?? "Back");
 
@@ -309,6 +318,9 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
     if (activeBar.toolbarBackground?.style) {
       (stackStyle as Record<string, string>)["--bar-bg"] = activeBar.toolbarBackground.style;
     }
+    if (activeBar.toolbarForegroundStyle) {
+      (stackStyle as Record<string, string>)["--bar-fg"] = activeBar.toolbarForegroundStyle;
+    }
 
     return (
       <NavigationContext.Provider value={nav}>
@@ -323,6 +335,12 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
               className={["sui-navstack", className].filter(Boolean).join(" ")}
               data-collapsed={String(collapsed)}
               data-display-mode={displayMode}
+              data-toolbar-role={
+                activeBar.toolbarRole && activeBar.toolbarRole !== "automatic"
+                  ? activeBar.toolbarRole
+                  : undefined
+              }
+              data-bar-fg={activeBar.toolbarForegroundStyle ? "true" : undefined}
               data-hide-back={String(!!activeBar.backButtonHidden)}
               style={stackStyle}
               onPointerDown={onPointerDown}
@@ -367,7 +385,12 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
                         <React.Fragment key={`p${i}`}>{it.content}</React.Fragment>
                       ))
                     ) : (
-                      <span className="sui-navbar-title-inline">{title}</span>
+                      <span className="sui-navbar-title-stack">
+                        <span className="sui-navbar-title-inline">{title}</span>
+                        {subtitle ? (
+                          <span className="sui-navbar-subtitle-inline">{subtitle}</span>
+                        ) : null}
+                      </span>
                     )}
                   </div>
                   <div className="sui-navbar-trailing">
@@ -389,7 +412,12 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
                       />
                     </h1>
                   ) : (
-                    <h1 className="sui-navbar-largetitle">{title}</h1>
+                    <h1 className="sui-navbar-largetitle">
+                      {title}
+                      {subtitle ? (
+                        <span className="sui-navbar-subtitle-large">{subtitle}</span>
+                      ) : null}
+                    </h1>
                   )
                 ) : null}
               </header>

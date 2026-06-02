@@ -21,6 +21,7 @@ import {
 import { Popover, type PopoverProps } from "./Popover";
 import { springCss } from "../../system/animation";
 import type { PresentationAdaptation } from "./Sheet";
+import type { DialogSeverity, SuppressionToggle } from "./Alert";
 import styles from "./ConfirmationDialog.module.css";
 
 export type DialogButtonRole = "default" | "cancel" | "destructive";
@@ -64,6 +65,12 @@ export interface ConfirmationDialogProps {
   message?: React.ReactNode;
   /** `.automatic` (show iff message exists) | `.visible` | `.hidden`. */
   titleVisibility?: DialogTitleVisibility;
+  /** `dialogIcon(_:)` — an icon shown above the title/message header. */
+  icon?: React.ReactNode;
+  /** `dialogSeverity(_:)` — `.critical` flags a destructive/warning dialog. */
+  severity?: DialogSeverity;
+  /** `dialogSuppressionToggle(_:isSuppressed:)` — a "Don't ask again" checkbox. */
+  suppressionToggle?: SuppressionToggle;
   /** `presentationCompactAdaptation` — popover on regular width. */
   compactAdaptation?: PresentationAdaptation;
   /** Anchor for the wide-width popover adaptation (optional). */
@@ -83,6 +90,9 @@ export function ConfirmationDialog(
     title,
     message,
     titleVisibility = "automatic",
+    icon,
+    severity = "automatic",
+    suppressionToggle,
     compactAdaptation = "automatic",
     anchorRef,
     regularBreakpoint = 768,
@@ -133,6 +143,31 @@ export function ConfirmationDialog(
     titleVisibility === "visible" ||
     (titleVisibility === "automatic" && message != null);
 
+  // dialogIcon / dialogSeverity(.critical) — critical with no explicit icon → ⚠️.
+  const resolvedIcon =
+    icon != null ? (
+      icon
+    ) : severity === "critical" ? (
+      <span
+        aria-hidden="true"
+        style={{ fontSize: 30, color: "var(--sui-color-system-red, #ff3b30)" }}
+      >
+        ⚠️
+      </span>
+    ) : null;
+
+  // dialogSuppressionToggle — a "Don't ask again" checkbox above the actions.
+  const suppressionNode = suppressionToggle ? (
+    <label className={styles.suppression}>
+      <input
+        type="checkbox"
+        checked={suppressionToggle.isSuppressed}
+        onChange={(e) => suppressionToggle.onChange(e.target.checked)}
+      />
+      {suppressionToggle.label}
+    </label>
+  ) : null;
+
   // Esc = cancel.
   useFocusTrap(containerRef, mounted && isPresented && !regular, {
     onEscape: () => (cancelButton ? runButton(cancelButton) : dismiss()),
@@ -152,9 +187,10 @@ export function ConfirmationDialog(
         arrowEdge={null}
         compactAdaptation="popover"
       >
-        <div style={{ minWidth: 220, padding: 6 }}>
-          {(showTitle || message) && (
+        <div style={{ minWidth: 220, padding: 6 }} data-severity={severity}>
+          {(showTitle || message || resolvedIcon) && (
             <div className={styles.header}>
+              {resolvedIcon != null && <div className={styles.icon}>{resolvedIcon}</div>}
               {showTitle && <div className={styles.title}>{title}</div>}
               {message != null && <div className={styles.msg}>{message}</div>}
             </div>
@@ -171,6 +207,7 @@ export function ConfirmationDialog(
               {b.label}
             </button>
           ))}
+          {suppressionNode}
         </div>
       </Popover>
     );
@@ -204,16 +241,19 @@ export function ConfirmationDialog(
         <div
           className={styles.stack}
           data-state={dataState}
+          data-severity={severity}
           onTransitionEnd={surfaceProps.onTransitionEnd}
           style={{ transition: stackTransition }}
         >
           <div className={styles.group}>
-            {(showTitle || message) && (
+            {(showTitle || message || resolvedIcon) && (
               <div className={styles.header}>
+                {resolvedIcon != null && <div className={styles.icon}>{resolvedIcon}</div>}
                 {showTitle && <div className={styles.title}>{title}</div>}
                 {message != null && <div className={styles.msg}>{message}</div>}
               </div>
             )}
+            {suppressionNode}
             {actionButtons.map((b, i) => (
               <button
                 key={i}

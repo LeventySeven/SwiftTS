@@ -106,6 +106,21 @@ export type PresentationAdaptation =
   | "sheet"
   | "fullScreenCover";
 
+/**
+ * `presentationSizing(_:)` — the sheet's preferred sizing strategy.
+ *   - `automatic` → detent-driven height, full width (the iOS default).
+ *   - `fitted`    → the card hugs its content in BOTH axes (centered floating card).
+ *   - `form`      → a comfortable form width (~min(90vw, 420px)) hugging content height.
+ *   - `page`      → fills the available space (full-bleed page sheet).
+ *   - `{ width?, height? }` → an explicit fixed size (`PresentationSizing.fixed`).
+ */
+export type PresentationSizing =
+  | "automatic"
+  | "fitted"
+  | "form"
+  | "page"
+  | { width?: number; height?: number };
+
 /* ===========================================================================
  * 3. <Sheet> props (§1.7 DESIGNED prop API).
  * ======================================================================== */
@@ -134,6 +149,8 @@ export interface SheetProps {
   contentInteraction?: ContentInteraction;
   /** `presentationCompactAdaptation`. */
   compactAdaptation?: PresentationAdaptation;
+  /** `presentationSizing(_:)` — `fitted`/`form`/`page`/fixed override the detent height. */
+  sizing?: PresentationSizing;
   /** Block swipe/scrim dismissal (`interactiveDismissDisabled`). */
   interactiveDismissDisabled?: boolean;
   /** Accessible label id; defaults are derived. */
@@ -166,6 +183,7 @@ export function Sheet(props: SheetProps): React.JSX.Element {
     cornerRadius = null,
     background,
     backgroundInteraction = "automatic",
+    sizing = "automatic",
     interactiveDismissDisabled = false,
     children,
   } = props;
@@ -332,6 +350,23 @@ export function Sheet(props: SheetProps): React.JSX.Element {
   // Scrim opacity fades proportionally as the sheet rises for small custom detents.
   const interactive = backgroundInteraction === "enabled";
 
+  // presentationSizing(_:) — a non-automatic strategy overrides the detent height.
+  // `fitted`/`form` hug content (height:auto, capped); `page` fills; fixed pins both.
+  const sizingMode = typeof sizing === "object" ? "fixed" : sizing;
+  const sizingStyle: React.CSSProperties = {};
+  if (typeof sizing === "object") {
+    if (sizing.width != null) sizingStyle.width = `${sizing.width}px`;
+    if (sizing.height != null) sizingStyle.height = `${sizing.height}px`;
+  } else if (sizing === "fitted" || sizing === "form") {
+    sizingStyle.height = "auto";
+    sizingStyle.maxHeight = "calc(100% - 24px)";
+    if (sizing === "form") sizingStyle.width = "min(92vw, 420px)";
+    else sizingStyle.width = "max-content";
+    sizingStyle.maxWidth = "calc(100% - 24px)";
+  } else if (sizing === "page") {
+    sizingStyle.height = "100%";
+  }
+
   // Resolve the card transform: resting (translateY 0) + drag offset, OR resolve
   // height directly while dragging so the sheet tracks the finger 1:1.
   const cardStyle: React.CSSProperties = {
@@ -339,6 +374,8 @@ export function Sheet(props: SheetProps): React.JSX.Element {
     ...(cornerRadius != null
       ? { ["--sheet-radius" as string]: `${cornerRadius}px` }
       : {}),
+    // a non-automatic sizing strategy wins over the detent height var.
+    ...(sizingMode !== "automatic" ? sizingStyle : {}),
   };
   if (drag.dragging) {
     // Track the finger: positive offset moves the card down.
@@ -390,6 +427,7 @@ export function Sheet(props: SheetProps): React.JSX.Element {
             className={styles.card}
             data-state={dataState}
             data-dragging={drag.dragging ? "true" : "false"}
+            data-sizing={sizingMode !== "automatic" ? sizingMode : undefined}
             onTransitionEnd={surfaceProps.onTransitionEnd}
             style={cardStyle}
           >
