@@ -33,3 +33,13 @@ export type { AlbumShelfProps } from "./AlbumShelf";
 
 export { NowPlayingBar } from "./NowPlayingBar";
 export type { NowPlayingBarProps, NowPlayingTrack } from "./NowPlayingBar";
+
+/* ── Full-screen "Now Playing" / Lyrics view (ambient mesh + synced lyrics) ── */
+export { NowPlayingScreen } from "./NowPlayingScreen";
+export type { NowPlayingScreenProps } from "./NowPlayingScreen";
+
+export { LyricsView } from "./LyricsView";
+export type { LyricsViewProps, LyricLine } from "./LyricsView";
+
+export { AmbientBackground } from "./AmbientBackground";
+export type { AmbientBackgroundProps } from "./AmbientBackground";

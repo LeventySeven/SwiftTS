@@ -1,0 +1,440 @@
+/**
+ * Apple Music "Now Playing" / Lyrics full-screen view — scoped styles.
+ *
+ * The view is the immersive lyrics surface: a heavily-blurred ANIMATED AMBIENT
+ * GRADIENT (an <AnimatedMeshGradient> built from the album-artwork palette) under
+ * a dark scrim, with the album art in a white rounded card + Title / "Artist —
+ * Album" on the LEFT, and big bold time-synced LYRICS on the RIGHT.
+ *
+ * All selectors are LOCAL (CSS-module) — no `:global(...)`. Tokens reference the
+ * kit `var(--sui-*)` namespace with literal fallbacks so the file is standalone.
+ */
+
+/* ───────────────────────── root surface ───────────────────────── */
+
+.screen {
+  /* tunables threaded through the whole view */
+  --np-pad: clamp(20px, 4.2vw, 56px);
+  --np-art: clamp(150px, 23vw, 300px);
+  --np-text:
+    var(--sui-font-text, -apple-system, BlinkMacSystemFont, "SF Pro Display",
+      "Helvetica Neue", sans-serif);
+
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 520px;
+  overflow: hidden;
+  border-radius: 14px;
+  isolation: isolate;
+  color: #fff;
+  font-family: var(--np-text);
+  /* a deep base so the scrim has something to sit on before the mesh paints */
+  background: #0a0a0c;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.92fr) 1.08fr;
+  grid-template-rows: 1fr;
+  gap: clamp(16px, 3vw, 48px);
+  padding: var(--np-pad);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.4),
+    0 30px 90px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* ───────────────────────── ambient background ───────────────────────── */
+
+.ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* the morphing mesh fills the layer, scaled up beyond the box so the blur's
+   soft edges never reveal a hard rectangle border. */
+.ambientMesh {
+  position: absolute;
+  /* over-scan so heavy blur has bleed and no visible seam at the frame edge */
+  inset: -28%;
+  inline-size: 156%;
+  block-size: 156%;
+  /* the dreamy smoky depth — extra CSS blur ON TOP of the mesh's own softness */
+  filter: blur(58px) saturate(155%) brightness(1.04);
+  -webkit-filter: blur(58px) saturate(155%) brightness(1.04);
+  transform: translateZ(0) scale(1.05);
+  will-change: transform;
+}
+
+/* a slow extra breathing wobble so even reduce-motion-frozen meshes feel alive
+   on capable displays (disabled under reduce-motion via the data attr below). */
+.ambientMesh[data-breathe="true"] {
+  animation: npBreathe 19s ease-in-out infinite alternate;
+}
+
+@keyframes npBreathe {
+  from {
+    transform: translateZ(0) scale(1.04) translate3d(-1.4%, -1%, 0);
+  }
+  to {
+    transform: translateZ(0) scale(1.12) translate3d(1.8%, 1.4%, 0);
+  }
+}
+
+/* dark scrim — a top-light → bottom-dark wash that anchors the white type and
+   gives the "smoky" Apple depth. Two stacked gradients: a vignette + a vertical. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      130% 100% at 22% 18%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.18) 52%,
+      rgba(0, 0, 0, 0.5) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.22) 0%,
+      rgba(0, 0, 0, 0.06) 30%,
+      rgba(0, 0, 0, 0.2) 68%,
+      rgba(0, 0, 0, 0.46) 100%
+    );
+}
+
+/* a faint grain/sheen pass so the gradient doesn't band on large flat areas */
+.scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(255, 255, 255, 0) 74%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  mix-blend-mode: overlay;
+}
+
+/* ───────────────────────── left: art + meta ───────────────────────── */
+
+.left {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  min-inline-size: 0;
+}
+
+/* the WHITE rounded card the artwork sits inside (matches the reference) */
+.artCard {
+  inline-size: var(--np-art);
+  block-size: var(--np-art);
+  border-radius: clamp(14px, 1.6vw, 22px);
+  background: #fff;
+  padding: clamp(7px, 0.9vw, 12px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 22px 60px -16px rgba(0, 0, 0, 0.62),
+    0 6px 18px -8px rgba(0, 0, 0, 0.5);
+  flex: 0 0 auto;
+  transition: transform 420ms var(--sui-anim-smooth-css, cubic-bezier(0.3, 0, 0, 1));
+}
+
+.artCard[data-playing="false"] {
+  /* the iOS "paused" shrink — the card pulls in a touch when not playing */
+  transform: scale(0.94);
+}
+
+.artImg {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: clamp(9px, 1.1vw, 14px);
+  display: block;
+  background: #d9d9de;
+}
+
+/* gradient placeholder when no artwork URL is supplied */
+.artGradient {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: clamp(9px, 1.1vw, 14px);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+.title {
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  font-size: clamp(14px, 1.5vw, 19px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.66);
+  margin: 0;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the inline transport beneath the meta (play/pause + scrubber) */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-block-start: 6px;
+  max-inline-size: var(--np-art);
+}
+
+.transportRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.tBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  padding: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition: transform 140ms ease, color 140ms ease, opacity 140ms ease;
+}
+
+.tBtn:hover {
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.tBtn:active {
+  transform: scale(0.92);
+}
+
+.tPlay {
+  inline-size: 46px;
+  block-size: 46px;
+  background: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
+}
+
+.tPlay:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.scrubRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scrubSlider {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.scrubTime {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+  min-inline-size: 34px;
+  text-align: center;
+  user-select: none;
+}
+
+.scrubTimeEnd {
+  text-align: center;
+}
+
+/* ───────────────────────── right: lyrics ───────────────────────── */
+
+.right {
+  position: relative;
+  z-index: 2;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  /* the lyric column scrolls vertically; mask the top & bottom into the scrim */
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 14%,
+    #000 80%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 14%,
+    #000 80%,
+    transparent 100%
+  );
+}
+
+/* the moving inner column we translateY to auto-scroll */
+.lyricsViewport {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+}
+
+.lyricsTrack {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 20px);
+  padding-inline-end: 8px;
+  will-change: transform;
+  /* the snappy auto-scroll spring */
+  transition: transform 620ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1));
+}
+
+.lyricsTrack[data-reduce="true"] {
+  transition: none;
+}
+
+/* one lyric line — big, bold, left-aligned, per-line opacity/blur drive state */
+.line {
+  font-size: clamp(20px, 3vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.16;
+  text-align: left;
+  color: #fff;
+  margin: 0;
+  cursor: default;
+  transform-origin: left center;
+  /* snappy per-line spring on opacity / blur / scale / color */
+  transition:
+    opacity 480ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1)),
+    filter 480ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1)),
+    transform 480ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1)),
+    color 360ms ease;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.34);
+  will-change: opacity, filter, transform;
+}
+
+.lyricsTrack[data-reduce="true"] .line {
+  transition: opacity 200ms linear, color 200ms linear;
+  filter: none !important;
+}
+
+/* the ACTIVE line — bright, semibold→bold, slightly larger, no blur */
+.line[data-state="active"] {
+  color: #fff;
+  font-weight: 800;
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1.035);
+}
+
+/* PAST lines dim to ~35%, no blur (already read) */
+.line[data-state="past"] {
+  color: rgba(255, 255, 255, 0.92);
+  opacity: 0.35;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+/* UPCOMING lines ramp 0.55 → 0.15 + progressive blur with distance (set inline) */
+.line[data-state="upcoming"] {
+  color: #fff;
+  filter: blur(var(--np-line-blur, 0.6px));
+  transform: scale(1);
+}
+
+/* the pulsing "•••" instrumental-gap indicator */
+.dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-block: 6px;
+}
+
+.dot {
+  inline-size: clamp(8px, 0.9vw, 12px);
+  block-size: clamp(8px, 0.9vw, 12px);
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0.5;
+  animation: npDotPulse 1.35s ease-in-out infinite;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes npDotPulse {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.82);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+/* under reduce-motion, freeze the dots into a steady mid state */
+.dots[data-reduce="true"] .dot {
+  animation: none;
+  opacity: 0.6;
+}
+
+/* ───────────────────────── responsive: narrow frames ───────────────────────── */
+
+@media (max-width: 720px) {
+  .screen {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 18px;
+  }
+  .left {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 18px;
+  }
+  .controls {
+    display: none;
+  }
+}

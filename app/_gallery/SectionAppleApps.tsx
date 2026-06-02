@@ -24,6 +24,7 @@ import {
   ToolbarSearchField,
   AppleMusicApp,
   AppleNotesApp,
+  NowPlayingScreen,
 } from "@/blocks";
 import { SwiftUIProvider } from "@/system/environment";
 import { GallerySection, SectionHeader, Card } from "./chrome";
@@ -220,6 +221,30 @@ export function SectionAppleApps(): React.ReactElement {
           <DesktopFrame label="<AppleNotesApp/>" width={1000} height={640}>
             <AppleNotesApp />
           </DesktopFrame>
+        </div>
+      </Card>
+
+      {/* ===================== APPLE MUSIC — NOW PLAYING ===================== */}
+      <Card title="Apple Music — Now Playing" bleed>
+        <div style={{ padding: "12px 18px 0" }}>
+          <SectionHeader
+            title="<NowPlayingScreen/>"
+            subtitle="Time-synced lyrics over a live MeshGradient ambient background (colors pulled from the artwork). The active line brightens; the rest dim + blur with distance — exactly like Apple Music."
+          />
+        </div>
+        <div style={{ padding: "0 18px 18px" }}>
+          <div
+            style={{
+              width: "100%",
+              height: 600,
+              borderRadius: 16,
+              overflow: "hidden",
+              position: "relative",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
+            }}
+          >
+            <NowPlayingScreen />
+          </div>
         </div>
       </Card>
     </GallerySection>

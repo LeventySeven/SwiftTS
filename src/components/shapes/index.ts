@@ -38,6 +38,7 @@ export * from "./transforms";
 // gradients
 export * from "./gradient";
 export * from "./Gradients";
+export * from "./MeshGradient";
 
 // canvas / immediate-mode drawing
 export * from "./GraphicsContext";

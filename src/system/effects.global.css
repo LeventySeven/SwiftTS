@@ -231,7 +231,10 @@
 .sui-glass {
   position: relative;
   isolation: isolate; /* keep ::before/::after sheen+glow off siblings */
-  border-radius: 9999px; /* Capsule default; override per `in: shape` */
+  /* Sane rounded default (NOT a 9999px capsule — that ballooned bare glassClass()
+   * panels/sidebars into giant pills). An explicit capsule still comes from
+   * glassEffectProps(..., "capsule") as an inline border-radius, which wins. */
+  border-radius: var(--sui-glass-radius, 18px);
   /* Layered refractive backdrop: blur lifts the backdrop, saturate(1.8) energizes
    * its color, brightness(1.1) gives the airy lift. The contrast() nudge deepens
    * the lensed pixels so the pane reads as a real refracting slab, not a scrim. */
