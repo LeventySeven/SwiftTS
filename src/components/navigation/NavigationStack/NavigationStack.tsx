@@ -139,7 +139,8 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
     }, [depth]);
 
     /* ---- navigation context ---- */
-    const resolve = React.useCallback((entry: NavPathEntry): React.ReactNode => {
+    const resolve = React.useCallback((entry: NavPathEntry | undefined | null): React.ReactNode => {
+      if (entry == null) return null;
       if (entry.view !== undefined) return entry.view;
       if (entry.tag) {
         const build = registryRef.current.get(entry.tag);
