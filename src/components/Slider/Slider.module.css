@@ -83,6 +83,20 @@
   height: 18px;
 }
 
+/* sliderThumbVisibility(.hidden) — drop the knob, keep the fill track. The
+   track stays draggable (the role="slider" handlers are on .track, not .thumb),
+   and the fill rounds its trailing edge so the bare bar reads as a level meter. */
+.slider[data-thumb="hidden"] .thumb {
+  display: none;
+}
+.slider[data-thumb="hidden"] .track {
+  height: 6px;
+  border-radius: 3px;
+}
+.slider[data-thumb="hidden"] .fill {
+  border-radius: 3px;
+}
+
 /* animate fill/thumb only on tap/programmatic changes, NOT during drag */
 .slider[data-animating="true"] .fill,
 .slider[data-animating="true"] .thumb {

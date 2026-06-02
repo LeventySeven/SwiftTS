@@ -186,6 +186,15 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
     const activeBar: NavBarConfig = barByDepth[depth] ?? {};
     const activeToolbar: ToolbarEntry[] = toolbarByDepth[depth] ?? [];
 
+    // toolbar(_:for:) / toolbarVisibility(_:for:) — the navigation bar's forced
+    // visibility folds together with the legacy navigationBarHidden flag.
+    const navBarVisibility =
+      activeBar.toolbarVisibility?.navigationBar ?? activeBar.toolbarVisibility?.automatic;
+    const navBarForceHidden = navBarVisibility === "hidden" || !!activeBar.barHidden;
+    const navBarForceVisible = navBarVisibility === "visible";
+    // The bottom bar's forced visibility (`.bottomBar`) — `hidden` suppresses it.
+    const bottomBarHidden = activeBar.toolbarVisibility?.bottomBar === "hidden";
+
     // Resolve the bar title + display mode (automatic = large at root, inline pushed).
     const title =
       activeBar.title ?? (depth === 0 ? rootTitle : path[depth - 1]?.title) ?? "";
@@ -309,6 +318,14 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
       return undefined;
     };
 
+    // navigationTransition(_:) — the active screen's requested push/pop style.
+    // `.zoom` swaps the lateral slide for a scale-from-center + cross-fade,
+    // selected by `data-transition="zoom"` on each animating page (CSS variant).
+    const navTransition =
+      activeBar.navigationTransition && activeBar.navigationTransition !== "automatic"
+        ? activeBar.navigationTransition
+        : undefined;
+
     // During a pop we keep the leaving page mounted for the slide-out.
     const renderDepth = anim?.kind === "pop" ? anim.depth : depth;
     const pages: React.ReactNode[] = [];
@@ -327,6 +344,7 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
           className="sui-navstack-page"
           data-depth={d}
           data-anim={animFor(d)}
+          data-transition={animFor(d) ? navTransition : undefined}
           aria-hidden={!isTop && !isLeaving ? true : undefined}
         >
           {/* each page owns its own scroll container so the large title collapses
@@ -422,7 +440,8 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
                 }
                 data-bg-style={activeBar.toolbarBackground?.style ? "" : undefined}
                 data-scheme={activeBar.toolbarColorScheme}
-                data-hidden={activeBar.barHidden ? "true" : undefined}
+                data-hidden={navBarForceHidden ? "true" : undefined}
+                data-force-visible={navBarForceVisible ? "true" : undefined}
               >
                 <div className="sui-navbar-inline">
                   <div className="sui-navbar-leading">
@@ -448,6 +467,17 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
                       principalItems.map((it, i) => (
                         <React.Fragment key={`p${i}`}>{it.content}</React.Fragment>
                       ))
+                    ) : activeBar.titleMenu ? (
+                      // toolbarTitleMenu { … } — the title is a pull-down trigger.
+                      <span className="sui-navbar-title-stack" data-has-menu="true">
+                        <span className="sui-navbar-title-menu">
+                          <span className="sui-navbar-title-inline">{title}</span>
+                          {activeBar.titleMenu}
+                        </span>
+                        {subtitle ? (
+                          <span className="sui-navbar-subtitle-inline">{subtitle}</span>
+                        ) : null}
+                      </span>
                     ) : (
                       <span className="sui-navbar-title-stack">
                         <span className="sui-navbar-title-inline">{title}</span>
@@ -491,7 +521,7 @@ export const NavigationStack = React.forwardRef<HTMLDivElement, NavigationStackP
 
               {/* bottom bar (toolbar items placed in .bottomBar) — floats as glass
                   in iOS-26 mode, else the classic frosted .bar material */}
-              {bottomItems.length > 0 ? (
+              {bottomItems.length > 0 && !bottomBarHidden ? (
                 <div
                   className={
                     useGlass

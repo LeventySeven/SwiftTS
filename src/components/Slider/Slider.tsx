@@ -44,6 +44,13 @@ export interface SliderProps extends ViewModifierProps {
   disabled?: boolean;
   /** macOS knob variant (⌀18 vs ⌀28) */
   variant?: "ios" | "macos";
+  /**
+   * ⇄ `sliderThumbVisibility(_:)` (iOS/macOS 26) — `.automatic`/`.visible` show
+   * the draggable knob; `.hidden` removes it, leaving just the fill track (the
+   * "volume bar without a handle" look). Dragging the track still works. Default
+   * `.automatic`.
+   */
+  thumbVisibility?: "automatic" | "visible" | "hidden";
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -70,6 +77,7 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
       ticks,
       disabled,
       variant,
+      thumbVisibility = "automatic",
       ...modifierProps
     } = props;
 
@@ -173,6 +181,7 @@ export const Slider = React.forwardRef<HTMLDivElement, SliderProps>(
           .join(" ")}
         data-disabled={!!disabled}
         data-animating={animating}
+        data-thumb={thumbVisibility === "hidden" ? "hidden" : undefined}
         {...viewProps}
       >
         {minimumValueLabel != null ? (

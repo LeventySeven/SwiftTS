@@ -1,0 +1,227 @@
+/**
+ * Inspector — SwiftUI `.inspector(isPresented:)` trailing utility panel.
+ *
+ * The macOS/iPadOS right inspector (Xcode/Keynote): a frosted/grouped vertical
+ * panel pinned to the trailing edge, separated from the main content by a 0.5px
+ * hairline, sliding in/out by collapsing its grid track. Under compact width it
+ * overlays the content as a right drawer with a dimming scrim.
+ *
+ * AUTHORING NOTE (load-bearing): this is a PLAIN GLOBAL stylesheet imported for
+ * side effects (`import "./Inspector.global.css"`). Selectors are written bare
+ * (`.sui-inspector`, NOT `:global(.sui-inspector)` and NOT wrapped in a top-level
+ * `:global { … }` block) — the nested `:global{}` form is SILENTLY DROPPED by
+ * this project's Turbopack pipeline, and `:global(.x)` is only valid in a
+ * `.module.css`. A plain `.global.css` emits its selectors verbatim, globally.
+ *
+ * NEVER hardcode a color — use the `--sui-color-*` tokens.
+ */
+
+/* ================================================================ */
+/* Layout — main region + collapsible trailing inspector column     */
+/* ================================================================ */
+.sui-inspector {
+  --sui-inspector-w: clamp(200px, 270px, 400px);
+  --sui-inspector-sep: var(--sui-color-separator);
+  display: grid;
+  /* main flexes; the inspector track collapses to 0 when dismissed */
+  grid-template-columns: 1fr 0;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  transition: grid-template-columns 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sui-inspector[data-presented="true"] {
+  grid-template-columns: 1fr var(--sui-inspector-w);
+}
+
+.sui-inspector-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ================================================================ */
+/* The panel itself                                                 */
+/* ================================================================ */
+.sui-inspector-panel {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden; /* clip content while the track animates to 0 */
+  border-left: 0.5px solid var(--sui-inspector-sep);
+  background: var(--sui-color-secondary-system-grouped-background, var(--sui-color-secondary-background));
+  box-sizing: border-box;
+}
+/* The inner wrapper keeps a fixed width while the outer track collapses, so the
+   panel content slides rather than reflowing as the column shrinks. */
+.sui-inspector-panel-inner {
+  width: var(--sui-inspector-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.sui-inspector-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 38px;
+  flex: 0 0 auto;
+  padding: 0 8px;
+  border-bottom: 0.5px solid var(--sui-inspector-sep);
+}
+
+.sui-inspector-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  color: var(--sui-color-label);
+  font-size: var(--sui-text-body-size);
+  line-height: var(--sui-text-body-lineHeight);
+}
+
+/* ================================================================ */
+/* Close (hide-inspector) button — chevron-to-trailing glyph        */
+/* ================================================================ */
+.sui-inspector-close {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--sui-color-secondary-label);
+}
+.sui-inspector-close:hover {
+  background: var(--sui-color-fill-quaternary, rgba(120, 120, 128, 0.12));
+  color: var(--sui-color-label);
+}
+.sui-inspector-close > span {
+  display: block;
+  width: 11px;
+  height: 11px;
+  position: relative;
+}
+/* a small "panel with a filled right column" glyph (the inspector toggle icon) */
+.sui-inspector-close > span::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+}
+.sui-inspector-close > span::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 4px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+}
+
+/* ================================================================ */
+/* Compact-width drawer overlay (iPadOS) + scrim                    */
+/* ================================================================ */
+/* The scrim only participates in compact mode; in regular mode it is inert. */
+.sui-inspector-scrim {
+  all: unset;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+@media (max-width: 760px) {
+  /* Under compact width the inspector overlays content as a right drawer and
+     does NOT steal layout width — the grid stays single-column. */
+  .sui-inspector,
+  .sui-inspector[data-presented="true"] {
+    grid-template-columns: 1fr;
+  }
+  .sui-inspector-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    width: min(var(--sui-inspector-w), 86vw);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  }
+  .sui-inspector[data-presented="true"] .sui-inspector-panel {
+    transform: translateX(0);
+  }
+  .sui-inspector-panel-inner {
+    width: min(var(--sui-inspector-w), 86vw);
+  }
+  .sui-inspector[data-presented="true"] .sui-inspector-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* ================================================================ */
+/* Liquid-Glass panel surface (iOS-26)                              */
+/* ================================================================ */
+.sui-inspector[data-glass="true"] .sui-inspector-panel {
+  background: transparent; /* the glass chrome supplies the surface */
+}
+
+/* ================================================================ */
+/* Toggle button (show/hide inspector affordance)                   */
+/* ================================================================ */
+.sui-inspector-toggle {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--sui-color-tint);
+}
+.sui-inspector-toggle[aria-pressed="true"] {
+  background: var(--sui-color-fill-tertiary, rgba(120, 120, 128, 0.16));
+}
+.sui-inspector-toggle-glyph {
+  display: block;
+  width: 15px;
+  height: 13px;
+  position: relative;
+}
+.sui-inspector-toggle-glyph::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+}
+.sui-inspector-toggle-glyph::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 5px;
+  background: currentColor;
+  border-radius: 0 2px 2px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sui-inspector,
+  .sui-inspector-panel {
+    transition: none;
+  }
+}

@@ -12,6 +12,10 @@ export * from "./system/drag-drop";
 export * from "./system/focus";
 export * from "./system/matched-geometry";
 export * from "./system/geometry";
+export * from "./system/events";
+export * from "./system/keyboard";
+export * from "./system/preferences";
+export * from "./system/hover";
 export { tokens, cssVar } from "./tokens";
 export type { Tokens, SpaceToken, RadiusToken, AnimToken, ShadowToken, MaterialToken } from "./tokens";
 // --- Components ---
@@ -71,6 +75,7 @@ export * from "./components/KeyframeAnimator";
 export * from "./components/HSplitView";
 export * from "./components/VSplitView";
 export * from "./components/NavigationView";
+export * from "./components/Inspector";
 
 // --- Collision resolution: explicit canonical exports override `export *` ambiguity ---
 export type { UnitPoint } from "./system/modifiers";

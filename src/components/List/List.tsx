@@ -23,16 +23,79 @@ import {
   makeStyleProvider,
   type ListStyleName,
 } from "../../system/styles";
+import type { Edge, EdgeSet } from "../../system/types";
 import {
   ListContext,
   type ListContextValue,
   type ListEditMode,
+  type ListRowHoverEffect,
   type ListSelection,
   type ResolvedListStyle,
 } from "./ListContext";
 import "./List.global.css";
 
 export type ListSectionSpacingName = "default" | "compact";
+
+/** `Visibility` — shared three-state vocabulary (`automatic`/`visible`/`hidden`). */
+export type Visibility = "automatic" | "visible" | "hidden";
+
+/**
+ * `ListItemTint` — the rich form of `listItemTint(_:)`. SwiftUI ships three
+ * cases: `.fixed(Color)` (an exact accent), `.preferred(Color)` (the system may
+ * override it for legibility), and `.monochrome` (drop the tint to a neutral
+ * gray). The plain `listItemTint(Color?)` overload maps to `.fixed`.
+ */
+export type ListItemTint =
+  | { kind: "fixed"; color: string }
+  | { kind: "preferred"; color: string }
+  | { kind: "monochrome" };
+
+export const ListItemTint = {
+  /** `ListItemTint.fixed(_:)` — paint interactive row content this exact color. */
+  fixed: (color: string): ListItemTint => ({ kind: "fixed", color }),
+  /** `ListItemTint.preferred(_:)` — a hint the system may override for legibility. */
+  preferred: (color: string): ListItemTint => ({ kind: "preferred", color }),
+  /** `ListItemTint.monochrome` — neutral gray, no accent. */
+  monochrome: { kind: "monochrome" } as ListItemTint,
+} as const;
+
+/** Resolve a `ListItemTint | string` (plain color shorthand) to a CSS color, or `undefined`. */
+function resolveItemTint(
+  tint: ListItemTint | string | undefined,
+): string | undefined {
+  if (tint == null) return undefined;
+  if (typeof tint === "string") return tint; // listItemTint(Color?) shorthand → .fixed
+  switch (tint.kind) {
+    case "fixed":
+    case "preferred":
+      return tint.color;
+    case "monochrome":
+      return "var(--sui-color-secondary-label)";
+  }
+}
+
+/**
+ * `listSectionMargins(_ edges: Edge.Set, _ length: CGFloat?)` — extra horizontal
+ * (and/or vertical) inset applied to each section's card on the named edges. We
+ * accept the SwiftUI `Edge.Set` vocabulary; on web only the horizontal edges have
+ * a visible effect on the grouped card width (vertical edges fold into the
+ * section gap, which `sectionSpacing` already owns).
+ */
+export interface ListSectionMargins {
+  /** Which edges the margin applies to (`Edge.Set`). Default `.all`. */
+  edges?: EdgeSet;
+  /** The inset length (px). `null`/omitted ⇒ the system default margin. */
+  length?: number | null;
+}
+
+/** Does an `Edge.Set` include a leading/trailing (horizontal) edge? */
+function edgeSetHasHorizontal(edges: EdgeSet): boolean {
+  if (edges === true || edges === "all" || edges === "horizontal") return true;
+  if (edges === "vertical") return false;
+  const has = (e: Edge) => e === "leading" || e === "trailing";
+  if (Array.isArray(edges)) return edges.some(has);
+  return has(edges as Edge);
+}
 
 /** `listSectionSeparator(_:edges:)` / `listRowSeparator(_:)` visibility. */
 export type SeparatorVisibility = "automatic" | "visible" | "hidden";
@@ -71,8 +134,31 @@ export interface ListProps extends Omit<ViewProps, "as"> {
   sectionSeparatorTint?: string;
   /** listRowSeparatorTint(_:edges:) set list-wide — overridden per-row by `ListRow.separatorTint`. */
   rowSeparatorTint?: string;
-  /** listItemTint(_:) — accent tint applied to interactive row content (toggles, chevrons). */
-  itemTint?: string;
+  /**
+   * listItemTint(_:) — accent tint applied to interactive row content (toggles,
+   * chevrons). Accepts a plain CSS color (the `listItemTint(Color?)` overload,
+   * mapped to `.fixed`) or a rich `ListItemTint` (`.fixed`/`.preferred`/
+   * `.monochrome`).
+   */
+  itemTint?: ListItemTint | string;
+  /**
+   * listSectionMargins(_:_:) — extra inset on each section's card. Pass a number
+   * for an all-edges length, or `{ edges, length }` for the SwiftUI two-arg form.
+   */
+  sectionMargins?: number | ListSectionMargins;
+  /**
+   * listSectionIndexVisibility(_:) — the trailing A–Z fast-scroll index bar
+   * (iOS Contacts). `.visible` shows it, `.hidden` removes it, `.automatic`
+   * (default) defers to the platform (hidden on web until opted in).
+   */
+  sectionIndexVisibility?: Visibility;
+  /**
+   * listRowHoverEffect(_:) — the pointer-hover treatment for interactive rows
+   * (`HoverEffect`). A row's own `hoverEffect` overrides this.
+   */
+  rowHoverEffect?: ListRowHoverEffect;
+  /** listRowHoverEffectDisabled(_:) — suppress the row hover treatment list-wide. */
+  rowHoverEffectDisabled?: boolean;
   /** alternatingRowBackgrounds(_:) — zebra-stripe rows (macOS/`.plain` tables). */
   alternatingRowBackgrounds?: boolean | AlternatingRowBackgroundBehavior;
   /** headerProminence(_:) — `.increased` enlarges section headers (no uppercasing). */
@@ -108,6 +194,10 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
     sectionSeparatorTint,
     rowSeparatorTint,
     itemTint,
+    sectionMargins,
+    sectionIndexVisibility,
+    rowHoverEffect,
+    rowHoverEffectDisabled = false,
     alternatingRowBackgrounds = false,
     headerProminence = "standard",
     selectionDisabled = false,
@@ -121,6 +211,24 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
 ) {
   const resolvedName = useResolvedStyle("list", listStyle);
   const style = resolveAutomatic(resolvedName);
+
+  const resolvedItemTint = resolveItemTint(itemTint);
+
+  // listSectionMargins(_:_:) → a horizontal card inset (px). Only horizontal
+  // edges change the grouped-card width; the all/horizontal/leading/trailing
+  // edge sets resolve to the leading+trailing inset variable.
+  const sectionMarginsCfg: ListSectionMargins | undefined =
+    sectionMargins == null
+      ? undefined
+      : typeof sectionMargins === "number"
+        ? { edges: "all", length: sectionMargins }
+        : sectionMargins;
+  const sectionMarginEdges: EdgeSet = sectionMarginsCfg?.edges ?? "all";
+  const sectionMarginHorizontal = edgeSetHasHorizontal(sectionMarginEdges);
+  const sectionMarginPx =
+    sectionMarginsCfg != null && sectionMarginsCfg.length != null && sectionMarginHorizontal
+      ? sectionMarginsCfg.length
+      : undefined;
 
   const alternating =
     alternatingRowBackgrounds === true || alternatingRowBackgrounds === "enabled";
@@ -163,8 +271,20 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
       headerProminence,
       selectionDisabled,
       sectionSeparator,
+      rowHoverEffect,
+      rowHoverEffectDisabled,
     }),
-    [style, editMode, asForm, listSelection, selectionDisabled, headerProminence, sectionSeparator],
+    [
+      style,
+      editMode,
+      asForm,
+      listSelection,
+      selectionDisabled,
+      headerProminence,
+      sectionSeparator,
+      rowHoverEffect,
+      rowHoverEffectDisabled,
+    ],
   );
 
   const sectionSpacingPx =
@@ -188,8 +308,11 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
       ...(rowSeparatorTint != null
         ? { ["--sui-row-separator-tint" as string]: rowSeparatorTint }
         : null),
-      ...(itemTint != null
-        ? { ["--sui-list-item-tint" as string]: itemTint }
+      ...(resolvedItemTint != null
+        ? { ["--sui-list-item-tint" as string]: resolvedItemTint }
+        : null),
+      ...(sectionMarginPx != null
+        ? { ["--sui-list-side-inset" as string]: `${sectionMarginPx}px` }
         : null),
     },
     cssStyle,
@@ -211,6 +334,14 @@ export const List = React.forwardRef<HTMLElement, ListProps>(function List(
         data-header-prominence={headerProminence !== "standard" ? headerProminence : undefined}
         data-section-separator={
           sectionSeparator && sectionSeparator !== "automatic" ? sectionSeparator : undefined
+        }
+        data-section-index={
+          sectionIndexVisibility && sectionIndexVisibility !== "automatic"
+            ? sectionIndexVisibility
+            : undefined
+        }
+        data-row-hover={
+          rowHoverEffectDisabled ? "disabled" : rowHoverEffect && rowHoverEffect !== "automatic" ? rowHoverEffect : undefined
         }
         data-selection-disabled={selectionDisabled ? "true" : undefined}
         style={rootStyle}

@@ -70,6 +70,20 @@ export interface MenuProps {
   dismissOnSelect?: boolean;
   /** Anchor side for the popup. */
   align?: "leading" | "trailing";
+  /**
+   * `menuOrder(_:)` — the order items are listed. `.automatic` defers to the
+   * platform (iOS reverses the source order so the first item sits nearest the
+   * trigger/thumb; macOS keeps source order). `.fixed` always renders in source
+   * order; `.priority` keeps source order but pins the first item adjacent to the
+   * trigger. Default `.automatic`.
+   */
+  menuOrder?: "automatic" | "fixed" | "priority";
+  /**
+   * `menuIndicator(_:)` — the trigger's pull-down chevron visibility.
+   * `.automatic`/`.visible` show it; `.hidden` removes it (e.g. an icon-only
+   * trigger). Default `.automatic`.
+   */
+  menuIndicator?: "automatic" | "visible" | "hidden";
   /** `.disabled(_:)`. */
   disabled?: boolean;
   /**
@@ -88,6 +102,8 @@ export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
     primaryAction,
     dismissOnSelect = true,
     align = "leading",
+    menuOrder = "automatic",
+    menuIndicator = "automatic",
     disabled,
     glass: glassProp,
   },
@@ -189,6 +205,19 @@ export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
     return child;
   });
 
+  // menuOrder(_:) — `.automatic` reverses the visual order on iOS so the first
+  // declared item sits nearest the thumb/trigger (the bottom of a pull-down that
+  // opens upward); `.priority` keeps source order but pins the first item to the
+  // edge adjacent to the trigger; `.fixed` always renders in source order. The
+  // keyboard index (`_active`) is assigned BEFORE this flip, so source order and
+  // arrow-key order stay stable regardless of the visual order.
+  const orderedChildren =
+    menuOrder === "automatic"
+      ? [...(wrappedChildren ?? [])].reverse()
+      : menuOrder === "priority"
+        ? wrappedChildren // first item already adjacent to the trigger in source order
+        : wrappedChildren; // fixed
+
   return (
     <div className={styles.anchor} ref={mergeRefs(ref, anchorRef)}>
       <button
@@ -201,13 +230,15 @@ export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
         onClick={onTriggerClick}
       >
         {triggerContent}
-        <span
-          className={styles.chevron}
-          onClick={primaryAction ? onChevronClick : undefined}
-          aria-hidden="true"
-        >
-          <SymbolGlyph name="chevron.up.chevron.down" />
-        </span>
+        {menuIndicator !== "hidden" ? (
+          <span
+            className={styles.chevron}
+            onClick={primaryAction ? onChevronClick : undefined}
+            aria-hidden="true"
+          >
+            <SymbolGlyph name="chevron.up.chevron.down" />
+          </span>
+        ) : null}
       </button>
 
       {open ? (
@@ -226,9 +257,10 @@ export const Menu = React.forwardRef<HTMLDivElement, MenuProps>(function Menu(
                 : materialClass("regular"),
             )}
             style={glassy ? concentricVars(13) : undefined}
+            data-order={menuOrder !== "automatic" ? menuOrder : undefined}
             onKeyDown={onPopupKeyDown}
           >
-            {wrappedChildren}
+            {orderedChildren}
           </ul>
         </MenuContext.Provider>
       ) : null}

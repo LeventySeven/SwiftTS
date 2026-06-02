@@ -104,6 +104,17 @@ export type ToolbarTitleDisplayMode = "automatic" | "inline" | "inlineLarge" | "
 /** `toolbarRole(_:)` — `.browser` widens the title area & left-aligns it (web/files apps). */
 export type ToolbarRoleName = "automatic" | "navigationStack" | "browser" | "editor";
 
+/**
+ * `navigationTransition(_:)` — the push/pop animation style for the screen.
+ * `.automatic` is the classic horizontal slide; `.zoom` is the iOS-18 morph
+ * where the pushed screen scales up from the source (the web analogue is a
+ * scale-from-center + cross-fade instead of the lateral slide).
+ */
+export type NavigationTransitionName = "automatic" | "zoom";
+
+/** `toolbar(_:for:)` / `toolbarVisibility(_:for:)` bars vocabulary. */
+export type ToolbarBars = "automatic" | "navigationBar" | "bottomBar" | "tabBar" | "windowToolbar";
+
 /** The mutable bar state a screen contributes to the enclosing stack. */
 export interface NavBarConfig {
   title?: string;
@@ -124,6 +135,21 @@ export interface NavBarConfig {
   toolbarTitleDisplayMode?: ToolbarTitleDisplayMode;
   /** `toolbarRole(_:)`. */
   toolbarRole?: ToolbarRoleName;
+  /** `navigationTransition(_:)` — the push/pop style this screen requests. */
+  navigationTransition?: NavigationTransitionName;
+  /**
+   * `toolbar(_:for:)` / `toolbarVisibility(_:for:)` — force the named bars
+   * visible/hidden. Maps bar names → visibility; an empty/absent map leaves the
+   * automatic behavior. (`navigationBarHidden`/`barHidden` is the legacy
+   * single-bar form and still works.)
+   */
+  toolbarVisibility?: Partial<Record<ToolbarBars, "automatic" | "visible" | "hidden">>;
+  /**
+   * `toolbarTitleMenu { … }` — the menu surfaced by tapping the nav-bar title
+   * (a pull-down of document/screen actions). Rendered as a tappable title with
+   * an attached menu node.
+   */
+  titleMenu?: React.ReactNode;
 }
 
 export interface NavigationBarContextValue {
@@ -165,6 +191,13 @@ function serializeBar(c: NavBarConfig): string {
     c.toolbarForegroundStyle ?? "",
     c.toolbarTitleDisplayMode ?? "",
     c.toolbarRole ?? "",
+    c.navigationTransition ?? "",
+    c.toolbarVisibility
+      ? Object.entries(c.toolbarVisibility)
+          .map(([k, v]) => `${k}:${v}`)
+          .join(",")
+      : "",
+    c.titleMenu != null ? "menu" : "",
   ].join("|");
 }
 

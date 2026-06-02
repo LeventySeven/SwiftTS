@@ -30,6 +30,13 @@ export interface SectionProps {
   isExpanded?: boolean;
   /** Called when the header chevron toggles (controlled collapsible). */
   onExpandedChange?: (next: boolean) => void;
+  /**
+   * listSectionMargins(_:_:) applied to THIS section only — extra horizontal
+   * inset (px) on the section's card. Overrides any list-wide value. A number is
+   * the all-edges length; the leading/trailing inset is what changes the card
+   * width on web.
+   */
+  sectionMargins?: number;
   className?: string;
   style?: React.CSSProperties;
   children?: React.ReactNode;
@@ -40,6 +47,7 @@ export function Section({
   footer,
   isExpanded,
   onExpandedChange,
+  sectionMargins,
   className,
   style,
   children,
@@ -92,10 +100,16 @@ export function Section({
     )
   ) : null;
 
+  // listSectionMargins on the section overrides the list-wide card inset var.
+  const sectionStyle: React.CSSProperties =
+    sectionMargins != null
+      ? { ...style, ["--sui-list-side-inset" as string]: `${sectionMargins}px` }
+      : style ?? {};
+
   return (
     <section
       className={["sui-list__section", className].filter(Boolean).join(" ")}
-      style={style}
+      style={sectionStyle}
     >
       {headerNode}
       <div

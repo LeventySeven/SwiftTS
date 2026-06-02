@@ -273,6 +273,96 @@ export type ScrollEdgeEffectHiddenProp =
   | { hidden?: boolean; edges?: EdgeSet };
 
 /* =============================================================================
+ * Typography / environment modifiers added in the C10-extension pass
+ *
+ * Each maps a SwiftUI modifier whose param type is named here verbatim from the
+ * `.swiftinterface` (KNOWN), with the web target marked DESIGNED on each field.
+ * ========================================================================== */
+
+/**
+ * `.dynamicTypeSize(_:)` (SwiftUICore:11747) — KNOWN `DynamicTypeSize` enum cases
+ * (xSmall…xxxLarge + accessibility1…5). Web (DESIGNED): each case is a multiplier
+ * driving `--sui-dynamic-type-scale` (the same var `<Environment>` sets), so every
+ * rem/var-relative size scales. The range overload (:11749) has no static CSS
+ * analog, so we accept the single-size form only.
+ */
+export type DynamicTypeSize =
+  | "xSmall" | "small" | "medium" | "large" | "xLarge" | "xxLarge" | "xxxLarge"
+  | "accessibility1" | "accessibility2" | "accessibility3"
+  | "accessibility4" | "accessibility5";
+
+/**
+ * `SwiftUICore.Visibility` (KNOWN cases `automatic`/`visible`/`hidden`). Reused by
+ * `.labelsVisibility(_:)` (SwiftUI:21831) and `.navigationLinkIndicatorVisibility(_:)`
+ * (SwiftUI:7624).
+ *
+ * Module-private: a public `Visibility` is already owned by other modules
+ * (ScrollView / presentation). Keeping this local avoids an `export *` name
+ * collision at `src/index.ts`; the props below still read 1:1 with the enum.
+ */
+type Visibility = "automatic" | "visible" | "hidden";
+
+/**
+ * `SwiftUI.TextSelectionAffinity` (KNOWN cases `automatic`/`upstream`/`downstream`)
+ * — the directional bias of a collapsed text selection. No layout effect; web
+ * (DESIGNED) publishes it as a `data-text-selection-affinity` attr for any
+ * selection-aware CSS/JS to read.
+ */
+export type TextSelectionAffinity = "automatic" | "upstream" | "downstream";
+
+/**
+ * `.writingDirection(strategy:)` (SwiftUICore:12338) takes a
+ * `Text.WritingDirectionStrategy` (`layoutBased`/`contentBased`/`default`). The
+ * prop here is the more useful authored form: pick the base direction explicitly
+ * (`leftToRight`/`rightToLeft`) or `natural` (= `default`, resolve from content).
+ * Web (DESIGNED): `direction` + `unicode-bidi: isolate` so the run lays out in the
+ * chosen base direction; `natural` uses `unicode-bidi: plaintext` (first-strong).
+ */
+export type WritingDirectionProp = "leftToRight" | "rightToLeft" | "natural";
+
+/**
+ * `.layoutDirectionBehavior(_:)` (SwiftUI:4869) takes `LayoutDirectionBehavior`
+ * (KNOWN: `.fixed` | `.mirrors(in:)`, plus the bare `.mirrors` = mirror in RTL).
+ * Web (DESIGNED): `fixed` pins `direction: ltr` so the subtree never flips;
+ * `mirrors` opts back into inheriting the ambient direction. The `mirrors(in:)`
+ * associated `LayoutDirection` selects which direction triggers the mirror.
+ */
+export type LayoutDirectionBehaviorProp =
+  | "fixed"
+  | "mirrors"
+  | { mirrors: "leftToRight" | "rightToLeft" };
+
+/**
+ * `.symbolVariableValueMode(_:)` (SwiftUICore:6822) — KNOWN `SymbolVariableValueMode`
+ * statics `.color` / `.draw` (Optional). Drives how an SF Symbol's `variableValue`
+ * is rendered. No DOM symbol engine on the web, so (DESIGNED) we publish it as a
+ * `data-symbol-variable-mode` attr a symbol renderer can read; `null` clears it.
+ */
+export type SymbolVariableValueMode = "color" | "draw";
+
+/**
+ * `.materialActiveAppearance(_:)` (SwiftUICore:6437) — KNOWN `MaterialActiveAppearance`
+ * statics `.automatic`/`.active`/`.inactive`/`.matchWindow`. Controls whether a
+ * Material surface uses its active (vibrant) or inactive (flattened) look. Web
+ * (DESIGNED): a `data-material-active-appearance` attr the material CSS keys off.
+ *
+ * Module-private: the CANONICAL public `MaterialActiveAppearance` is owned by
+ * `system/effects.ts` (identical cases). This local copy mirrors the
+ * `ScrollEdgeEffectStyle` pattern above — it exists only so modifiers.ts has no
+ * `export *` name collision with effects.ts at `src/index.ts`.
+ */
+type MaterialActiveAppearance =
+  | "automatic" | "active" | "inactive" | "matchWindow";
+
+/**
+ * `.allowedDynamicRange(_:)` (SwiftUICore:15256) — KNOWN `Image.DynamicRange`
+ * statics `.standard`/`.constrainedHigh`/`.high` (Optional). Caps how bright HDR
+ * image content may render. Web (DESIGNED): a `data-allowed-dynamic-range` attr
+ * (the platform has no per-element HDR clamp); `null` clears it.
+ */
+export type AllowedDynamicRange = "standard" | "constrainedHigh" | "high";
+
+/* =============================================================================
  * ViewModifierProps — the idiomatic prop bag (1:1 with SwiftUI modifier names)
  * ========================================================================== */
 
@@ -370,8 +460,23 @@ export interface ViewModifierProps {
   fontWidth?: FontWidth;
   /** `.textSelection(_:)` → `user-select: text | none`. */
   textSelection?: "enabled" | "disabled";
+  /** `.textSelectionAffinity(_:)` → `data-text-selection-affinity` (no layout effect). */
+  textSelectionAffinity?: TextSelectionAffinity;
   /** `.flipsForRightToLeftLayoutDirection(_:)` → mirror via `scaleX(-1)` in RTL. */
   flipsForRightToLeftLayoutDirection?: boolean;
+  /** `.writingDirection(strategy:)` → `direction` + `unicode-bidi`. */
+  writingDirection?: WritingDirectionProp;
+  /**
+   * `.typesettingLanguage(_:)` → the BCP-47 `lang` attribute. SwiftUI takes a
+   * `Locale.Language` / `TypesettingLanguage`; the web carrier is a language tag
+   * string (e.g. `"ja"`, `"en-US"`) emitted as `lang=` so the browser applies
+   * language-specific line-breaking/hyphenation. `"automatic"` → no `lang` attr.
+   */
+  typesettingLanguage?: string;
+  /** `.layoutDirectionBehavior(_:)` → pin/mirror the subtree's writing direction. */
+  layoutDirectionBehavior?: LayoutDirectionBehaviorProp;
+  /** `.dynamicTypeSize(_:)` → scales `--sui-dynamic-type-scale` (+ a data-attr). */
+  dynamicTypeSize?: DynamicTypeSize;
 
   // ---- STATE / VISIBILITY (Part E) ----
   opacity?: number;
@@ -469,7 +574,36 @@ export interface ViewModifierProps {
   symbolEffect?: SymbolEffectProp;
   /** `.symbolColorRenderingMode(_:)` → `data-symbol-color-mode` (flat | gradient). */
   symbolColorRenderingMode?: "flat" | "gradient";
+  /** `.symbolEffectsRemoved(_:)` → strip inherited symbol animations (default `true`). */
+  symbolEffectsRemoved?: boolean;
+  /** `.symbolVariableValueMode(_:)` → `data-symbol-variable-mode` (color | draw); `null` clears. */
+  symbolVariableValueMode?: SymbolVariableValueMode | null;
+  /** `.labelsVisibility(_:)` → automatic/visible/hidden labels in a labelled control. */
+  labelsVisibility?: Visibility;
+  /** `.materialActiveAppearance(_:)` → `data-material-active-appearance`. */
+  materialActiveAppearance?: MaterialActiveAppearance;
+  /** `.allowedDynamicRange(_:)` → `data-allowed-dynamic-range`; `null` clears. */
+  allowedDynamicRange?: AllowedDynamicRange | null;
+  /** `.navigationLinkIndicatorVisibility(_:)` → `data-nav-link-indicator`. */
+  navigationLinkIndicatorVisibility?: Visibility;
+  /** `.invalidatableContent(_:)` → `data-invalidatable` (default `true`). */
+  invalidatableContent?: boolean;
+  /** `.luminanceToAlpha()` → an SVG-filter class turning luminance into the alpha channel. */
+  luminanceToAlpha?: boolean;
   preferredColorScheme?: "light" | "dark";
+
+  // ---- GRID CELL (inside a `Grid`/`GridRow`) -------------------------------
+  /** `.gridCellColumns(_:)` → `grid-column: span n`. */
+  gridCellColumns?: number;
+  /** `.gridCellAnchor(_:)` → cell self-alignment (UnitPoint → place-self). */
+  gridCellAnchor?: UnitPoint;
+  /** `.gridColumnAlignment(_:)` → horizontal alignment of the cell's column. */
+  gridColumnAlignment?: "leading" | "center" | "trailing";
+  /**
+   * `.gridCellUnsizedAxes(_:)` → tell the grid NOT to stretch the cell on the
+   * given axis/axes (the cell keeps its ideal size instead of filling the track).
+   */
+  gridCellUnsizedAxes?: Axis | "both";
 }
 
 /** The exact set of keys `applyModifiers` consumes — used to split out `rest`. */
@@ -492,7 +626,9 @@ const MODIFIER_KEYS = new Set<string>([
   "lineSpacing", "lineHeight", "multilineTextAlignment", "minimumScaleFactor",
   "truncationMode", "allowsTightening", "textCase", "monospaced",
   "monospacedDigit", "textScale", "fontWidth", "textSelection",
-  "flipsForRightToLeftLayoutDirection",
+  "textSelectionAffinity", "flipsForRightToLeftLayoutDirection",
+  "writingDirection", "typesettingLanguage", "layoutDirectionBehavior",
+  "dynamicTypeSize",
   // state
   "opacity", "hidden", "disabled", "redacted", "unredacted", "privacySensitive",
   "help", "contentTransition", "badgeProminence", "headerProminence",
@@ -510,7 +646,13 @@ const MODIFIER_KEYS = new Set<string>([
   // control/env
   "controlSize", "labelsHidden", "imageScale", "symbolRenderingMode",
   "symbolVariant", "symbolEffect", "symbolColorRenderingMode",
+  "symbolEffectsRemoved", "symbolVariableValueMode", "labelsVisibility",
+  "materialActiveAppearance", "allowedDynamicRange",
+  "navigationLinkIndicatorVisibility", "invalidatableContent",
+  "luminanceToAlpha",
   "preferredColorScheme",
+  // grid cell
+  "gridCellColumns", "gridCellAnchor", "gridColumnAlignment", "gridCellUnsizedAxes",
 ]);
 
 /* =============================================================================
@@ -868,6 +1010,40 @@ export function applyModifiers(
     // data-attr AND apply the cheap unconditional default of a CSS var hook.
     rest["data-flips-rtl"] = "true";
   }
+  // textSelectionAffinity — directional bias of a collapsed selection; no layout
+  // effect, so publish it for selection-aware CSS/JS (KNOWN cases, data-attr).
+  if (m.textSelectionAffinity) {
+    rest["data-text-selection-affinity"] = m.textSelectionAffinity;
+  }
+  // writingDirection(strategy:) — set the base direction + bidi isolation. The
+  // explicit cases pin LTR/RTL; `natural` uses first-strong (`plaintext`).
+  if (m.writingDirection) {
+    Object.assign(style, writingDirectionToCSS(m.writingDirection));
+  }
+  // typesettingLanguage(_:) — emit the BCP-47 `lang` attribute so the browser
+  // applies language-specific line-breaking/hyphenation. `automatic` → no attr.
+  if (m.typesettingLanguage != null && m.typesettingLanguage !== "automatic") {
+    rest["lang"] = m.typesettingLanguage;
+  }
+  // layoutDirectionBehavior(_:) — `.fixed` pins LTR (never flips with the ambient
+  // direction); `.mirrors`/`mirrors(in:)` opts back into inheriting it.
+  if (m.layoutDirectionBehavior) {
+    const b = m.layoutDirectionBehavior;
+    if (b === "fixed") {
+      style.direction = "ltr";
+      rest["data-layout-direction-behavior"] = "fixed";
+    } else {
+      // mirrors → inherit ambient direction (the default). Record the trigger.
+      const inDir = typeof b === "object" ? b.mirrors : undefined;
+      rest["data-layout-direction-behavior"] = inDir ? `mirrors-${inDir}` : "mirrors";
+    }
+  }
+  // dynamicTypeSize(_:) — scale every rem/var-relative size via the same var the
+  // <Environment> provider sets, plus a data-attr so size-aware CSS can branch.
+  if (m.dynamicTypeSize) {
+    setVar(style, "--sui-dynamic-type-scale", String(DYNAMIC_TYPE_SCALE[m.dynamicTypeSize]));
+    rest["data-dynamic-type-size"] = m.dynamicTypeSize;
+  }
 
   // ---- STATE / VISIBILITY (Part E) -----------------------------------------
   if (m.opacity != null) style.opacity = m.opacity;
@@ -1007,6 +1183,69 @@ export function applyModifiers(
     cls.push("sui-symbol-effect");
     cls.push(active ? `sui-symbol-effect--${eff}` : "sui-symbol-effect--inactive");
   }
+  // symbolEffectsRemoved(_:) — strip any inherited symbol animation (default true).
+  // The class freezes the keyframe animation on this view + descendant symbols.
+  if (m.symbolEffectsRemoved !== false && m.symbolEffectsRemoved !== undefined) {
+    cls.push("sui-symbol-effects-removed");
+  }
+  // symbolVariableValueMode(_:) — color | draw; `null` clears (data-attr).
+  if (m.symbolVariableValueMode !== undefined && m.symbolVariableValueMode !== null) {
+    rest["data-symbol-variable-mode"] = m.symbolVariableValueMode;
+  }
+  // labelsVisibility(_:) — automatic/visible/hidden labels in a labelled control.
+  // `hidden` reuses the labels-hidden rule; `visible` force-shows; `automatic`
+  // is a no-op (system default) but recorded for any label-aware CSS.
+  if (m.labelsVisibility) {
+    rest["data-labels-visibility"] = m.labelsVisibility;
+    if (m.labelsVisibility === "hidden") cls.push("sui-labels-hidden");
+  }
+  // materialActiveAppearance(_:) — active/inactive material look (data-attr).
+  if (m.materialActiveAppearance) {
+    rest["data-material-active-appearance"] = m.materialActiveAppearance;
+  }
+  // allowedDynamicRange(_:) — cap HDR brightness; `null` clears (data-attr).
+  if (m.allowedDynamicRange !== undefined && m.allowedDynamicRange !== null) {
+    rest["data-allowed-dynamic-range"] = m.allowedDynamicRange;
+  }
+  // navigationLinkIndicatorVisibility(_:) — show/hide the chevron on NavLink rows.
+  if (m.navigationLinkIndicatorVisibility) {
+    rest["data-nav-link-indicator"] = m.navigationLinkIndicatorVisibility;
+  }
+  // invalidatableContent(_:) — mark content that should show a redaction/refresh
+  // shimmer while invalidated (default true). Data-attr for the shimmer CSS.
+  if (m.invalidatableContent !== false && m.invalidatableContent !== undefined) {
+    rest["data-invalidatable"] = "true";
+  }
+  // luminanceToAlpha() — replace each pixel's colour with a grey whose alpha is
+  // the pixel's luminance (bright→opaque, black→clear). CSS has no built-in
+  // filter for this, so the class points `filter` at an inline SVG feColorMatrix.
+  if (m.luminanceToAlpha) cls.push("sui-luminance-to-alpha");
+
+  // ---- GRID CELL -----------------------------------------------------------
+  // gridCellColumns(_:) — colspan inside a Grid/GridRow.
+  if (m.gridCellColumns != null) style.gridColumn = `span ${Math.max(1, Math.round(m.gridCellColumns))}`;
+  // gridCellAnchor(_:) — self-alignment of the cell within its track (UnitPoint
+  // → place-self). center → center; the corners/edges map to start/end pairs.
+  if (m.gridCellAnchor) {
+    const ps = unitPointToPlaceSelf(m.gridCellAnchor);
+    if (ps) (style as Record<string, string>).placeSelf = ps;
+  }
+  // gridColumnAlignment(_:) — horizontal alignment of the cell's column.
+  if (m.gridColumnAlignment) {
+    style.justifySelf = {
+      leading: "start",
+      center: "center",
+      trailing: "end",
+    }[m.gridColumnAlignment] as React.CSSProperties["justifySelf"];
+  }
+  // gridCellUnsizedAxes(_:) — do NOT stretch the cell on the given axis/axes;
+  // the cell keeps its ideal size (start-aligned) instead of filling the track.
+  if (m.gridCellUnsizedAxes) {
+    const a = m.gridCellUnsizedAxes;
+    if (a === "horizontal" || a === "both") style.justifySelf = "start";
+    if (a === "vertical" || a === "both") style.alignSelf = "start";
+  }
+
   if (m.preferredColorScheme) cls.push(m.preferredColorScheme);
 
   // visualEffect — merge a caller-supplied style/class LAST so it composes over
@@ -1270,6 +1509,77 @@ const FONT_WIDTH_TO_STRETCH: Record<FontWidth, string> = {
   standard: "100%", // normal
   expanded: "125%", // expanded
 };
+
+/* =============================================================================
+ * dynamicTypeSize — DynamicTypeSize → the --sui-dynamic-type-scale multiplier
+ *
+ * KNOWN cases from the swiftinterface (xSmall…xxxLarge + accessibility1…5).
+ * The multipliers (DESIGNED) follow Apple's published Dynamic Type body-size
+ * ratios relative to `.large` (the system default = 1.0): the seven standard
+ * steps run ~0.82→1.235, and the five accessibility steps escalate to ~3.6×.
+ * Same var the <Environment> provider drives, so the two compose identically.
+ * ========================================================================== */
+const DYNAMIC_TYPE_SCALE: Record<DynamicTypeSize, number> = {
+  xSmall: 0.823,
+  small: 0.882,
+  medium: 0.941,
+  large: 1.0, // system default
+  xLarge: 1.118,
+  xxLarge: 1.235,
+  xxxLarge: 1.353,
+  accessibility1: 1.643,
+  accessibility2: 1.941,
+  accessibility3: 2.353,
+  accessibility4: 2.764,
+  accessibility5: 3.118,
+};
+
+/**
+ * writingDirection(strategy:) → base `direction` + bidi isolation.
+ *
+ * `leftToRight`/`rightToLeft` pin the base direction and ISOLATE the run from the
+ * surrounding bidi context (`unicode-bidi: isolate`) so neighbouring runs don't
+ * reorder it. `natural` (= the `.default`/content-based strategy) resolves the
+ * direction from the first strong character (`unicode-bidi: plaintext`).
+ */
+export function writingDirectionToCSS(p: WritingDirectionProp): React.CSSProperties {
+  if (p === "natural") {
+    return { unicodeBidi: "plaintext" } as React.CSSProperties;
+  }
+  return {
+    direction: p === "rightToLeft" ? "rtl" : "ltr",
+    unicodeBidi: "isolate",
+  } as React.CSSProperties;
+}
+
+/**
+ * gridCellAnchor's UnitPoint → a CSS `place-self` (`<align-self> <justify-self>`).
+ *
+ * SwiftUI's anchor places the cell within its grid track using a 0–1 point; the
+ * CSS grid analog is `place-self`. We snap each axis to start/center/end at the
+ * 1/3 and 2/3 thirds so the named UnitPoints (center, top, bottomTrailing, …)
+ * land on the natural alignment, and arbitrary `{x,y}` points still resolve.
+ */
+function unitPointToPlaceSelf(anchor: UnitPoint): string | undefined {
+  let x: number;
+  let y: number;
+  if (typeof anchor === "object") {
+    x = anchor.x;
+    y = anchor.y;
+  } else {
+    const table: Record<Exclude<UnitPoint, object>, [number, number]> = {
+      center: [0.5, 0.5],
+      top: [0.5, 0], bottom: [0.5, 1], leading: [0, 0.5], trailing: [1, 0.5],
+      topLeading: [0, 0], topTrailing: [1, 0],
+      bottomLeading: [0, 1], bottomTrailing: [1, 1],
+    };
+    [x, y] = table[anchor];
+  }
+  const snap = (n: number): "start" | "center" | "end" =>
+    n < 1 / 3 ? "start" : n > 2 / 3 ? "end" : "center";
+  // place-self is `<align-self (block/vertical)> <justify-self (inline/horizontal)>`
+  return `${snap(y)} ${snap(x)}`;
+}
 
 /* =============================================================================
  * containerRelativeFrame — % / column-span sizing against the nearest container

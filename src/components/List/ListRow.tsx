@@ -17,7 +17,7 @@
  * open/closed with `transform 0.35s cubic-bezier(.22,1,.36,1)`.
  */
 import * as React from "react";
-import { useListContext } from "./ListContext";
+import { useListContext, type ListRowHoverEffect } from "./ListContext";
 import "./List.global.css";
 
 export type RowSeparatorVisibility = "automatic" | "visible" | "hidden";
@@ -84,6 +84,14 @@ export interface ListRowProps {
   separatorTint?: string;
   /** listItemTint(_:) — accent tint for this row's interactive content (overrides list-wide `itemTint`). */
   itemTint?: string;
+  /**
+   * listRowHoverEffect(_:) — the pointer-hover treatment for THIS row
+   * (`HoverEffect`: `.automatic`/`.highlight`/`.lift`). Overrides the list-wide
+   * `rowHoverEffect`.
+   */
+  hoverEffect?: ListRowHoverEffect;
+  /** listRowHoverEffectDisabled(_:) — suppress the hover treatment for this row. */
+  hoverEffectDisabled?: boolean;
   /** swipeActions(...). */
   swipeActions?: SwipeActionsConfig;
   /** badge(_:) — trailing count/text pill (Settings "12" badge, list-row form). */
@@ -151,6 +159,8 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
       separator = "automatic",
       separatorTint,
       itemTint,
+      hoverEffect,
+      hoverEffectDisabled,
       swipeActions,
       showsChevron,
       badge,
@@ -172,6 +182,18 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
     const isSelected =
       id != null && sel?.enabled ? sel.selected.has(id) : false;
     const tappable = !!onTap || (sel?.enabled ?? false);
+
+    // listRowHoverEffect / listRowHoverEffectDisabled — the row's own setting
+    // wins over the list-wide one; "disabled" anywhere suppresses the effect.
+    const hoverDisabled = hoverEffectDisabled ?? ctx.rowHoverEffectDisabled ?? false;
+    const resolvedHover: ListRowHoverEffect | undefined = hoverDisabled
+      ? undefined
+      : hoverEffect ?? ctx.rowHoverEffect;
+    const hoverAttr = hoverDisabled
+      ? "disabled"
+      : resolvedHover && resolvedHover !== "automatic"
+        ? resolvedHover
+        : undefined;
 
     // ---- swipe drawer drag state ----
     // deleteDisabled(_) drops the destructive action from both swipe edges.
@@ -308,6 +330,7 @@ export const ListRow = React.forwardRef<HTMLDivElement, ListRowProps>(
           separator === "hidden" ? "hidden" : separator === "visible" ? "visible" : undefined
         }
         data-selection-disabled={selectionDisabled ? "true" : undefined}
+        data-row-hover={hoverAttr}
         data-scroll-id={id != null ? String(id) : undefined}
         onClick={tappable || hasSwipe ? handleClick : undefined}
         onKeyDown={

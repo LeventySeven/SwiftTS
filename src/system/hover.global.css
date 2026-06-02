@@ -1,0 +1,80 @@
+/* =============================================================================
+ * hover.global.css — iPadOS pointer hover-effect classes (the `.hoverEffect`
+ * analog as a CSS-driven effect, so a group of elements can share one effect
+ * state and so touch devices get nothing).
+ *
+ * Side-effect stylesheet for the class strings system/hover.ts hands out:
+ *   .sui-hover-effect                  the base (transitions only)
+ *   .sui-hover-effect-lift             scale + shadow while hovered
+ *   .sui-hover-effect-highlight        tinted background while hovered
+ *   .sui-hover-effect-automatic        resolves to lift on pointer platforms
+ *   [data-sui-hovered]                 the "is hovered" flag the hook sets, OR
+ *                                      the native `:hover` on pointer devices
+ *   .sui-hover-effect-group            marks a shared-state group container
+ *
+ * Like effects.global.css / macos.global.css this is a `.global.css` file: every
+ * selector is a BARE, un-scoped class (NEVER `:global(...)`, which breaks under
+ * Turbopack). NUMBERS come from --sui-* tokens where they exist; the small set of
+ * hover-specific literals (scale 1.04, the 0.18s easing) match geometry.ts so the
+ * hook-driven and CSS-driven paths look identical.
+ * ========================================================================== */
+
+.sui-hover-effect {
+  transition:
+    transform 0.18s ease-out,
+    box-shadow 0.18s ease-out,
+    background-color 0.18s ease-out;
+}
+
+/* Touch devices: SwiftUI's pointer hover effects do not apply, so suppress the
+ * native `:hover` path entirely (it can stick on tap). The hook-driven
+ * [data-sui-hovered] path is pointer-gated in JS, so it is unaffected. */
+@media (hover: hover) and (pointer: fine) {
+  /* lift — grows + shadows the view under the pointer */
+  .sui-hover-effect-lift:hover,
+  .sui-hover-effect-lift[data-sui-hovered],
+  .sui-hover-effect-automatic:hover,
+  .sui-hover-effect-automatic[data-sui-hovered] {
+    transform: scale(1.04);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  /* highlight — tinted background under the pointer */
+  .sui-hover-effect-highlight:hover,
+  .sui-hover-effect-highlight[data-sui-hovered] {
+    background-color: var(
+      --sui-color-system-fill,
+      color-mix(in srgb, var(--sui-color-label) 10%, transparent)
+    );
+    border-radius: 8px;
+  }
+
+  /* group: when any member of a group is hovered, the group activates all of its
+   * members that opted into `follow` (the HoverEffectGroup behavior). The hook
+   * toggles [data-sui-group-active] on the container. */
+  .sui-hover-effect-group[data-sui-group-active] .sui-hover-effect-lift[data-sui-group-follow] {
+    transform: scale(1.04);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  }
+  .sui-hover-effect-group[data-sui-group-active] .sui-hover-effect-highlight[data-sui-group-follow] {
+    background-color: var(
+      --sui-color-system-fill,
+      color-mix(in srgb, var(--sui-color-label) 10%, transparent)
+    );
+    border-radius: 8px;
+  }
+}
+
+/* Honor Reduce Motion: drop the scale/shadow animation, keep the highlight. */
+@media (prefers-reduced-motion: reduce) {
+  .sui-hover-effect {
+    transition: background-color 0.18s ease-out;
+  }
+  .sui-hover-effect-lift:hover,
+  .sui-hover-effect-lift[data-sui-hovered],
+  .sui-hover-effect-automatic:hover,
+  .sui-hover-effect-automatic[data-sui-hovered],
+  .sui-hover-effect-group[data-sui-group-active] .sui-hover-effect-lift[data-sui-group-follow] {
+    transform: none;
+  }
+}

@@ -477,3 +477,69 @@
   text-align: right;
   color: var(--sui-color-label);
 }
+
+/* ================================================================ */
+/* listRowHoverEffect / listRowHoverEffectDisabled                  */
+/* ================================================================ */
+/* macOS pointer affordance. `.highlight` paints a subtle fill behind the row on
+   hover; `.lift` adds the fill plus a 1px lift + soft shadow. `.automatic`
+   resolves to `.highlight`. `data-row-hover="disabled"` removes the treatment
+   even from selectable rows. The list-wide attribute lives on `.sui-list`; the
+   per-row attribute on `.sui-list__row` wins (later/more-specific selector). */
+@media (hover: hover) and (pointer: fine) {
+  .sui-list[data-row-hover="highlight"] .sui-list__row[data-tappable="true"]:hover,
+  .sui-list[data-row-hover="lift"] .sui-list__row[data-tappable="true"]:hover,
+  .sui-list__row[data-row-hover="highlight"][data-tappable="true"]:hover,
+  .sui-list__row[data-row-hover="lift"][data-tappable="true"]:hover {
+    background-color: var(--sui-color-fill-quaternary, rgba(120, 120, 128, 0.08));
+  }
+  .sui-list[data-row-hover="lift"] .sui-list__row[data-tappable="true"]:hover,
+  .sui-list__row[data-row-hover="lift"][data-tappable="true"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  /* A row whose hover is explicitly disabled never highlights, even list-wide. */
+  .sui-list__row[data-row-hover="disabled"]:hover {
+    background-color: transparent;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ================================================================ */
+/* listSectionIndexVisibility — the trailing A–Z fast-scroll bar     */
+/* ================================================================ */
+/* SwiftUI auto-builds the index from section titles (iOS Contacts). On web we
+   expose the chrome (a fixed trailing column of single-letter labels) and let
+   the host populate `.sui-list__index` with `<span>A</span>…` items. The
+   `data-section-index` attribute on `.sui-list` toggles its visibility. */
+.sui-list[data-section-index="hidden"] .sui-list__index {
+  display: none;
+}
+.sui-list[data-section-index="visible"] {
+  position: relative;
+}
+.sui-list[data-section-index="visible"] .sui-list__index {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 2px;
+  z-index: 5;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sui-color-tint);
+  line-height: 1;
+  user-select: none;
+}
+.sui-list__index > * {
+  cursor: pointer;
+  padding: 0 2px;
+}

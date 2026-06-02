@@ -10,7 +10,7 @@ Exhaustive accounting of **every** public type in Apple's SwiftUI surface (parse
 | Surface | Implemented | N/A (justified) | Web-applicable gaps |
 |---|---|---|---|
 | **Components** | **67** | 102 | 0 |
-| **Modifiers** | **240** | 182 | 80 |
+| **Modifiers** | **286** | 176 | 40 |
 
 Every **user-facing component** is implemented; the non-implemented components are all internal/private/AppKit-interop/app-scene types. Every **web-applicable modifier of consequence** is covered; the non-implemented modifiers are platform-specific (no web analog) or advanced/deferred, each justified below.
 
@@ -85,8 +85,6 @@ Every **user-facing component** is implemented; the non-implemented components a
 
 - **WidgetKit/container modifier — N/A on web** (6): `_containerShape`, `containerBackground`, `containerCornerOffset`, `containerValue`, `dragContainer`, `dragContainerSelection`
 
-- **PreferenceKey up-tree value channel — advanced cross-view mechanism; web-different, deferred** (6): `anchorPreference`, `backgroundPreferenceValue`, `onPreferenceChange`, `overlayPreferenceValue`, `transformAnchorPreference`, `transformPreference`
-
 - **speech synthesis/dictation — Web Speech API could approximate; deferred** (5): `searchDictationBehavior`, `speechAdjustedPitch`, `speechAlwaysIncludesPunctuation`, `speechAnnouncementsQueued`, `speechSpellsOutCharacters`
 
 - **Mac Touch Bar hardware — no web analog** (4): `touchBar`, `touchBarCustomizationLabel`, `touchBarItemPresence`, `touchBarItemPrincipal`
@@ -105,16 +103,18 @@ Every **user-facing component** is implemented; the non-implemented components a
 
 - **Handoff/NSUserActivity — no web analog** (2): `handlesExternalEvents`, `userActivity`
 
-- **internal view-builder/content helper — not user-instantiated (composition machinery)** (2): `invalidatableContent`, `labeledContentStyle`
-
 - **Apple Pencil hardware — no web analog** (2): `onPencilDoubleTap`, `onPencilSqueeze`
 
 - **document-based apps — no web document model** (1): `documentBrowserContextMenu`
 
+- **internal view-builder/content helper — not user-instantiated (composition machinery)** (1): `labeledContentStyle`
 
-## Modifiers — remaining web-applicable gaps (80)
+- **PreferenceKey up-tree value channel — advanced cross-view mechanism; web-different, deferred** (1): `transformAnchorPreference`
 
-`allowedDynamicRange`, `attributedTextFormattingDefinition`, `buttonRepeatBehavior`, `buttonSizing`, `defaultHoverEffect`, `defaultWheelPickerItemHeight`, `dialogPreventsAppTermination`, `dismissalConfirmationDialog`, `dynamicTypeSize`, `environmentObject`, `gridCellAnchor`, `gridCellUnsizedAxes`, `gridColumnAlignment`, `highPriorityGesture`, `hoverEffectGroup`, `inspector`, `inspectorColumnWidth`, `keyboardShortcut`, `labelsVisibility`, `layoutDirectionBehavior`, `layoutValue`, `listRowHoverEffect`, `listRowHoverEffectDisabled`, `listRowPlatterColor`, `listSectionIndexVisibility`, `listSectionMargins`, `luminanceToAlpha`, `materialActiveAppearance`, `menuIndicator`, `menuOrder`, `modifierKeyAlternate`, `navigationLinkIndicatorVisibility`, `navigationSplitViewColumnWidth`, `navigationTransition`, `onContinueUserActivity`, `onDragSessionUpdated`, `onDropSessionUpdated`, `onInteractiveResizeChange`, `onLongTouchGesture`, `onModifierKeysChanged`, `onOpenURL`, `onReceive`, `onScrollGeometryChange`, `onScrollPhaseChange`, `onScrollTargetVisibilityChange`, `onScrollVisibilityChange`, `paletteSelectionEffect`, `pointerVisibility`, `preference`, `preferredSurroundingsEffect`, `presentationPreventsAppTermination`, `replaceDisabled`, `safeAreaBar`, `safeAreaInset`, `scrollInputBehavior`, `scrollTransition`, `searchFocused`, `searchPresentationToolbarBehavior`, `searchSelection`, `searchToolbarBehavior`, `sectionActions`, `sectionIndexLabel`, `simultaneousGesture`, `sliderThumbVisibility`, `springLoadingBehavior`, `submitScope`, `symbolEffectsRemoved`, `symbolVariableValueMode`, `textInputCompletion`, `textInputFormattingControlVisibility`, `textInputSuggestions`, `textRenderer`, `textSelectionAffinity`, `toolbarItemHidden`, `toolbarTitleMenu`, `toolbarVisibility`, `transformEnvironment`, `typeSelectEquivalent`, `typesettingLanguage`, `writingDirection`
+
+## Modifiers — remaining web-applicable gaps (40)
+
+`attributedTextFormattingDefinition`, `buttonRepeatBehavior`, `buttonSizing`, `defaultWheelPickerItemHeight`, `dialogPreventsAppTermination`, `dismissalConfirmationDialog`, `environmentObject`, `highPriorityGesture`, `hoverEffectGroup`, `layoutValue`, `listRowPlatterColor`, `modifierKeyAlternate`, `onContinueUserActivity`, `onDragSessionUpdated`, `onDropSessionUpdated`, `onInteractiveResizeChange`, `onLongTouchGesture`, `onScrollTargetVisibilityChange`, `paletteSelectionEffect`, `pointerVisibility`, `preferredSurroundingsEffect`, `presentationPreventsAppTermination`, `replaceDisabled`, `safeAreaBar`, `safeAreaInset`, `searchFocused`, `searchPresentationToolbarBehavior`, `searchSelection`, `searchToolbarBehavior`, `sectionActions`, `sectionIndexLabel`, `simultaneousGesture`, `springLoadingBehavior`, `submitScope`, `textInputCompletion`, `textInputFormattingControlVisibility`, `textInputSuggestions`, `textRenderer`, `transformEnvironment`, `typeSelectEquivalent`
 
 
 ## Styles (195)

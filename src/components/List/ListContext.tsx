@@ -21,6 +21,9 @@ export interface ListSelection {
   enabled: boolean;
 }
 
+/** `listRowHoverEffect(_:)` — pointer hover treatment for interactive rows. */
+export type ListRowHoverEffect = "automatic" | "highlight" | "lift";
+
 export interface ListContextValue {
   style: ResolvedListStyle;
   editMode: ListEditMode;
@@ -32,6 +35,15 @@ export interface ListContextValue {
   selectionDisabled?: boolean;
   /** listSectionSeparator(_:) visibility for the whole list. */
   sectionSeparator?: "automatic" | "visible" | "hidden";
+  /**
+   * listRowHoverEffect(_:) — the list-wide pointer-hover treatment for rows
+   * (`HoverEffect`: `.automatic` | `.highlight` | `.lift`). A row's own
+   * `hoverEffect` prop overrides this. macOS-only in SwiftUI; on web every row
+   * gets a CSS `:hover` treatment keyed off `data-row-hover`.
+   */
+  rowHoverEffect?: ListRowHoverEffect;
+  /** listRowHoverEffectDisabled(_:) set list-wide — suppress the row hover treatment. */
+  rowHoverEffectDisabled?: boolean;
 }
 
 export const ListContext = React.createContext<ListContextValue | null>(null);

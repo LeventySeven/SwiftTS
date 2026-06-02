@@ -324,9 +324,85 @@
   animation: sui-pop-out 0.35s cubic-bezier(0.33, 0, 0.13, 1) both;
   z-index: 1;
 }
+/* ---- navigationTransition(.zoom) — scale-from-center + cross-fade ---- */
+/* The iOS-18 zoom morph (no portal source on web): the incoming page scales up
+   from 0.92 while fading in; the leaving/under page scales down + dims rather
+   than sliding laterally. `data-transition="zoom"` on an animating page swaps
+   the slide keyframes for these. */
+@keyframes sui-zoom-in {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes sui-zoom-out {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.06);
+    opacity: 0;
+  }
+}
+@keyframes sui-zoom-under {
+  from {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  to {
+    transform: scale(0.96);
+    filter: brightness(0.9);
+  }
+}
+.sui-navstack-page[data-transition="zoom"][data-anim="push-in"] {
+  animation: sui-zoom-in 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.sui-navstack-page[data-transition="zoom"][data-anim="push-out"] {
+  animation: sui-zoom-under 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.sui-navstack-page[data-transition="zoom"][data-anim="pop-in"] {
+  animation: sui-zoom-under 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) reverse both;
+}
+.sui-navstack-page[data-transition="zoom"][data-anim="pop-out"] {
+  animation: sui-zoom-out 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  z-index: 1;
+}
+
 /* interactive drag — animation suppressed, transform driven by JS */
 .sui-navstack-page[data-dragging="true"] {
   animation: none !important;
+}
+
+/* ---- toolbarVisibility(.visible, for: .navigationBar) — force the bar in ---- */
+/* When a screen forces the navigation bar visible, keep the frosted/material
+   background painted even at the top (before any scroll collapse). */
+.sui-navbar[data-force-visible="true"] {
+  opacity: 1;
+}
+
+/* ---- toolbarTitleMenu { … } — pull-down attached to the title ---- */
+.sui-navbar-title-stack[data-has-menu="true"] .sui-navbar-title-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+/* The disclosure caret hint after a menu title. */
+.sui-navbar-title-stack[data-has-menu="true"] .sui-navbar-title-inline::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 5px;
+  border-right: 1.5px solid var(--sui-color-secondary-label);
+  border-bottom: 1.5px solid var(--sui-color-secondary-label);
+  transform: translateY(-1px) rotate(45deg);
+  vertical-align: middle;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -343,25 +419,36 @@
 .sui-splitview {
   display: grid;
   height: 100%;
-  grid-template-columns: var(--sidebar-w, 320px) var(--content-w, 320px) 1fr;
+  /* navigationSplitViewColumnWidth: the `--*-track` vars (set by the rich
+     min/ideal/max form) win; the `--*-w` fixed shorthands are the fallback. */
+  grid-template-columns:
+    var(--sidebar-track, var(--sidebar-w, 320px))
+    var(--content-track, var(--content-w, 320px))
+    var(--detail-track, 1fr);
   transition: grid-template-columns 0.25s ease;
 }
 /* 2-column (Content == EmptyView) */
 .sui-splitview[data-columns="2"] {
-  grid-template-columns: var(--sidebar-w, 320px) 1fr;
+  grid-template-columns:
+    var(--sidebar-track, var(--sidebar-w, 320px))
+    var(--detail-track, 1fr);
 }
 .sui-splitview[data-visibility="doubleColumn"] {
-  grid-template-columns: var(--sidebar-w, 320px) 0 1fr;
+  grid-template-columns:
+    var(--sidebar-track, var(--sidebar-w, 320px)) 0 var(--detail-track, 1fr);
 }
 .sui-splitview[data-visibility="detailOnly"] {
-  grid-template-columns: 0 0 1fr;
+  grid-template-columns: 0 0 var(--detail-track, 1fr);
 }
 .sui-splitview[data-columns="2"][data-visibility="detailOnly"] {
-  grid-template-columns: 0 1fr;
+  grid-template-columns: 0 var(--detail-track, 1fr);
 }
 /* prominentDetail biases width toward detail */
 .sui-splitview[data-split-style="prominentDetail"] {
-  grid-template-columns: var(--sidebar-w, 270px) var(--content-w, 270px) 2fr;
+  grid-template-columns:
+    var(--sidebar-track, var(--sidebar-w, 270px))
+    var(--content-track, var(--content-w, 270px))
+    var(--detail-track, 2fr);
 }
 
 .sui-split-sidebar {

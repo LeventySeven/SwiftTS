@@ -35,6 +35,25 @@ export type NavigationSplitViewVisibility =
 
 export type NavigationSplitViewColumn = "sidebar" | "content" | "detail";
 
+/**
+ * `navigationSplitViewColumnWidth(_:)` value: a fixed px width, or the
+ * `(min:ideal:max:)` form. `min`/`max` are optional; `ideal` is required in the
+ * three-arg SwiftUI overload.
+ */
+export type ColumnWidth =
+  | number
+  | { min?: number; ideal: number; max?: number };
+
+/** Resolve a `ColumnWidth` to a CSS grid track string. */
+function columnTrack(w: ColumnWidth | undefined): string | undefined {
+  if (w == null) return undefined;
+  if (typeof w === "number") return `${w}px`;
+  const min = w.min != null ? `${w.min}px` : "min-content";
+  const max = w.max != null ? `${w.max}px` : "1fr";
+  // ideal seeds the preferred size via clamp() inside the minmax() floor/ceiling.
+  return `minmax(${min}, clamp(${min}, ${w.ideal}px, ${max}))`;
+}
+
 export interface NavigationSplitViewProps extends Omit<ViewProps, "as" | "content"> {
   /** The sidebar (master) column. */
   sidebar: React.ReactNode;
@@ -54,6 +73,17 @@ export interface NavigationSplitViewProps extends Omit<ViewProps, "as" | "conten
   sidebarWidth?: number;
   /** Content width override (px). Default 320. */
   contentWidth?: number;
+  /**
+   * `navigationSplitViewColumnWidth(_:)` / `(min:ideal:max:)` per column. In
+   * SwiftUI this modifier is applied INSIDE each column's view; on the web the
+   * split-view container owns the grid tracks, so we surface the same control as
+   * a per-column descriptor here. A number sets a fixed track; the `{min,ideal,
+   * max}` form maps to a `minmax()`/`clamp()` track that resizes within bounds.
+   * `sidebarWidth`/`contentWidth` remain as fixed-width shorthands.
+   */
+  sidebarColumnWidth?: ColumnWidth;
+  contentColumnWidth?: ColumnWidth;
+  detailColumnWidth?: ColumnWidth;
   /**
    * iOS-26 Liquid Glass sidebar. When the app design mode is iOS-26 the sidebar
    * panel renders as a translucent Liquid-Glass surface (specular rim + sheen)
@@ -78,6 +108,9 @@ export const NavigationSplitView = React.forwardRef<HTMLDivElement, NavigationSp
       splitStyle,
       sidebarWidth,
       contentWidth,
+      sidebarColumnWidth,
+      contentColumnWidth,
+      detailColumnWidth,
       glass,
       material,
       className,
@@ -96,10 +129,23 @@ export const NavigationSplitView = React.forwardRef<HTMLDivElement, NavigationSp
     const useGlass = surface.kind === "glass";
 
     const gridStyle: React.CSSProperties = { ...style };
+    // Fixed-width shorthands seed the sidebar/content track vars.
     if (sidebarWidth != null)
       (gridStyle as Record<string, string>)["--sidebar-w"] = `${sidebarWidth}px`;
     if (contentWidth != null)
       (gridStyle as Record<string, string>)["--content-w"] = `${contentWidth}px`;
+    // navigationSplitViewColumnWidth(_:) — the richer per-column track. A plain
+    // number on a column overrides the *-w shorthand; the {min,ideal,max} form
+    // produces a resizable minmax()/clamp() track read by navigation.global.css.
+    const sidebarTrack = columnTrack(sidebarColumnWidth);
+    const contentTrack = columnTrack(contentColumnWidth);
+    const detailTrack = columnTrack(detailColumnWidth);
+    if (sidebarTrack)
+      (gridStyle as Record<string, string>)["--sidebar-track"] = sidebarTrack;
+    if (contentTrack)
+      (gridStyle as Record<string, string>)["--content-track"] = contentTrack;
+    if (detailTrack)
+      (gridStyle as Record<string, string>)["--detail-track"] = detailTrack;
 
     const sidebarClass = useGlass
       ? glassBarClass("sui-split-sidebar", surface.glass)

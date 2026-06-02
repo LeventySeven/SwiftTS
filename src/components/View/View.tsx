@@ -34,6 +34,21 @@
  * Any of these layers forces the host to establish a positioning context
  * (`position: relative`) so the absolute layers anchor to it — unless the
  * compiled style already positioned the host (`absolute`/`fixed`).
+ *
+ * ## Pure pass-through modifiers
+ *
+ * Every other modifier `<View>` understands is handled entirely by
+ * `applyModifiers`, which returns `{ style, className, rest }`; `<View>` just
+ * forwards those onto the host element. That includes the typography/environment
+ * modifiers added in the C10-extension pass — `dynamicTypeSize`,
+ * `labelsVisibility`, `scenePadding`, `textSelectionAffinity`, `writingDirection`,
+ * `typesettingLanguage` (→ `lang`), `layoutDirectionBehavior`,
+ * `symbolEffectsRemoved`, `symbolVariableValueMode`, `materialActiveAppearance`,
+ * `luminanceToAlpha`, `allowedDynamicRange`, `navigationLinkIndicatorVisibility`,
+ * `invalidatableContent` — and the grid-cell modifiers `gridCellColumns`,
+ * `gridCellAnchor`, `gridColumnAlignment`, `gridCellUnsizedAxes`. They compile to
+ * inline style / a utility class / a `data-*` attr and need no special rendering
+ * here, so they ride the same `style`/`className`/`rest` path as the rest.
  */
 import * as React from "react";
 import {

@@ -145,3 +145,66 @@
     transform: rotate(360deg);
   }
 }
+
+/* ================================================================ */
+/* scrollInputBehavior(.disabled) — ignore user scroll input        */
+/* ================================================================ */
+/* The wheel/touchmove preventDefault is wired in JS (passive:false); this just
+   contains overscroll and hides the now-pointless indicators. Programmatic
+   scrolls (scrollTo / scrollPosition) still move the content. */
+.sui-scrollview[data-input="disabled"] {
+  overscroll-behavior: none;
+  scrollbar-width: none;
+}
+.sui-scrollview[data-input="disabled"]::-webkit-scrollbar {
+  display: none;
+}
+
+/* ================================================================ */
+/* scrollTransition(...) — per-item edge fade/scale/blur            */
+/* ================================================================ */
+/* The IntersectionObserver writes `--sui-st` (0 = at an edge, 1 = identity /
+   fully in view) and `data-st-phase` (topLeading | identity | bottomTrailing)
+   onto each tagged child. The named effect maps that 0…1 ramp to opacity /
+   scale / blur. We interpolate in plain CSS via calc() off `--sui-st`. The
+   transition smooths the `.animated` configuration; `.interactive` reads as a
+   tight 1:1 follow (short duration). */
+.sui-scrollview[data-scroll-transition] [data-scroll-transition] {
+  transition:
+    opacity 0.12s linear,
+    transform 0.12s linear,
+    filter 0.12s linear;
+  will-change: opacity, transform;
+}
+
+/* fade — opacity ramps 0.15 → 1 as the item enters. */
+.sui-scrollview[data-scroll-transition="fade"] [data-scroll-transition],
+[data-scroll-transition][data-st-effect="fade"] {
+  opacity: calc(0.15 + 0.85 * var(--sui-st, 1));
+}
+
+/* scale — shrink to 0.85 at the edge, full size in view. */
+.sui-scrollview[data-scroll-transition="scale"] [data-scroll-transition],
+[data-scroll-transition][data-st-effect="scale"] {
+  transform: scale(calc(0.85 + 0.15 * var(--sui-st, 1)));
+}
+
+/* fadeScale — the default: combine the two (the SwiftUI "cards on a shelf"). */
+.sui-scrollview[data-scroll-transition="fadeScale"] [data-scroll-transition],
+[data-scroll-transition][data-st-effect="fadeScale"] {
+  opacity: calc(0.2 + 0.8 * var(--sui-st, 1));
+  transform: scale(calc(0.88 + 0.12 * var(--sui-st, 1)));
+}
+
+/* blur — defocus the edge items (Now Playing / cover-flow feel). */
+.sui-scrollview[data-scroll-transition="blur"] [data-scroll-transition],
+[data-scroll-transition][data-st-effect="blur"] {
+  opacity: calc(0.4 + 0.6 * var(--sui-st, 1));
+  filter: blur(calc((1 - var(--sui-st, 1)) * 6px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sui-scrollview[data-scroll-transition] [data-scroll-transition] {
+    transition: none;
+  }
+}

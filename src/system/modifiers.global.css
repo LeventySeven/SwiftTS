@@ -200,3 +200,30 @@
     transition: none;
   }
 }
+
+/* -----------------------------------------------------------------------------
+ * `.symbolEffectsRemoved(_:)` (SwiftUI:2510) — KNOWN `(isEnabled: Bool = true)`.
+ *
+ * Strip any inherited SF-Symbol animation from this view and its descendant
+ * symbols. The web analog (DESIGNED): freeze every `sui-symbol-effect*` keyframe
+ * animation under the marked subtree (the symbol-effect classes are emitted by
+ * `.symbolEffect(_:)`), so an ancestor can cancel a child's pulse/bounce.
+ * -------------------------------------------------------------------------- */
+.sui-symbol-effects-removed,
+.sui-symbol-effects-removed [class*="sui-symbol-effect"] {
+  animation: none !important;
+}
+
+/* -----------------------------------------------------------------------------
+ * `.luminanceToAlpha()` (SwiftUICore:9872) — KNOWN no-arg.
+ *
+ * Replace every pixel's colour with a constant grey whose ALPHA equals that
+ * pixel's luminance (bright → opaque, black → fully clear). SwiftUI uses this to
+ * turn a rendered view into an alpha mask. CSS has no keyword filter for it, so
+ * (DESIGNED) we point `filter` at an inline SVG `<feColorMatrix type="luminanceToAlpha">`
+ * carried as a data-URI — the exact W3C luminance-to-alpha matrix the spec names.
+ * The data-URI keeps it self-contained (no separate <svg> node to render).
+ * -------------------------------------------------------------------------- */
+.sui-luminance-to-alpha {
+  filter: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><filter id="l"><feColorMatrix type="luminanceToAlpha"/></filter></svg>#l');
+}

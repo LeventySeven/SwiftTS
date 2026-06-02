@@ -31,6 +31,8 @@ import {
   type BarColorScheme,
   type ToolbarTitleDisplayMode,
   type ToolbarRoleName,
+  type NavigationTransitionName,
+  type ToolbarBars,
 } from "../NavigationContext";
 import { useLiquidGlassMode } from "../liquidGlassNav";
 
@@ -39,6 +41,8 @@ export type {
   TitleDisplayMode,
   ToolbarTitleDisplayMode,
   ToolbarRoleName,
+  NavigationTransitionName,
+  ToolbarBars,
 } from "../NavigationContext";
 
 /* ===========================================================================
@@ -64,6 +68,12 @@ export interface ToolbarItemProps
    * (non-glass) tappable label even in iOS-26.
    */
   glass?: boolean;
+  /**
+   * `ToolbarContent.hidden(_:)` / `toolbarItemHidden(_:)` — remove this item from
+   * the bar while keeping its slot in the declaration (so conditional toolbars
+   * don't reorder). Defaults to `false`.
+   */
+  hidden?: boolean;
 }
 
 /**
@@ -75,11 +85,11 @@ export interface ToolbarItemProps
 export function ToolbarItem(props: ToolbarItemProps): React.ReactElement | null {
   // As a leaf it self-registers; <Toolbar> reads its props directly instead.
   const glassDefault = useLiquidGlassMode();
-  const entry = React.useMemo(
-    () => toolbarItemToEntry(props, glassDefault),
+  const entries = React.useMemo(
+    () => (props.hidden ? [] : [toolbarItemToEntry(props, glassDefault)]),
     [props, glassDefault],
   );
-  useToolbar([entry]);
+  useToolbar(entries);
   return null;
 }
 ToolbarItem.displayName = "ToolbarItem";
@@ -96,7 +106,8 @@ export function renderToolbarItem(
   props: ToolbarItemProps,
   glassDefault = false,
 ): React.ReactNode {
-  const { placement, title, systemImage, content, children, glass, ...rest } = props;
+  const { placement, title, systemImage, content, children, glass, hidden: _hidden, ...rest } = props;
+  void _hidden;
   if (content !== undefined) return content;
   if (children !== undefined && (title === undefined && systemImage === undefined))
     return children;
@@ -143,6 +154,7 @@ export function ToolbarItemGroup({ placement, children }: ToolbarItemGroupProps)
     if (React.isValidElement(child)) {
       const p = { ...(child.props as ToolbarItemProps) };
       if (p.placement === undefined) p.placement = placement;
+      if (p.hidden) return; // toolbarItemHidden(_:) — drop from the bar
       items.push(toolbarItemToEntry(p, glassDefault));
     }
   });
@@ -192,6 +204,7 @@ export function Toolbar({ children, glass }: ToolbarProps): React.ReactElement |
         const p = { ...(child.props as ToolbarItemProps) };
         if (p.placement === undefined && inheritedPlacement)
           p.placement = inheritedPlacement;
+        if (p.hidden) return; // toolbarItemHidden(_:) — drop from the bar
         out.push(toolbarItemToEntry(p, glassDefault));
       });
     };
@@ -237,6 +250,18 @@ export interface NavigationBarConfigProps {
   toolbarTitleDisplayMode?: ToolbarTitleDisplayMode;
   /** `toolbarRole(_:)`. */
   toolbarRole?: ToolbarRoleName;
+  /** `navigationTransition(_:)` — the push/pop animation style for this screen. */
+  navigationTransition?: NavigationTransitionName;
+  /**
+   * `toolbar(_:for:)` / `toolbarVisibility(_:for:)` — force named bars
+   * visible/hidden. Either a single bar (`{ visibility, bars }`) or a map of
+   * `bar → visibility`. `navigationBarHidden` is the legacy single-bar shorthand.
+   */
+  toolbarVisibility?:
+    | { visibility: "automatic" | "visible" | "hidden"; bars?: ToolbarBars | ToolbarBars[] }
+    | Partial<Record<ToolbarBars, "automatic" | "visible" | "hidden">>;
+  /** `toolbarTitleMenu { … }` — the pull-down menu attached to the nav-bar title. */
+  toolbarTitleMenu?: React.ReactNode;
 }
 
 /**
@@ -252,6 +277,30 @@ function resolveToolbarBackground(
 ): BarBackground | undefined {
   if (!bg && !visibility) return undefined;
   return { ...(bg ?? {}), ...(visibility ? { visibility } : {}) };
+}
+
+/** Normalize the `toolbarVisibility` prop's two shapes to the context's bar→visibility map. */
+function resolveToolbarVisibility(
+  v: NavigationBarConfigProps["toolbarVisibility"],
+): Partial<Record<ToolbarBars, "automatic" | "visible" | "hidden">> | undefined {
+  if (!v) return undefined;
+  // Single-bar form: `{ visibility, bars }`.
+  if ("visibility" in v && typeof (v as { visibility: unknown }).visibility === "string") {
+    const single = v as {
+      visibility: "automatic" | "visible" | "hidden";
+      bars?: ToolbarBars | ToolbarBars[];
+    };
+    const bars = single.bars == null
+      ? (["automatic"] as ToolbarBars[])
+      : Array.isArray(single.bars)
+        ? single.bars
+        : [single.bars];
+    const out: Partial<Record<ToolbarBars, "automatic" | "visible" | "hidden">> = {};
+    for (const bar of bars) out[bar] = single.visibility;
+    return out;
+  }
+  // Map form: already `bar → visibility`.
+  return v as Partial<Record<ToolbarBars, "automatic" | "visible" | "hidden">>;
 }
 
 /** Build the `NavBarConfig` from the declarative props (shared by component + hook). */
@@ -276,6 +325,9 @@ function buildBarConfig(props: NavigationBarConfigProps) {
     toolbarForegroundStyle: props.toolbarForegroundStyle,
     toolbarTitleDisplayMode: props.toolbarTitleDisplayMode,
     toolbarRole: props.toolbarRole,
+    navigationTransition: props.navigationTransition,
+    toolbarVisibility: resolveToolbarVisibility(props.toolbarVisibility),
+    titleMenu: props.toolbarTitleMenu,
   };
 }
 
@@ -295,6 +347,9 @@ export function NavigationBarConfig(
     toolbarForegroundStyle,
     toolbarTitleDisplayMode,
     toolbarRole,
+    navigationTransition,
+    toolbarVisibility,
+    toolbarTitleMenu,
   } = props;
   const config = React.useMemo(
     () => buildBarConfig(props),
@@ -311,6 +366,9 @@ export function NavigationBarConfig(
       toolbarForegroundStyle,
       toolbarTitleDisplayMode,
       toolbarRole,
+      navigationTransition,
+      toolbarVisibility,
+      toolbarTitleMenu,
     ],
   );
   useNavigationBar(config);
