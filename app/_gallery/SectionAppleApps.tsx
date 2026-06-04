@@ -199,11 +199,11 @@ export function SectionAppleApps(): React.ReactElement {
         <div style={{ padding: "12px 18px 0" }}>
           <SectionHeader
             title="<AppleMusicApp/>"
-            subtitle="The full Apple Music desktop window — vibrant nav sidebar, album shelves, and the pinned now-playing transport bar."
+            subtitle="The full borderless Apple Music window — no title bar, floating traffic lights, the dark vibrant sidebar, the scrollable artist page (hero + Latest Release + Top Songs + Essential Albums), and the floating Liquid-Glass now-playing pill (click its artwork to expand the full-screen Now Playing view)."
           />
         </div>
         <div style={{ padding: "0 18px 18px" }}>
-          <DesktopFrame label="<AppleMusicApp/>" width={1000} height={640}>
+          <DesktopFrame label="<AppleMusicApp/>" width={1100} height={680}>
             <AppleMusicApp />
           </DesktopFrame>
         </div>

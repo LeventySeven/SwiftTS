@@ -1,0 +1,243 @@
+/**
+ * sidebar.module.css — the DARK vibrant macOS Apple Music source-list.
+ *
+ * Encodes the reference screenshot (The Weeknd artist page, dark mode):
+ *   traffic-light safe-area → recessed RED "Search" pill → red-icon nav rows →
+ *   gray section headers → expandable "Pins" with indented children →
+ *   library / playlist rows → pinned footer (avatar + name).
+ *
+ * The structural dark wash + layout live here; the kit's macVibrancyClass
+ * ("sidebar") is layered on the same element (in the TSX) for the
+ * NSVisualEffectView blur. RED accent = #FA2D48 (play/search/icons/stars).
+ *
+ * macOS source-list density: ~260px wide, 30px rows, 13px labels, 18px icons.
+ */
+
+/* ── column shell ─────────────────────────────────────────────────────── */
+.sidebar {
+  /* Apple-Music accent red — reused for icons, search text, stars. Hosted on
+     the component root (not :root) so this stays a PURE CSS-module selector and
+     the tokens cascade to every descendant row. */
+  --sb-red: #fa2d48;
+  --sb-row-h: 30px;
+  --sb-radius: 6px;
+
+  grid-area: sidebar;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  min-width: 260px;
+  height: 100%;
+  box-sizing: border-box;
+  /* dark vibrant source-list surface (macVibrancyClass adds the blur) */
+  background: rgba(28, 28, 30, 0.62);
+  color: rgba(255, 255, 255, 0.92);
+  border-right: 0.5px solid rgba(255, 255, 255, 0.08);
+  font-family: var(
+    --sui-font-text,
+    -apple-system,
+    "SF Pro Text",
+    system-ui,
+    sans-serif
+  );
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* traffic-light safe area — content clears the floating window buttons */
+.safeArea {
+  flex: 0 0 auto;
+  height: 38px;
+}
+
+/* scrollable middle (everything between safe-area and pinned footer) */
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 10px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.scroll::-webkit-scrollbar {
+  width: 7px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+.scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── search field — recessed RED pill ─────────────────────────────────── */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0 0 10px;
+  padding: 0 9px;
+  border-radius: 7px;
+  /* recessed well */
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+  cursor: text;
+}
+.searchIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--sb-red);
+}
+.searchText {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--sb-red);
+  letter-spacing: -0.01em;
+}
+
+/* ── nav / library / playlist rows ────────────────────────────────────── */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: var(--sb-row-h);
+  padding: 0 8px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--sb-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.row:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+.row[data-selected="true"] {
+  background: rgba(255, 255, 255, 0.08);
+}
+.row[data-selected="true"]:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* leading RED SF-symbol icon */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--sb-red);
+}
+/* a star icon (Favourite Songs) keeps the red fill but is visually a star */
+.iconStar {
+  color: var(--sb-red);
+}
+
+/* row label */
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* small rounded gradient thumbnail (e.g. the "S" playlist chip) */
+.thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* disclosure chevron on the Pins parent */
+.disclosure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: rgba(255, 255, 255, 0.45);
+  transition: transform 120ms ease;
+}
+.disclosureOpen {
+  transform: rotate(90deg);
+}
+
+/* indented children under an expanded parent (Pins) */
+.child {
+  padding-left: 26px;
+}
+
+/* ── section header — gray uppercase ──────────────────────────────────── */
+.sectionHeader {
+  padding: 14px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(235, 235, 245, 0.42);
+}
+.section:first-child .sectionHeader {
+  padding-top: 2px;
+}
+
+/* ── pinned footer (avatar + name) ────────────────────────────────────── */
+.footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 16px;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6a5acd 0%, #b06ab3 100%);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.22);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
+}
+.footerName {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

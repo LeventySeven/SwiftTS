@@ -1,0 +1,163 @@
+/**
+ * applemusic.module.css — the BORDERLESS macOS Apple Music window
+ * (`<AppleMusicApp>`), the modern Tahoe / Liquid-Glass redesign.
+ *
+ * Unlike the old three-pane grid (titlebar + pinned bar), this window has NO
+ * title bar: the dark `<MusicSidebar>` and the scrollable `<MusicHome>` content
+ * run EDGE-TO-EDGE, the macOS traffic lights FLOAT over the top-left of the
+ * content, and the `<NowPlayingPill>` FLOATS centered near the bottom, over the
+ * content. The window is a rounded (~10px) borderless card with a big soft
+ * shadow, cast onto whatever desktop wallpaper hosts it.
+ *
+ * Every selector is a LOCAL CSS-module class. The sidebar/pill bring their own
+ * Liquid-Glass material; this file only supplies the window geometry, the dark
+ * content wash, the traffic lights, and the pill's positioning context.
+ */
+
+/* ───────────────────────── the borderless window ───────────────── */
+
+.window {
+  /* Apple Music red accent (shared with the pieces). */
+  --am-red: #fa2d48;
+  /* matches <MusicSidebar>'s intrinsic 260px column so it seats flush */
+  --am-sidebar-w: 260px;
+
+  /* dark content surface the artist photo fades into */
+  --am-content-bg: #161616;
+
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--am-sidebar-w) 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "sidebar main";
+
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+
+  /* borderless, rounded ~10px, big soft shadow — NO title bar */
+  border-radius: 10px;
+  background: var(--am-content-bg);
+  color: #f5f5f7;
+  isolation: isolate;
+
+  font-family: var(
+    --sui-font-text,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Helvetica Neue",
+    sans-serif
+  );
+
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.55),
+    0 30px 90px -18px rgba(0, 0, 0, 0.62),
+    0 8px 28px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* ───────────────────────── floating traffic lights ───────────────── */
+
+/* Drawn OVER the content top-left (~x14, y14), above the sidebar material. */
+.traffic {
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline-start: 14px;
+  z-index: 30;
+  display: flex;
+  gap: 8px;
+}
+.light {
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0, 0, 0, 0.22);
+}
+.lightClose {
+  background: #ff5f57;
+}
+.lightMin {
+  background: #febc2e;
+}
+.lightZoom {
+  background: #28c840;
+}
+
+/* ───────────────────────── sidebar slot ───────────────── */
+
+/* The dark <MusicSidebar> lives here, edge-to-edge on the left. It carries its
+   own top safe-area spacer that clears the floating traffic lights. */
+.sidebar {
+  grid-area: sidebar;
+  position: relative;
+  z-index: 10;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+/* ───────────────────────── main content slot ───────────────── */
+
+/* The scrollable <MusicHome> (ArtistHero + shelves) fills the rest. The pill
+   floats over it, so this column is the pill's positioning container. */
+.main {
+  grid-area: main;
+  position: relative;
+  min-block-size: 0;
+  block-size: 100%;
+  overflow: hidden;
+  background: var(--am-content-bg);
+}
+
+/* MusicHome owns its own internal scroll (`.root`); this just clips to the
+   rounded window and gives the pill an absolute-positioning anchor. */
+.content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ───────────────────────── floating now-playing pill ───────────────── */
+
+/* A positioning context + bottom-centering anchor for the absolutely-placed
+   pill (the pill itself gets `position:absolute` via an inline style override
+   so it floats over THIS window, not the viewport). The wrapper is purely a
+   layout hook; the pill paints itself. */
+.pillDock {
+  position: absolute;
+  inset-block-end: 14px;
+  inset-inline: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.pillDock > * {
+  pointer-events: auto;
+}
+
+/* ───────────────────────── full-screen Now Playing overlay ───────────────── */
+
+/* When the pill's artwork is clicked, <NowPlayingScreen> slides up to fill the
+   whole window (covering sidebar + content), clipped to the window radius. */
+.npOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  border-radius: inherit;
+  overflow: hidden;
+  animation: npRise 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes npRise {
+  from {
+    opacity: 0;
+    transform: translateY(2%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

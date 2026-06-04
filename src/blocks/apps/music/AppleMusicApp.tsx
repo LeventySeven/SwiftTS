@@ -1,296 +1,207 @@
 "use client";
 /**
- * `<AppleMusicApp>` — a faithful macOS Apple Music window template, composed
- * entirely from the SwiftTS kit.
+ * `<AppleMusicApp>` — the modern, faithful macOS Apple Music window (the Tahoe /
+ * Liquid-Glass redesign), composed entirely from the SwiftTS kit.
  *
- *   ┌───────────────┬──────────────────────────────────────────┐
- *   │ ● ● ●         │  ‹ ›        [ Search ]                    │  titlebar
- *   │ Apple Music   ├──────────────────────────────────────────┤
- *   │   Home        │  ┌────────── Listen Now hero ──────────┐  │
- *   │   New         │  │  ARTWORK · CTA                       │  │
- *   │   Radio       │  └──────────────────────────────────────┘ │
- *   │ Library       │  Recently Added  ›        [card][card]…   │  shelves
- *   │   …           │  Made for You    ›        [card][card]…   │
- *   │ Playlists     │  Browse by Category       [tile][tile]…   │  grid
- *   │   ▦ Late…     │                                            │
- *   ├───────────────┴──────────────────────────────────────────┤
- *   │ ▦ Title — Artist  ⤺ ◀ ▮▶ ▶ ⟳   ──●──  🔈──●── ☰          │  now-playing bar
- *   └──────────────────────────────────────────────────────────┘
+ *   ┌──────────────────────────────────────────────────────────────┐
+ *   │● ● ●                                                          │ ← traffic lights
+ *   │┌──────────────┐  ░░░  full-bleed artist photo  ░░░  (‹)(★)(…) │   FLOAT over content
+ *   ││  ⌕ Search    │                                               │
+ *   ││  Home        │  (▶) The Weeknd                               │ ← <MusicHome> scrolls
+ *   ││  New · Radio │  Latest Release ───────────────────────────   │
+ *   ││ LIBRARY      │  Top Songs ›   [▦ Timeless] [▦ Starboy] …     │
+ *   ││  Pins …      │  Essential Albums  [▦][▦][▦][▦][▦]            │
+ *   ││  Slade  ◐    │                                               │
+ *   │└──────────────┘   ┌──── ◀ ▮▶ ▶ ──●── ▦ As You Are ⋯ ☰ ──┐    │ ← <NowPlayingPill>
+ *   └───────────────────└──────── floats over content ─────────┘────┘   FLOATS, overlapping
  *
- * The window is a CSS grid (sidebar | main / bar). The titlebar carries macOS
- * traffic lights, back/forward nav arrows, and a centered search field. The
- * main column is the Apple-Music browse surface: a Listen-Now hero, a stack of
- * horizontally-scrolling `<AlbumShelf>`s, and a Browse-by-category grid. The
- * pinned `<NowPlayingBar>` runs across the full width.
+ * NO title bar. A BORDERLESS rounded (~10px) window with a big soft shadow: the
+ * dark `<MusicSidebar>` and the scrollable `<MusicHome>` (ArtistHero + Latest
+ * Release + Top Songs + Essential Albums) run EDGE-TO-EDGE. The macOS traffic
+ * lights FLOAT at the top-left over the content; the `<NowPlayingPill>` FLOATS
+ * centered near the bottom, overlapping the content.
  *
- * Color scheme follows `useEnvironment().colorScheme` (Apple Music ships dark
- * by default but renders correctly in light too). `"use client"` — owns
- * selection + the now-playing transport state.
+ * Self-contained: seeds The Weeknd demo catalog so it renders fully populated
+ * out of the box. Owns three pieces of state — the selected sidebar row, the
+ * now-playing track, and whether the full-screen `<NowPlayingScreen>` is open.
+ * Clicking the pill's artwork (or its Lyrics button) expands the full-screen
+ * Now Playing view; its close chevron collapses back to the window.
+ *
+ * Dark theme throughout. `"use client"` — owns selection + transport + overlay
+ * state.
  */
 import * as React from "react";
-import { useEnvironment } from "../../../system/environment";
-import { SymbolGlyph } from "../../../components/controls/SymbolGlyph";
 import {
   MusicSidebar,
   DEFAULT_MUSIC_SECTIONS,
   type MusicNavSection,
 } from "./MusicSidebar";
-import { AlbumShelf } from "./AlbumShelf";
-import { type AlbumItem, seedGradient } from "./AlbumCard";
-import { NowPlayingBar, type NowPlayingTrack } from "./NowPlayingBar";
-import styles from "./music.module.css";
+import { MusicHome, type MusicSong } from "./MusicHome";
+import { NowPlayingPill, type NowPlayingPillTrack } from "./NowPlayingPill";
+import { NowPlayingScreen } from "./NowPlayingScreen";
+import styles from "./applemusic.module.css";
 
-/* ───────────────────────── demo catalog ───────────────── */
+/* ───────────────────────── seeded demo data ───────────────── */
 
-function makeItems(titles: [string, string][]): AlbumItem[] {
-  return titles.map(([title, subtitle], i) => ({
-    id: `${title}-${i}`,
-    title,
-    subtitle,
-    gradient: seedGradient(title),
-  }));
-}
-
-const RECENTLY_ADDED = makeItems([
-  ["Solar Power", "Lorde"],
-  ["After Hours", "The Weeknd"],
-  ["Currents", "Tame Impala"],
-  ["Blonde", "Frank Ocean"],
-  ["Random Access Memories", "Daft Punk"],
-  ["In Rainbows", "Radiohead"],
-  ["Channel Orange", "Frank Ocean"],
-  ["Melodrama", "Lorde"],
-]);
-
-const MADE_FOR_YOU: AlbumItem[] = [
-  { id: "mfy-1", title: "New Music Mix", subtitle: "Updated Friday", gradient: "linear-gradient(135deg,#fc3c44,#ff7a45)" },
-  { id: "mfy-2", title: "Favorites Mix", subtitle: "Updated Tuesday", gradient: "linear-gradient(135deg,#7d2ae8,#fc3c44)" },
-  { id: "mfy-3", title: "Get Up! Mix", subtitle: "Updated Monday", gradient: "linear-gradient(135deg,#0aa2ff,#7d2ae8)" },
-  { id: "mfy-4", title: "Chill Mix", subtitle: "Updated Sunday", gradient: "linear-gradient(135deg,#34c759,#0aa2ff)" },
-  { id: "mfy-5", title: "Heavy Rotation", subtitle: "Made for You", gradient: "linear-gradient(135deg,#ff9f0a,#fc3c44)" },
-  { id: "mfy-6", title: "Discovery Station", subtitle: "Made for You", gradient: "linear-gradient(135deg,#5e5ce6,#34c759)" },
-];
-
-const STATIONS = makeItems([
-  ["Pop Hits Radio", "Apple Music"],
-  ["Hip-Hop / R&B", "Apple Music"],
-  ["Dance Station", "Apple Music"],
-  ["Indie Radio", "Apple Music"],
-  ["Classic Rock", "Apple Music"],
-  ["Lo-Fi Beats", "Apple Music"],
-]);
-
-const ARTISTS: AlbumItem[] = [
-  { id: "a-1", title: "Lorde", round: true, gradient: seedGradient("Lorde") },
-  { id: "a-2", title: "Frank Ocean", round: true, gradient: seedGradient("Frank Ocean") },
-  { id: "a-3", title: "Tame Impala", round: true, gradient: seedGradient("Tame Impala") },
-  { id: "a-4", title: "Daft Punk", round: true, gradient: seedGradient("Daft Punk") },
-  { id: "a-5", title: "The Weeknd", round: true, gradient: seedGradient("The Weeknd") },
-  { id: "a-6", title: "Radiohead", round: true, gradient: seedGradient("Radiohead") },
-];
-
-const CATEGORIES: { id: string; label: string; gradient: string }[] = [
-  { id: "c-pop", label: "Pop", gradient: "linear-gradient(135deg,#fc3c44,#ff7a45)" },
-  { id: "c-hh", label: "Hip-Hop", gradient: "linear-gradient(135deg,#1d1d1f,#5e5ce6)" },
-  { id: "c-dance", label: "Dance", gradient: "linear-gradient(135deg,#0aa2ff,#34c759)" },
-  { id: "c-rock", label: "Rock", gradient: "linear-gradient(135deg,#8e8e93,#1d1d1f)" },
-  { id: "c-chill", label: "Chill", gradient: "linear-gradient(135deg,#5ac8fa,#7d2ae8)" },
-  { id: "c-acoustic", label: "Acoustic", gradient: "linear-gradient(135deg,#ff9f0a,#ffd60a)" },
-];
-
-const DEFAULT_NOW_PLAYING: NowPlayingTrack = {
-  title: "Green Light",
-  artist: "Lorde",
-  album: "Melodrama",
-  durationSec: 234,
-  gradient: seedGradient("Melodrama"),
+/**
+ * The seed now-playing track shown in the pill (and expanded into the
+ * full-screen view). Matches the artist page (The Weeknd) so the whole window
+ * reads as one coherent surface out of the box.
+ */
+const SEED_TRACK: NowPlayingPillTrack = {
+  title: "Timeless",
+  artist: "The Weeknd",
+  album: "Hurry Up Tomorrow",
+  durationSec: 256,
+  starred: true,
+  gradient: "linear-gradient(135deg,#3a0a12,#7a1020)",
 };
 
-/* ───────────────────────── pieces ───────────────── */
+/**
+ * The Top-Songs catalog (mirrors `<MusicHome>`'s default seed) so a song tap can
+ * resolve the tapped row → drive the pill. Kept here so a click anywhere in the
+ * grid updates the now-playing track without `<MusicHome>` owning transport.
+ */
+const SONG_CATALOG: Record<string, NowPlayingPillTrack> = {
+  s1: { title: "Timeless", artist: "The Weeknd", album: "Hurry Up Tomorrow", starred: true, durationSec: 256, gradient: "linear-gradient(135deg,#3a0a12,#7a1020)" },
+  s2: { title: "Starboy", artist: "The Weeknd", album: "Starboy", durationSec: 230, gradient: "linear-gradient(135deg,#b80000,#1a0000)" },
+  s3: { title: "São Paulo", artist: "The Weeknd", album: "Hurry Up Tomorrow", durationSec: 359, gradient: "linear-gradient(135deg,#5e2a8c,#1a0a2e)" },
+  s4: { title: "One Of The Girls", artist: "The Weeknd, JENNIE, Lily-Rose Depp", album: "The Idol Vol. 1", starred: true, durationSec: 244, gradient: "linear-gradient(135deg,#c41e3a,#2a0a14)" },
+  s5: { title: "Blinding Lights", artist: "The Weeknd", album: "After Hours", durationSec: 200, gradient: "linear-gradient(135deg,#e02020,#0a0a0a)" },
+  s6: { title: "Save Your Tears", artist: "The Weeknd", album: "After Hours", durationSec: 215, gradient: "linear-gradient(135deg,#d4145a,#2a0a1e)" },
+  s7: { title: "Die For You", artist: "The Weeknd", album: "Starboy", durationSec: 260, gradient: "linear-gradient(135deg,#b80000,#1a0000)" },
+  s8: { title: "The Hills", artist: "The Weeknd", album: "Beauty Behind the Madness", durationSec: 242, gradient: "linear-gradient(135deg,#3a3a3c,#0a0a0a)" },
+  s9: { title: "Call Out My Name", artist: "The Weeknd", album: "My Dear Melancholy,", starred: true, durationSec: 228, gradient: "linear-gradient(135deg,#d4145a,#2a0a1e)" },
+};
 
-function TitleBar(): React.ReactElement {
-  return (
-    <header className={styles.titlebar}>
-      <div className={styles.navArrows}>
-        <button type="button" className={styles.navArrow} disabled aria-label="Back">
-          <SymbolGlyph name="chevron.left" size={16} weight="semibold" color="currentColor" />
-        </button>
-        <button type="button" className={styles.navArrow} aria-label="Forward">
-          <SymbolGlyph name="chevron.right" size={16} weight="semibold" color="currentColor" />
-        </button>
-      </div>
-      <label className={styles.search}>
-        <SymbolGlyph name="list.bullet" size={13} color="currentColor" aria-hidden />
-        <input
-          className={styles.searchInput}
-          type="search"
-          placeholder="Search"
-          aria-label="Search Apple Music"
-        />
-      </label>
-    </header>
-  );
-}
-
-function Hero({
-  onPlay,
-}: {
-  onPlay?: () => void;
-}): React.ReactElement {
-  return (
-    <section className={styles.hero} aria-label="Listen Now featured">
-      <div
-        className={styles.heroArt}
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 25% 20%, #fc3c44 0%, transparent 55%)," +
-            "radial-gradient(circle at 80% 30%, #7d2ae8 0%, transparent 55%)," +
-            "radial-gradient(circle at 55% 90%, #ff9f0a 0%, transparent 60%)," +
-            "linear-gradient(135deg, #2a0a1c, #1a0a2e)",
-        }}
-        aria-hidden
-      />
-      <div className={styles.heroScrim} aria-hidden />
-      <div className={styles.heroBody}>
-        <div className={styles.heroKicker}>Listen Now · Top Pick</div>
-        <div className={styles.heroTitle}>Melodrama</div>
-        <div className={styles.heroSub}>Lorde · The album that defined a generation of pop.</div>
-        <button type="button" className={styles.heroPlay} onClick={onPlay}>
-          <SymbolGlyph name="play.fill" size={14} color="currentColor" />
-          <span>Play</span>
-        </button>
-      </div>
-    </section>
-  );
-}
-
-/* ───────────────────────── the app ───────────────── */
+/* ───────────────────────── props ───────────────── */
 
 export interface AppleMusicAppProps {
   /** Sidebar navigation tree. Defaults to the canonical Apple-Music tree. */
   sections?: MusicNavSection[];
-  /** Initially-selected sidebar row id. Default `"home"`. */
+  /** Initially-selected sidebar row id. Default `"artists"`. */
   defaultSelection?: string;
-  /** The track shown in the now-playing bar. */
-  nowPlaying?: NowPlayingTrack;
+  /** The artist whose page fills the main content. Default "The Weeknd". */
+  artistName?: string;
+  /** Optional full-bleed hero photo URL (falls back to a gradient). */
+  artistImage?: string;
+  /** The track seeded into the now-playing pill. */
+  nowPlaying?: NowPlayingPillTrack;
   className?: string;
   style?: React.CSSProperties;
 }
 
+/* ───────────────────────── component ───────────────── */
+
 export function AppleMusicApp({
   sections = DEFAULT_MUSIC_SECTIONS,
-  defaultSelection = "home",
-  nowPlaying = DEFAULT_NOW_PLAYING,
+  defaultSelection = "artists",
+  artistName = "The Weeknd",
+  artistImage,
+  nowPlaying = SEED_TRACK,
   className,
   style,
 }: AppleMusicAppProps = {}): React.ReactElement {
-  const env = useEnvironment();
-  const scheme = env.colorScheme === "dark" ? "dark" : "light";
-
+  // which sidebar row is lit
   const [selection, setSelection] = React.useState(defaultSelection);
-  const [track, setTrack] = React.useState<NowPlayingTrack>(nowPlaying);
+  // the now-playing track shown in the pill / full-screen view
+  const [track, setTrack] = React.useState<NowPlayingPillTrack>(nowPlaying);
+  // transport
   const [playing, setPlaying] = React.useState(true);
+  // whether the full-screen <NowPlayingScreen> is up
+  const [fullScreen, setFullScreen] = React.useState(false);
 
-  // Find an album by id across the demo catalog → drive the now-playing bar.
-  const playItem = React.useCallback((id: string) => {
-    const all: AlbumItem[] = [
-      ...RECENTLY_ADDED,
-      ...MADE_FOR_YOU,
-      ...STATIONS,
-      ...ARTISTS,
-    ];
-    const found = all.find((a) => a.id === id);
-    if (found) {
-      setTrack({
-        title: found.title,
-        artist: found.subtitle ?? "Apple Music",
-        album: found.subtitle,
-        gradient: found.gradient ?? seedGradient(found.title),
-        durationSec: 200 + (found.title.length % 7) * 12,
-      });
+  // A song-row tap resolves the tapped id → swaps the now-playing track + plays.
+  const playSong = React.useCallback((id: string) => {
+    const next = SONG_CATALOG[id];
+    if (next) {
+      setTrack(next);
       setPlaying(true);
     }
   }, []);
 
+  // The hero red-play CTA starts the artist's top song.
+  const playArtist = React.useCallback(() => {
+    setTrack(SONG_CATALOG.s1 ?? SEED_TRACK);
+    setPlaying(true);
+  }, []);
+
+  const openFullScreen = React.useCallback(() => setFullScreen(true), []);
+  const closeFullScreen = React.useCallback(() => setFullScreen(false), []);
+
   return (
     <div
-      className={[styles.app, className].filter(Boolean).join(" ")}
-      data-scheme={scheme}
+      className={[styles.window, className].filter(Boolean).join(" ")}
+      data-scheme="dark"
       style={style}
       role="application"
       aria-label="Apple Music"
     >
-      {/* macOS traffic lights (drawn over the sidebar's top-left) */}
+      {/* macOS traffic lights — FLOAT over the content top-left (~x14, y14) */}
       <div className={styles.traffic} aria-hidden>
         <span className={`${styles.light} ${styles.lightClose}`} />
         <span className={`${styles.light} ${styles.lightMin}`} />
         <span className={`${styles.light} ${styles.lightZoom}`} />
       </div>
 
-      <TitleBar />
+      {/* LEFT — the dark vibrant source-list (carries its own traffic safe-area) */}
+      <div className={styles.sidebar}>
+        <MusicSidebar
+          sections={sections}
+          selection={selection}
+          onSelect={setSelection}
+        />
+      </div>
 
-      <MusicSidebar sections={sections} selection={selection} onSelect={setSelection} />
-
+      {/* MAIN — the scrollable artist page; also the pill's positioning context */}
       <main className={styles.main}>
-        <div className={styles.mainScroll}>
-          <Hero onPlay={() => playItem(MADE_FOR_YOU[0].id)} />
-
-          <AlbumShelf
-            title="Recently Added"
-            items={RECENTLY_ADDED}
-            onPlayItem={playItem}
+        <div className={styles.content}>
+          <MusicHome
+            name={artistName}
+            artistImage={artistImage}
+            onPlay={playArtist}
+            onPlaySong={playSong}
           />
+        </div>
 
-          <AlbumShelf
-            title="Made for You"
-            subtitle="Mixes refreshed for your taste"
-            items={MADE_FOR_YOU}
-            cardSize={190}
-            onPlayItem={playItem}
+        {/* FLOATING now-playing pill — centered near the bottom, over content. */}
+        <div className={styles.pillDock}>
+          <NowPlayingPill
+            track={track}
+            playing={playing}
+            onPlayingChange={setPlaying}
+            /* the pill defaults to position:fixed (viewport-pinned); override to
+               position:static so it floats inside THIS window's bottom dock */
+            style={{
+              position: "static",
+              left: "auto",
+              bottom: "auto",
+              transform: "none",
+              maxInlineSize: "min(720px, calc(100% - 28px))",
+            }}
+            onArtworkClick={openFullScreen}
+            onLyrics={openFullScreen}
           />
-
-          <AlbumShelf
-            title="Artists You Follow"
-            items={ARTISTS}
-            cardSize={140}
-            onPlayItem={playItem}
-          />
-
-          <AlbumShelf
-            title="Stations by Apple Music"
-            items={STATIONS}
-            onPlayItem={playItem}
-          />
-
-          {/* Browse-by-category grid */}
-          <section className={styles.gridSection} aria-label="Browse by category">
-            <h2 className={styles.shelfTitle} style={{ cursor: "default" }}>
-              Browse by Category
-            </h2>
-            <div className={styles.grid}>
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={styles.gridTile}
-                  onClick={() => setSelection("new")}
-                >
-                  <span className={styles.gridTileArt} style={{ background: c.gradient }} aria-hidden />
-                  <span className={styles.gridTileLabel}>{c.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
         </div>
       </main>
 
-      <NowPlayingBar
-        track={track}
-        playing={playing}
-        onPlayingChange={setPlaying}
-      />
+      {/* FULL-SCREEN Now Playing — slides up to cover the whole window */}
+      {fullScreen ? (
+        <div className={styles.npOverlay}>
+          <NowPlayingScreen
+            title={track.title}
+            artist={track.artist}
+            album={track.album}
+            playing={playing}
+            onPlayingChange={setPlaying}
+            onClose={closeFullScreen}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
 
 AppleMusicApp.displayName = "AppleMusicApp";
+
+export default AppleMusicApp;

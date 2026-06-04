@@ -1,29 +1,37 @@
 "use client";
 /**
- * `<NowPlayingScreen>` — the full-screen Apple Music "Now Playing" / Lyrics view.
+ * `<NowPlayingScreen>` — Apple Music's FULL-SCREEN, immersive "Now Playing" view
+ * (the one you expand to fill the window — the "audio album gradient").
  *
- * Composition (matches the reference photo):
- *   ┌──────────────────────────────────────────────────────────────┐
- *   │  <AmbientBackground>  (morphing mesh from artwork + dark scrim)│
- *   │                                                               │
- *   │   ┌── album art ──┐          Did you forget? Do it for life   │
- *   │   │  white card   │          Chicago that time, all bullshit… │  ← <LyricsView>
- *   │   └───────────────┘          Wonderful vibe, wonderful night  │
- *   │   Trance                     Did it with Trav                 │
- *   │   Travis Scott — HEROES…     All I can hear is you and I      │
- *   │   ▷ ──────●────────────                                       │
- *   └──────────────────────────────────────────────────────────────┘
+ * Composition (matches the real app):
+ *   ┌──────────────────────────────────────────────────────────────────┐
+ *   │  <AmbientBackground>  (HUGE slow morphing mesh from the artwork +  │
+ *   │   a dark vignette for legibility — fills the WHOLE screen)         │
+ *   │                                              ✦ queue  ✦ airplay ✕  │ ← top chrome
+ *   │   ┌──── album art ────┐        Did you forget? Do it for life      │
+ *   │   │   ~46% wide,      │        Chicago that time, all bullshit…    │ ← <LyricsView>
+ *   │   │   rounded, soft   │        Wonderful vibe, wonderful night     │   (active = bright
+ *   │   │   shadow          │        Did it with Trav                    │    white semibold;
+ *   │   └───────────────────┘        All I can hear is you and I         │    others dim+blur)
+ *   │   Trance              ♥ ⋯                                          │
+ *   │   Travis Scott — HEROES & VILLAINS                                 │
+ *   │   0:24 ──────●─────────────────────────  -0:54                     │ ← scrubber
+ *   │        ⤺  ◀◀     ▶/❚❚     ▶▶  ↻        ────────●──── 🔊            │ ← transport
+ *   └──────────────────────────────────────────────────────────────────┘
  *
- *   • LEFT  — the album art in a WHITE rounded card, Title + "Artist — Album"
- *     beneath, then an inline transport (play/pause + the kit <Slider> scrubber).
- *   • RIGHT — the time-synced <LyricsView>.
- *   • BEHIND — <AmbientBackground>: an <AnimatedMeshGradient> built from the
- *     artwork palette, heavily blurred, under a dark scrim.
+ *   • LEFT  — the album art (≈46% of the left column), Title + heart/more, then
+ *     "Artist — Album", a scrubber, and the full transport row.
+ *   • RIGHT — the time-synced <LyricsView> (active line bright white + semibold;
+ *     past lines dim; upcoming lines dim + progressively blurred; pulsing •••
+ *     for instrumental gaps; auto-scrolls).
+ *   • BEHIND — <AmbientBackground>: a slow morphing <AnimatedMeshGradient> built
+ *     from the artwork palette, heavily blurred, under a dark vignette.
  *
- * Fully controllable (`currentTime` / `playing` / `onSeek` / `onPlayingChange`),
- * with internal-state fallbacks AND a built-in playback SIMULATION so the demo
- * animates live: a `useEffect` advances `currentTime` ~10×/s while playing, and
- * the <Slider> scrubs it. `"use client"` — owns playback state + rAF-free timer.
+ * Fully controllable (`currentTime` / `playing` / `onTimeChange` /
+ * `onPlayingChange`) with internal-state fallbacks AND a built-in playback
+ * SIMULATION so the demo animates live: a `useEffect` advances `currentTime`
+ * ~10×/s while playing, and the <Slider> scrubs it. `"use client"` — owns
+ * playback state + a rAF-free interval timer.
  */
 import * as React from "react";
 import { Slider } from "../../../components/Slider";
@@ -56,6 +64,9 @@ export interface NowPlayingScreenProps {
   /** Disable the built-in playback simulation (e.g. when fully controlled). */
   simulate?: boolean;
 
+  /** Optional close handler for the top-right dismiss chevron. */
+  onClose?: () => void;
+
   className?: string;
   style?: React.CSSProperties;
 }
@@ -67,6 +78,7 @@ export interface NowPlayingScreenProps {
  * an instrumental intro gap and a mid-song break.
  * ───────────────────────────────────────────────────────────────────────── */
 const TRANCE_LYRICS: LyricLine[] = [
+  // an intro gap (0 → 6) before the first line → the "•••" indicator
   { time: 6, text: "Did you forget? Do it for life" },
   { time: 11, text: "Chicago that time, all bullshit aside" },
   { time: 16, text: "Wonderful vibe, wonderful night" },
@@ -154,6 +166,7 @@ export function NowPlayingScreen({
   playing: playingProp,
   onPlayingChange,
   simulate = true,
+  onClose,
   className,
   style,
 }: NowPlayingScreenProps): React.ReactElement {
@@ -166,6 +179,13 @@ export function NowPlayingScreen({
 
   const [currentTime, setCurrentTime] = useControlled(timeProp, onTimeChange, 0);
   const [playing, setPlaying] = useControlled(playingProp, onPlayingChange, true);
+  // local "loved" + volume state for the chrome (pure UI for the demo)
+  const [loved, setLoved] = React.useState(false);
+  const [volume, setVolume] = React.useState(0.72);
+
+  // keep a live ref of currentTime for the interval closure
+  const currentTimeRef = React.useRef(currentTime);
+  currentTimeRef.current = currentTime;
 
   // ── built-in playback simulation ──
   // advance currentTime while playing; loop at the end so the demo runs forever.
@@ -182,17 +202,13 @@ export function NowPlayingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [simulate, playing, dur, timeProp]);
 
-  // keep a live ref of currentTime for the interval closure
-  const currentTimeRef = React.useRef(currentTime);
-  currentTimeRef.current = currentTime;
-
   const progress = dur > 0 ? clamp01(currentTime / dur) : 0;
 
   const cls = [styles.screen, className].filter(Boolean).join(" ");
 
   return (
     <div className={cls} style={style} role="group" aria-label={`Now playing: ${title}`}>
-      {/* ── behind everything: the morphing ambient gradient ── */}
+      {/* ── behind everything: the huge slow morphing ambient gradient ── */}
       <AmbientBackground
         colors={ambientColors}
         artworkUrl={resolvedArt}
@@ -200,7 +216,25 @@ export function NowPlayingScreen({
         grid={4}
       />
 
-      {/* ── LEFT: art card + meta + transport ── */}
+      {/* ── top chrome: queue / airplay / close (Apple's translucent glyph row) ── */}
+      <div className={styles.topChrome}>
+        <button type="button" className={styles.chromeBtn} aria-label="Up Next / Queue">
+          <SymbolGlyph name="list.bullet" size={17} color="currentColor" />
+        </button>
+        <button type="button" className={styles.chromeBtn} aria-label="AirPlay">
+          <SymbolGlyph name="antenna.radiowaves.left.and.right" size={17} color="currentColor" />
+        </button>
+        <button
+          type="button"
+          className={styles.chromeBtn}
+          aria-label="Close full screen"
+          onClick={onClose}
+        >
+          <SymbolGlyph name="chevron.down" size={17} color="currentColor" />
+        </button>
+      </div>
+
+      {/* ── LEFT: art + meta + scrubber + transport ── */}
       <div className={styles.left}>
         <div className={styles.artCard} data-playing={playing ? "true" : "false"}>
           {resolvedArt ? (
@@ -223,59 +257,91 @@ export function NowPlayingScreen({
           )}
         </div>
 
-        <div className={styles.meta}>
-          <h2 className={styles.title} title={title}>
-            {title}
-          </h2>
-          <p className={styles.subtitle} title={`${artist} — ${album}`}>
-            {artist}
-            {album ? ` — ${album}` : ""}
-          </p>
+        <div className={styles.metaRow}>
+          <div className={styles.meta}>
+            <h2 className={styles.title} title={title}>
+              {title}
+            </h2>
+            <p className={styles.subtitle} title={`${artist} — ${album}`}>
+              {artist}
+              {album ? ` — ${album}` : ""}
+            </p>
+          </div>
+          <div className={styles.metaActions}>
+            <button
+              type="button"
+              className={styles.iconBtn}
+              aria-label={loved ? "Unlove" : "Love"}
+              aria-pressed={loved}
+              data-active={loved ? "true" : "false"}
+              onClick={() => setLoved((v) => !v)}
+            >
+              <SymbolGlyph name={loved ? "heart.fill" : "heart"} size={18} color="currentColor" />
+            </button>
+            <button type="button" className={styles.iconBtn} aria-label="More">
+              <SymbolGlyph name="ellipsis" size={18} color="currentColor" />
+            </button>
+          </div>
         </div>
 
-        <div className={styles.controls}>
-          <div className={styles.transportRow}>
-            <button
-              type="button"
-              className={styles.tBtn}
-              aria-label="Previous"
-              onClick={() => setCurrentTime(0)}
-            >
-              <SymbolGlyph name="backward.fill" size={22} color="currentColor" />
-            </button>
-            <button
-              type="button"
-              className={`${styles.tBtn} ${styles.tPlay}`}
-              aria-label={playing ? "Pause" : "Play"}
-              onClick={() => setPlaying(!playing)}
-            >
-              <SymbolGlyph name={playing ? "pause.fill" : "play.fill"} size={22} color="#fff" />
-            </button>
-            <button
-              type="button"
-              className={styles.tBtn}
-              aria-label="Next"
-              onClick={() => setCurrentTime(dur)}
-            >
-              <SymbolGlyph name="forward.fill" size={22} color="currentColor" />
-            </button>
+        {/* ── scrubber ── */}
+        <div className={styles.scrubRow}>
+          <span className={styles.scrubTime}>{fmt(currentTime)}</span>
+          <div className={styles.scrubSlider}>
+            <Slider
+              value={progress}
+              onChange={(p) => setCurrentTime(p * dur)}
+              bounds={[0, 1]}
+              variant="macos"
+              label="Seek"
+            />
           </div>
+          <span className={`${styles.scrubTime} ${styles.scrubTimeEnd}`}>
+            -{fmt(Math.max(0, dur - currentTime))}
+          </span>
+        </div>
 
-          <div className={styles.scrubRow}>
-            <span className={styles.scrubTime}>{fmt(currentTime)}</span>
-            <div className={styles.scrubSlider}>
-              <Slider
-                value={progress}
-                onChange={(p) => setCurrentTime(p * dur)}
-                bounds={[0, 1]}
-                variant="macos"
-                label="Seek"
-              />
-            </div>
-            <span className={`${styles.scrubTime} ${styles.scrubTimeEnd}`}>
-              -{fmt(Math.max(0, dur - currentTime))}
-            </span>
+        {/* ── transport ── */}
+        <div className={styles.transportRow}>
+          <button
+            type="button"
+            className={styles.tBtn}
+            aria-label="Previous"
+            onClick={() => setCurrentTime(0)}
+          >
+            <SymbolGlyph name="backward.fill" size={26} color="currentColor" />
+          </button>
+          <button
+            type="button"
+            className={`${styles.tBtn} ${styles.tPlay}`}
+            aria-label={playing ? "Pause" : "Play"}
+            onClick={() => setPlaying(!playing)}
+          >
+            <SymbolGlyph name={playing ? "pause.fill" : "play.fill"} size={30} color="#fff" />
+          </button>
+          <button
+            type="button"
+            className={styles.tBtn}
+            aria-label="Next"
+            onClick={() => setCurrentTime(dur)}
+          >
+            <SymbolGlyph name="forward.fill" size={26} color="currentColor" />
+          </button>
+        </div>
+
+        {/* ── volume ── */}
+        <div className={styles.volumeRow}>
+          <SymbolGlyph name="speaker.fill" size={14} color="rgba(255,255,255,0.6)" />
+          <div className={styles.volumeSlider}>
+            <Slider
+              value={volume}
+              onChange={setVolume}
+              bounds={[0, 1]}
+              variant="macos"
+              label="Volume"
+            />
           </div>
+          <SymbolGlyph name="speaker.wave.3" size={14} color="rgba(255,255,255,0.6)" />
         </div>
       </div>
 

@@ -1,0 +1,549 @@
+/* =============================================================================
+ * music-content.module.css — the Apple-Music ARTIST page main content surface.
+ *
+ * Owns the scoped styling for ArtistHero (full-bleed photo + glass chrome + red
+ * play button), MusicHome (Latest Release row, Top Songs 3-col grid, Essential
+ * Albums shelf), and SongRow. Dark theme, Apple-Music RED (#FA2D48) accents, SF
+ * typography. Module-scoped so it never collides with music.module.css.
+ *
+ * The red accent and the dark surface are the two load-bearing colors of the
+ * reference screenshot (The Weeknd page, dark mode).
+ * ========================================================================== */
+
+.root {
+  /* Apple-Music red accent — play button, stars, download arrow, search text. */
+  --am-red: #fa2d48;
+  /* The dark content background the hero photo fades into. */
+  --am-bg: #161616;
+  --am-fg: #ffffff;
+  --am-fg-2: rgba(235, 235, 245, 0.6);
+  --am-fg-3: rgba(235, 235, 245, 0.3);
+  /* The translucent gray glass the back/star/more circles sit in. */
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--am-bg);
+  color: var(--am-fg);
+  font-family: var(
+    --sui-font-text,
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "Helvetica Neue",
+    sans-serif
+  );
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ───────────────────────── ARTIST HERO ───────────────────────── */
+
+.hero {
+  position: relative;
+  /* Full-bleed photo fills ~58% of the visible content height. */
+  height: 58%;
+  min-height: 360px;
+  flex: 0 0 auto;
+  width: 100%;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* The artist photo (img or AsyncImage success layer). object-fit cover, anchored
+ * toward the top so the face stays in frame as the box flexes. */
+.heroImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  z-index: 0;
+}
+
+/* The gradient FALLBACK that shows when no artistImage URL resolves — a moody
+ * dark wash so the page never renders a flat gray box. */
+.heroFallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(120, 30, 40, 0.85) 0%, transparent 55%),
+    radial-gradient(circle at 78% 30%, rgba(70, 40, 60, 0.7) 0%, transparent 58%),
+    linear-gradient(180deg, #2a1418 0%, #161013 70%, #161616 100%);
+}
+
+/* The bottom fade — the photo dissolves into the dark content bg so the
+ * "Latest Release" section below reads as one continuous surface. */
+.heroScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(22, 22, 22, 0) 0%,
+    rgba(22, 22, 22, 0) 40%,
+    rgba(22, 22, 22, 0.35) 66%,
+    rgba(22, 22, 22, 0.85) 88%,
+    var(--am-bg) 100%
+  );
+}
+
+/* A faint top vignette so the white glass chrome stays legible over a bright
+ * photo. */
+.heroTopWash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.34) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* Top chrome row: back (left), star + more (right). */
+.heroTop {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  right: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.heroTopRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A circular translucent-gray glass button (back / star / more). The glass
+ * class comes from glassEffectProps(glass.regular,"circle"); these rules layer
+ * the size + the white icon centering on top. */
+.glassCircle {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #ffffff;
+  /* darken the glass so white icons read over a bright photo */
+  background-color: rgba(40, 40, 40, 0.42);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  transition: transform 0.12s ease, background-color 0.15s ease;
+}
+.glassCircle:hover {
+  background-color: rgba(60, 60, 60, 0.5);
+}
+.glassCircle:active {
+  transform: scale(0.92);
+}
+.glassCircle:focus-visible {
+  outline: 2px solid var(--am-red);
+  outline-offset: 2px;
+}
+
+/* Bottom-left cluster: the red play button + the artist name. */
+.heroBottom {
+  position: absolute;
+  left: 32px;
+  bottom: 26px;
+  right: 32px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* The big RED circular play button (~52px). */
+.heroPlay {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: var(--am-red);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(250, 45, 72, 0.45);
+  transition: transform 0.12s ease, filter 0.15s ease;
+}
+.heroPlay:hover {
+  filter: brightness(1.06);
+}
+.heroPlay:active {
+  transform: scale(0.94);
+}
+.heroPlay:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
+}
+/* nudge the play triangle to optical center */
+.heroPlay > svg {
+  margin-left: 3px;
+}
+
+.heroName {
+  font-size: 40px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: #ffffff;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ───────────────────────── CONTENT BODY ───────────────────────── */
+
+.body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  padding: 26px 32px 48px;
+  background: var(--am-bg);
+}
+
+/* A section heading. The variant with a chevron ("Top Songs ›") is a button. */
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--am-fg);
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+}
+button.sectionHead {
+  cursor: pointer;
+}
+.sectionChev {
+  color: var(--am-fg-3);
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.15s ease;
+}
+button.sectionHead:hover .sectionChev {
+  transform: translateX(2px);
+  color: var(--am-fg-2);
+}
+
+/* ── Latest Release row ── */
+
+.latest {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.latestArt {
+  flex: 0 0 auto;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.latestArtImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.latestMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.latestDate {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--am-fg-2);
+}
+.latestTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--am-fg);
+}
+.latestTitleText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.latestCount {
+  font-size: 13px;
+  color: var(--am-fg-2);
+}
+
+/* The red download arrow trailing the Latest Release row — a thin red circle
+ * outline with a down arrow inside (the Apple-Music "download album" affordance,
+ * arrow.down.circle). The ring is a CSS border so it stays crisp at any size. */
+.download {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.6px solid var(--am-red);
+  background: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--am-red);
+  transition: transform 0.12s ease, background-color 0.15s ease;
+}
+.download:hover {
+  background-color: rgba(250, 45, 72, 0.14);
+}
+.download:active {
+  transform: scale(0.9);
+}
+.download:focus-visible {
+  outline: 2px solid var(--am-red);
+  outline-offset: 2px;
+}
+
+/* The "E" explicit badge — a small rounded gray square. */
+.explicit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(235, 235, 245, 0.35);
+  color: #161616;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Top Songs 3-column grid ── */
+
+.songGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 28px;
+  row-gap: 2px;
+}
+
+/* one column of stacked SongRows */
+.songCol {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── SongRow ── */
+
+.song {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 4px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  border-radius: 7px;
+  transition: background-color 0.12s ease;
+  position: relative;
+}
+.song + .song {
+  /* hairline divider between rows (Apple Music inset divider) */
+  box-shadow: 0 -0.5px 0 rgba(235, 235, 245, 0.1);
+}
+.song:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.song:hover + .song {
+  box-shadow: none;
+}
+
+.songArt {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 5px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+.songArtImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.songMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.songTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.songTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--am-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* the red star marking a "loved" / favorite track */
+.songStar {
+  flex: 0 0 auto;
+  color: var(--am-red);
+  display: inline-flex;
+  align-items: center;
+}
+.songSub {
+  font-size: 12px;
+  color: var(--am-fg-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* the trailing "..." menu, revealed on row hover */
+.songMore {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--am-fg-2);
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.song:hover .songMore {
+  opacity: 1;
+}
+.songMore:hover {
+  color: var(--am-fg);
+}
+.songMore:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--am-red);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/* ── Essential Albums shelf ── */
+
+.albumRow {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.albumRow::-webkit-scrollbar {
+  display: none;
+}
+
+.albumCard {
+  flex: 0 0 auto;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-snap-align: start;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+.albumArt {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  transition: transform 0.18s ease;
+}
+.albumArtImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.albumCard:hover .albumArt {
+  transform: translateY(-2px);
+}
+.albumTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--am-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.albumSub {
+  font-size: 12px;
+  color: var(--am-fg-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

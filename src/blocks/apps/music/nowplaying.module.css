@@ -1,10 +1,11 @@
 /**
- * Apple Music "Now Playing" / Lyrics full-screen view — scoped styles.
+ * Apple Music FULL-SCREEN "Now Playing" / Lyrics view — scoped styles.
  *
- * The view is the immersive lyrics surface: a heavily-blurred ANIMATED AMBIENT
- * GRADIENT (an <AnimatedMeshGradient> built from the album-artwork palette) under
- * a dark scrim, with the album art in a white rounded card + Title / "Artist —
- * Album" on the LEFT, and big bold time-synced LYRICS on the RIGHT.
+ * The immersive lyrics surface: a HUGE, heavily-blurred, slowly-morphing AMBIENT
+ * GRADIENT (two stacked <AnimatedMeshGradient> layers built from the album-art
+ * palette) under a dark vignette, with the album art (≈46% of the left column)
+ * + Title / love / "Artist — Album" / scrubber / transport / volume on the LEFT,
+ * and big bold time-synced LYRICS on the RIGHT.
  *
  * All selectors are LOCAL (CSS-module) — no `:global(...)`. Tokens reference the
  * kit `var(--sui-*)` namespace with literal fallbacks so the file is standalone.
@@ -14,8 +15,10 @@
 
 .screen {
   /* tunables threaded through the whole view */
-  --np-pad: clamp(20px, 4.2vw, 56px);
-  --np-art: clamp(150px, 23vw, 300px);
+  --np-pad: clamp(22px, 4vw, 60px);
+  /* the album art is ~46% of the LEFT column's available width */
+  --np-art: clamp(180px, 27vw, 360px);
+  --np-accent: var(--sui-tint, #fa2d48);
   --np-text:
     var(--sui-font-text, -apple-system, BlinkMacSystemFont, "SF Pro Display",
       "Helvetica Neue", sans-serif);
@@ -23,18 +26,19 @@
   position: relative;
   inline-size: 100%;
   block-size: 100%;
-  min-block-size: 520px;
+  min-block-size: 560px;
   overflow: hidden;
   border-radius: 14px;
   isolation: isolate;
   color: #fff;
   font-family: var(--np-text);
   /* a deep base so the scrim has something to sit on before the mesh paints */
-  background: #0a0a0c;
+  background: #08070b;
   display: grid;
-  grid-template-columns: minmax(240px, 0.92fr) 1.08fr;
+  /* left column a touch narrower than the lyrics so the art reads ~46% of it */
+  grid-template-columns: minmax(280px, 0.88fr) 1.12fr;
   grid-template-rows: 1fr;
-  gap: clamp(16px, 3vw, 48px);
+  gap: clamp(20px, 4vw, 64px);
   padding: var(--np-pad);
   box-shadow:
     0 0 0 0.5px rgba(0, 0, 0, 0.4),
@@ -51,75 +55,140 @@
   pointer-events: none;
 }
 
-/* the morphing mesh fills the layer, scaled up beyond the box so the blur's
-   soft edges never reveal a hard rectangle border. */
+/* the morphing mesh fills the layer, scaled WAY up beyond the box so the heavy
+   blur's soft edges never reveal a hard rectangle border. */
 .ambientMesh {
   position: absolute;
-  /* over-scan so heavy blur has bleed and no visible seam at the frame edge */
-  inset: -28%;
-  inline-size: 156%;
-  block-size: 156%;
-  /* the dreamy smoky depth — extra CSS blur ON TOP of the mesh's own softness */
-  filter: blur(58px) saturate(155%) brightness(1.04);
-  -webkit-filter: blur(58px) saturate(155%) brightness(1.04);
-  transform: translateZ(0) scale(1.05);
+  /* generous over-scan so heavy blur has bleed and no visible seam at the edge */
+  inset: -36%;
+  inline-size: 172%;
+  block-size: 172%;
+  /* the dreamy smoky depth — HARD CSS blur ON TOP of the mesh's own softness.
+     this is what reads as Apple's "infinitely smooth" gradient. */
+  filter: blur(80px) saturate(168%) brightness(1.06);
+  -webkit-filter: blur(80px) saturate(168%) brightness(1.06);
+  transform: translateZ(0) scale(1.06);
   will-change: transform;
 }
 
+/* both mesh layers stack and fill the wrapper */
+.ambientLayerA,
+.ambientLayerB {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* the overlay layer adds light into the seams of the base layer → no banding */
+.ambientLayerB {
+  mix-blend-mode: screen;
+  opacity: 0.72;
+}
+
 /* a slow extra breathing wobble so even reduce-motion-frozen meshes feel alive
-   on capable displays (disabled under reduce-motion via the data attr below). */
+   on capable displays (disabled under reduce-motion via the data attr below).
+   VERY slow + small so it reads as drift, not movement. */
 .ambientMesh[data-breathe="true"] {
-  animation: npBreathe 19s ease-in-out infinite alternate;
+  animation: npBreathe 32s ease-in-out infinite alternate;
 }
 
 @keyframes npBreathe {
   from {
-    transform: translateZ(0) scale(1.04) translate3d(-1.4%, -1%, 0);
+    transform: translateZ(0) scale(1.05) translate3d(-1.6%, -1.2%, 0) rotate(-0.6deg);
   }
   to {
-    transform: translateZ(0) scale(1.12) translate3d(1.8%, 1.4%, 0);
+    transform: translateZ(0) scale(1.14) translate3d(2%, 1.6%, 0) rotate(0.6deg);
   }
 }
 
-/* dark scrim — a top-light → bottom-dark wash that anchors the white type and
-   gives the "smoky" Apple depth. Two stacked gradients: a vignette + a vertical. */
+/* dark scrim — a soft top-light → bottom-dark wash + a real vignette ring that
+   anchors the white type and gives the "smoky" Apple depth & legibility. Three
+   stacked gradients: corner vignette + center darkening + vertical floor. */
 .scrim {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   background:
+    /* outer vignette — darken all four corners for legibility */
     radial-gradient(
-      130% 100% at 22% 18%,
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0.18) 52%,
-      rgba(0, 0, 0, 0.5) 100%
+      120% 120% at 50% 42%,
+      rgba(0, 0, 0, 0) 38%,
+      rgba(0, 0, 0, 0.28) 76%,
+      rgba(0, 0, 0, 0.52) 100%
     ),
+    /* soft light from the upper-left "source" */
+    radial-gradient(
+      120% 100% at 24% 16%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.12) 56%,
+      rgba(0, 0, 0, 0.34) 100%
+    ),
+    /* vertical floor wash so the bottom transport reads on any art */
     linear-gradient(
       180deg,
-      rgba(0, 0, 0, 0.22) 0%,
-      rgba(0, 0, 0, 0.06) 30%,
-      rgba(0, 0, 0, 0.2) 68%,
-      rgba(0, 0, 0, 0.46) 100%
+      rgba(0, 0, 0, 0.26) 0%,
+      rgba(0, 0, 0, 0.04) 26%,
+      rgba(0, 0, 0, 0.14) 64%,
+      rgba(0, 0, 0, 0.5) 100%
     );
 }
 
-/* a faint grain/sheen pass so the gradient doesn't band on large flat areas */
+/* a faint sheen pass so the gradient doesn't band on large flat areas */
 .scrim::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
     115deg,
-    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.045) 0%,
     rgba(255, 255, 255, 0) 26%,
     rgba(255, 255, 255, 0) 74%,
-    rgba(255, 255, 255, 0.03) 100%
+    rgba(255, 255, 255, 0.028) 100%
   );
   mix-blend-mode: overlay;
 }
 
-/* ───────────────────────── left: art + meta ───────────────────────── */
+/* ───────────────────────── top chrome (queue / airplay / close) ───────────── */
+
+.topChrome {
+  position: absolute;
+  inset-block-start: clamp(14px, 1.8vw, 22px);
+  inset-inline-end: clamp(14px, 1.8vw, 22px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chromeBtn {
+  appearance: none;
+  border: 0;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.chromeBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.chromeBtn:active {
+  transform: scale(0.92);
+}
+
+/* ───────────────────────── left: art + meta + transport ───────────────────── */
 
 .left {
   position: relative;
@@ -127,92 +196,160 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 22px;
+  gap: clamp(16px, 1.8vw, 26px);
   min-inline-size: 0;
 }
 
-/* the WHITE rounded card the artwork sits inside (matches the reference) */
+/* the album art — large, rounded, soft shadow (the reference is a bare rounded
+   cover, NOT a white card; the shadow does the lifting). */
 .artCard {
   inline-size: var(--np-art);
   block-size: var(--np-art);
-  border-radius: clamp(14px, 1.6vw, 22px);
-  background: #fff;
-  padding: clamp(7px, 0.9vw, 12px);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 22px 60px -16px rgba(0, 0, 0, 0.62),
-    0 6px 18px -8px rgba(0, 0, 0, 0.5);
+  max-inline-size: 100%;
+  border-radius: clamp(12px, 1.5vw, 20px);
+  overflow: hidden;
   flex: 0 0 auto;
-  transition: transform 420ms var(--sui-anim-smooth-css, cubic-bezier(0.3, 0, 0, 1));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.14) inset,
+    0 28px 70px -18px rgba(0, 0, 0, 0.72),
+    0 10px 28px -10px rgba(0, 0, 0, 0.55);
+  transition: transform 460ms var(--sui-anim-smooth-css, cubic-bezier(0.3, 0, 0, 1));
 }
 
 .artCard[data-playing="false"] {
-  /* the iOS "paused" shrink — the card pulls in a touch when not playing */
-  transform: scale(0.94);
+  /* the iOS "paused" shrink — the cover pulls in a touch when not playing */
+  transform: scale(0.93);
 }
 
 .artImg {
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
-  border-radius: clamp(9px, 1.1vw, 14px);
   display: block;
-  background: #d9d9de;
+  background: #1a1622;
 }
 
 /* gradient placeholder when no artwork URL is supplied */
 .artGradient {
   inline-size: 100%;
   block-size: 100%;
-  border-radius: clamp(9px, 1.1vw, 14px);
+}
+
+/* ── meta row: title/subtitle on the left, love/more on the right ── */
+.metaRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  max-inline-size: var(--np-art);
+  margin-block-start: 4px;
 }
 
 .meta {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-inline-size: 0;
 }
 
 .title {
-  font-size: clamp(20px, 2.4vw, 30px);
+  font-size: clamp(20px, 2vw, 26px);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.12;
   color: #fff;
   margin: 0;
-  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .subtitle {
-  font-size: clamp(14px, 1.5vw, 19px);
+  font-size: clamp(14px, 1.3vw, 18px);
   font-weight: 500;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.25;
   color: rgba(255, 255, 255, 0.66);
   margin: 0;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.34);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* the inline transport beneath the meta (play/pause + scrubber) */
-.controls {
+.metaActions {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-block-start: 6px;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.iconBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.74);
+  cursor: pointer;
+  transition: color 140ms ease, transform 140ms ease, background 140ms ease;
+}
+
+.iconBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.iconBtn:active {
+  transform: scale(0.9);
+}
+
+/* loved → the Apple-Music red accent */
+.iconBtn[data-active="true"] {
+  color: var(--np-accent);
+}
+
+/* ───────────────────────── scrubber ───────────────────────── */
+
+.scrubRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   max-inline-size: var(--np-art);
 }
+
+.scrubSlider {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.scrubTime {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+  min-inline-size: 36px;
+  text-align: center;
+  user-select: none;
+}
+
+.scrubTimeEnd {
+  text-align: center;
+}
+
+/* ───────────────────────── transport ───────────────────────── */
 
 .transportRow {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: clamp(24px, 3.5vw, 44px);
+  max-inline-size: var(--np-art);
 }
 
 .tBtn {
@@ -231,49 +368,43 @@
 
 .tBtn:hover {
   color: #fff;
-  transform: scale(1.06);
+  transform: scale(1.07);
 }
 
 .tBtn:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
 }
 
+/* the big center play/pause — Apple's translucent glass disc */
 .tPlay {
-  inline-size: 46px;
-  block-size: 46px;
-  background: rgba(255, 255, 255, 0.16);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.28);
+  inline-size: 62px;
+  block-size: 62px;
+  background: rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 4px 18px rgba(0, 0, 0, 0.32);
 }
 
 .tPlay:hover {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.26);
 }
 
-.scrubRow {
+/* ───────────────────────── volume ───────────────────────── */
+
+.volumeRow {
   display: flex;
   align-items: center;
   gap: 10px;
+  max-inline-size: var(--np-art);
+  margin-block-start: 2px;
+  opacity: 0.92;
 }
 
-.scrubSlider {
+.volumeSlider {
   flex: 1 1 auto;
   min-inline-size: 0;
-}
-
-.scrubTime {
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.55);
-  min-inline-size: 34px;
-  text-align: center;
-  user-select: none;
-}
-
-.scrubTimeEnd {
-  text-align: center;
 }
 
 /* ───────────────────────── right: lyrics ───────────────────────── */
@@ -284,20 +415,21 @@
   min-inline-size: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   /* the lyric column scrolls vertically; mask the top & bottom into the scrim */
   overflow: hidden;
   -webkit-mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    #000 14%,
-    #000 80%,
+    #000 13%,
+    #000 82%,
     transparent 100%
   );
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
-    #000 14%,
-    #000 80%,
+    #000 13%,
+    #000 82%,
     transparent 100%
   );
 }
@@ -316,11 +448,11 @@
   inset-block-start: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 1.5vw, 20px);
+  gap: clamp(12px, 1.6vw, 22px);
   padding-inline-end: 8px;
   will-change: transform;
   /* the snappy auto-scroll spring */
-  transition: transform 620ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1));
+  transition: transform 660ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1));
 }
 
 .lyricsTrack[data-reduce="true"] {
@@ -329,10 +461,10 @@
 
 /* one lyric line — big, bold, left-aligned, per-line opacity/blur drive state */
 .line {
-  font-size: clamp(20px, 3vw, 40px);
+  font-size: clamp(22px, 2.9vw, 42px);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.16;
+  line-height: 1.15;
   text-align: left;
   color: #fff;
   margin: 0;
@@ -344,7 +476,7 @@
     filter 480ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1)),
     transform 480ms var(--sui-anim-snappy-css, cubic-bezier(0.2, 0.9, 0.2, 1)),
     color 360ms ease;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.34);
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
   will-change: opacity, filter, transform;
 }
 
@@ -362,10 +494,10 @@
   transform: scale(1.035);
 }
 
-/* PAST lines dim to ~35%, no blur (already read) */
+/* PAST lines dim to ~32%, no blur (already read) */
 .line[data-state="past"] {
-  color: rgba(255, 255, 255, 0.92);
-  opacity: 0.35;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.32;
   filter: blur(0);
   transform: scale(1);
 }
@@ -381,36 +513,36 @@
 .dots {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding-block: 6px;
+  gap: 10px;
+  padding-block: 8px;
 }
 
 .dot {
-  inline-size: clamp(8px, 0.9vw, 12px);
-  block-size: clamp(8px, 0.9vw, 12px);
+  inline-size: clamp(9px, 0.9vw, 13px);
+  block-size: clamp(9px, 0.9vw, 13px);
   border-radius: 999px;
   background: #fff;
   opacity: 0.5;
-  animation: npDotPulse 1.35s ease-in-out infinite;
+  animation: npDotPulse 1.5s ease-in-out infinite;
 }
 
 .dot:nth-child(2) {
-  animation-delay: 0.18s;
+  animation-delay: 0.2s;
 }
 
 .dot:nth-child(3) {
-  animation-delay: 0.36s;
+  animation-delay: 0.4s;
 }
 
 @keyframes npDotPulse {
   0%,
   100% {
-    opacity: 0.28;
-    transform: scale(0.82);
+    opacity: 0.26;
+    transform: scale(0.8);
   }
   45% {
     opacity: 1;
-    transform: scale(1.12);
+    transform: scale(1.14);
   }
 }
 
@@ -422,19 +554,17 @@
 
 /* ───────────────────────── responsive: narrow frames ───────────────────────── */
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .screen {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
     gap: 18px;
   }
   .left {
-    flex-direction: row;
-    align-items: center;
     justify-content: flex-start;
-    gap: 18px;
   }
-  .controls {
-    display: none;
+  .transportRow,
+  .volumeRow {
+    max-inline-size: none;
   }
 }

@@ -1,0 +1,285 @@
+/**
+ * player.module.css — the FLOATING Liquid-Glass now-playing pill
+ * (`<NowPlayingPill>`). Scoped CSS Module: every selector is a local class, so
+ * nothing here leaks into the bare-selector global cascade.
+ *
+ * The pill is a dark translucent capsule that floats over the app content. The
+ * component layers the kit's `glassClass(glass.regular)` UNDER `.pill`, so the
+ * specular rim / sheen / backdrop blur come from the `--sui-glass-*` cascade and
+ * `.pill` only adds the dark tint, the capsule geometry, the float shadow, and
+ * the three-cluster grid. Local `--np-*` tokens keep it dark regardless of the
+ * page theme (it floats over album art, like the real macOS Apple Music app).
+ */
+
+.pill {
+  /* dark-on-glass palette — fixed dark so the pill reads over any backdrop */
+  --np-bg: rgba(34, 32, 36, 0.62);
+  --np-fg: rgba(255, 255, 255, 0.95);
+  --np-fg-2: rgba(235, 235, 245, 0.62);
+  --np-fg-3: rgba(235, 235, 245, 0.32);
+  --np-accent: #fa2d48; /* Apple Music red — the star + active toggles */
+  --np-hover: rgba(255, 255, 255, 0.1);
+
+  /* floating geometry: centered ~720px capsule, ~58px tall, ~16px off bottom */
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 50;
+
+  inline-size: 720px;
+  max-inline-size: calc(100vw - 32px);
+  block-size: 58px;
+  box-sizing: border-box;
+
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
+  padding-inline: 14px;
+
+  /* the dark wash + capsule shape sit ON TOP of the inherited glass body.
+     glassClass already paints the backdrop blur + rim; this tint darkens it. */
+  border-radius: 18px;
+  background-color: var(--np-bg);
+  color: var(--np-fg);
+
+  /* soft drop shadow so the pill clearly floats off the content beneath */
+  box-shadow:
+    0 10px 34px rgba(0, 0, 0, 0.46),
+    0 2px 8px rgba(0, 0, 0, 0.32),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.07);
+
+  /* reinforce the live blur even if the glass token chain is light */
+  -webkit-backdrop-filter: blur(28px) saturate(1.7);
+  backdrop-filter: blur(28px) saturate(1.7);
+
+  font: var(--sui-font-text, -apple-system, "SF Pro Text", system-ui, sans-serif);
+  user-select: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * LEFT — transport cluster
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.transport {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  inline-size: 30px;
+  block-size: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--np-fg);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+}
+
+.tBtn:hover {
+  background: var(--np-hover);
+}
+
+.tBtn:active {
+  transform: scale(0.92);
+}
+
+.tBtn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--np-accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+/* active shuffle / repeat tint red, like the real app */
+.tBtn[data-on="true"] {
+  color: var(--np-accent);
+}
+
+/* the center play/pause is slightly larger and visually dominant */
+.tPlay {
+  inline-size: 36px;
+  block-size: 36px;
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * CENTER — artwork + metadata over the scrubber
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.nowInfo {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  column-gap: 10px;
+  min-inline-size: 0;
+}
+
+.thumb {
+  inline-size: 38px;
+  block-size: 38px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  flex: 0 0 auto;
+  /* button-reset so the clickable <button> variant matches the <div> swatch */
+  appearance: none;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  display: block;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+/* the clickable artwork (button variant) gets a pointer + subtle hover lift */
+button.thumb {
+  cursor: pointer;
+}
+button.thumb:hover {
+  transform: scale(1.04);
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2);
+}
+button.thumb:active {
+  transform: scale(0.97);
+}
+button.thumb:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--np-accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.infoText {
+  position: relative;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  /* leave room under the text for the underlaid scrubber */
+  padding-block-end: 5px;
+}
+
+.titleRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-inline-size: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--np-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--np-fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* the thin scrubber underlaying the metadata block. The Slider draws a 6px
+   white-ish bar; we recolor it via the kit's slider tint tokens and pin it to
+   the bottom of the info column so it reads as the track progress line. */
+.scrub {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 4px;
+  /* recolor the kit Slider: filled = bright white, unfilled = faint white */
+  --sui-color-tint: rgba(255, 255, 255, 0.92);
+  --sui-color-system-gray5: rgba(255, 255, 255, 0.18);
+  --sui-color-separator: rgba(255, 255, 255, 0.18);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * RIGHT — more / lyrics / queue / volume
+ * ───────────────────────────────────────────────────────────────────────── */
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  inline-size: 28px;
+  block-size: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: var(--np-fg-2);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+}
+
+.iconBtn:hover {
+  background: var(--np-hover);
+  color: var(--np-fg);
+}
+
+.iconBtn:active {
+  transform: scale(0.92);
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--np-accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline-start: 2px;
+}
+
+.volSlider {
+  inline-size: 64px;
+  /* recolor the kit Slider for the volume track: filled white, faint unfilled */
+  --sui-color-tint: rgba(255, 255, 255, 0.85);
+  --sui-color-system-gray5: rgba(255, 255, 255, 0.2);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Responsive: collapse the volume slider on narrow windows so the three
+ * clusters never overlap inside the fixed-width pill.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .pill {
+    inline-size: calc(100vw - 24px);
+    column-gap: 8px;
+    padding-inline: 10px;
+  }
+  .volSlider {
+    display: none;
+  }
+}
