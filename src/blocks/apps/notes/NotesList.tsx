@@ -2,12 +2,13 @@
 /**
  * `<NotesList>` — column 2 of the macOS Apple Notes app.
  *
- * The notes list for the selected folder: a search field on top, then one row
- * per note = title (semibold) + a meta line (date + 1-line snippet preview). The
- * selected row gets the characteristic yellow-tinted rounded background. Pinned
- * notes float to the top with a pin glyph.
+ * The notes for the selected folder, grouped under the date-section headers
+ * macOS Notes uses ("Pinned", "Today", "Previous 7 Days", a month, a year…).
+ * Each row = title (semibold) + a meta line (date + 1-line snippet). The selected
+ * row gets the signature solid-gold fill. The search field lives in the window
+ * toolbar (not here), so this column is just the grouped, scrollable list.
  *
- * Controlled: parent owns `selectedNoteId`, `onSelectNote`, and the search query.
+ * Controlled: parent owns `selectedNoteId` / `onSelectNote`; `query` filters.
  */
 import * as React from "react";
 import { SymbolGlyph } from "../../../components/controls/SymbolGlyph";
@@ -19,7 +20,34 @@ export interface NotesListProps {
   selectedNoteId?: string;
   onSelectNote?: (noteId: string) => void;
   query?: string;
-  onQueryChange?: (q: string) => void;
+}
+
+/** The order date-group section headers appear in macOS Notes. */
+const GROUP_ORDER = [
+  "Pinned",
+  "Today",
+  "Yesterday",
+  "Previous 7 Days",
+  "Previous 30 Days",
+  "June",
+  "May",
+  "April",
+  "March",
+  "February",
+  "January",
+  "December",
+  "November",
+  "October",
+  "September",
+  "August",
+  "July",
+  "2025",
+  "2024",
+];
+
+function groupIndex(label: string): number {
+  const i = GROUP_ORDER.indexOf(label);
+  return i === -1 ? GROUP_ORDER.length : i;
 }
 
 function NoteRow({
@@ -79,10 +107,9 @@ export function NotesList({
   selectedNoteId,
   onSelectNote,
   query = "",
-  onQueryChange,
 }: NotesListProps): React.ReactElement {
-  // Pinned first, then by original order (stable). Filter by query if present.
-  const filtered = React.useMemo(() => {
+  // Filter by query, then bucket into date-group sections in canonical order.
+  const groups = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     const matched = q
       ? notes.filter(
@@ -91,38 +118,44 @@ export function NotesList({
             n.snippet.toLowerCase().includes(q),
         )
       : notes;
-    return [...matched].sort(
-      (a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)),
+
+    const byLabel = new Map<string, Note[]>();
+    for (const n of matched) {
+      const label = n.pinned ? "Pinned" : n.group ?? "Notes";
+      const bucket = byLabel.get(label);
+      if (bucket) bucket.push(n);
+      else byLabel.set(label, [n]);
+    }
+    return [...byLabel.entries()].sort(
+      (a, b) => groupIndex(a[0]) - groupIndex(b[0]),
     );
   }, [notes, query]);
 
-  const selectedIndex = filtered.findIndex((n) => n.id === selectedNoteId);
+  // Flat order so we can hide the hairline on the row just before the selected.
+  const flat = groups.flatMap(([, ns]) => ns);
+  const selectedIndex = flat.findIndex((n) => n.id === selectedNoteId);
 
   return (
     <section className={styles.list} aria-label="Notes">
-      <div className={styles.searchWrap}>
-        <div className={styles.search}>
-          <SymbolGlyph name="magnifyingglass" size={13} />
-          <input
-            className={styles.searchInput}
-            type="text"
-            placeholder="Search"
-            value={query}
-            onChange={(e) => onQueryChange?.(e.target.value)}
-            aria-label="Search notes"
-          />
-        </div>
-      </div>
-
       <div className={styles.listScroll}>
-        {filtered.map((note, i) => (
-          <NoteRow
-            key={note.id}
-            note={note}
-            selected={note.id === selectedNoteId}
-            beforeSelected={selectedIndex >= 0 && i === selectedIndex - 1}
-            onSelect={() => onSelectNote?.(note.id)}
-          />
+        {groups.map(([label, ns]) => (
+          <React.Fragment key={label}>
+            <div className={styles.dateGroup}>{label}</div>
+            {ns.map((note) => {
+              const flatIndex = flat.indexOf(note);
+              return (
+                <NoteRow
+                  key={note.id}
+                  note={note}
+                  selected={note.id === selectedNoteId}
+                  beforeSelected={
+                    selectedIndex >= 0 && flatIndex === selectedIndex - 1
+                  }
+                  onSelect={() => onSelectNote?.(note.id)}
+                />
+              );
+            })}
+          </React.Fragment>
         ))}
       </div>
     </section>

@@ -535,6 +535,89 @@ export const SF_SYMBOLS: Record<string, GlyphGeometry> = {
   applelogo: {
     fill: "M17.05 12.5c0-2.4 1.95-3.55 2.04-3.6a4.4 4.4 0 0 0-3.46-1.87c-1.47-.15-2.87.86-3.62.86-.75 0-1.9-.84-3.12-.82a4.6 4.6 0 0 0-3.88 2.36c-1.66 2.88-.42 7.13 1.2 9.46.79 1.14 1.74 2.42 2.98 2.37 1.2-.05 1.65-.77 3.1-.77 1.44 0 1.85.77 3.11.75 1.28-.02 2.1-1.16 2.89-2.31a9.6 9.6 0 0 0 1.3-2.68 4.18 4.18 0 0 1-2.54-3.83ZM14.7 5.45A4.1 4.1 0 0 0 15.66 2.5a4.18 4.18 0 0 0-2.7 1.4 3.9 3.9 0 0 0-.99 2.83 3.46 3.46 0 0 0 2.73-1.28Z",
   },
+
+  // ── macOS Notes chrome (added for the 1:1 Notes template) ──────────────────
+  // Compose — a rounded square open at its top-right with a pencil across it.
+  "square.and.pencil": {
+    stroke:
+      "M11 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M17.6 4.4a1.9 1.9 0 0 1 2.7 2.7l-7.5 7.5-3.6.9.9-3.6Z",
+  },
+  // Sidebar toggle — a rounded rectangle with the leading column divided off.
+  "sidebar.left": {
+    stroke:
+      "M4.5 5.5h15A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17V7a1.5 1.5 0 0 1 1.5-1.5ZM9 5.7V18.3",
+  },
+  // Checklist — two ticks with two text lines (the format-bar checklist icon).
+  checklist: {
+    stroke: "M3.5 7 5 8.5 8 5.5M3.5 16 5 17.5 8 14.5M11 7h9.5M11 16h9.5",
+  },
+  // Table — a bordered grid with a header row and two columns.
+  tablecells: {
+    stroke:
+      "M4 5.5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1ZM3 9.7h18M3 14.2h18M9 5.7V18.5M15 5.7V18.5",
+  },
+  // New Folder — a folder with a small plus badge at its trailing-bottom.
+  "folder.badge.plus": {
+    stroke:
+      "M3.5 9V7A1.5 1.5 0 0 1 5 5.5h3.4l1.5 2h8.6A1.5 1.5 0 0 1 20.5 9v2.5M3.5 9v9A1.5 1.5 0 0 0 5 19.5h7M17.5 14.5v6M14.5 17.5h6",
+  },
+  // Pinned badge — a tilted pushpin (solid).
+  "pin.fill": {
+    fill: "M15.8 2.6 21.4 8.2a1 1 0 0 1-.5 1.7l-3 .7-3.2 3.2.3 3.4a1 1 0 0 1-1.7.8L10 13.4l-5.3 5.3a.8.8 0 0 1-1.1-1.1L8.9 12 6.3 9.4a1 1 0 0 1 .8-1.7l3.4.3 3.2-3.2.7-3a1 1 0 0 1 1.7-.5Z",
+  },
+  // Quick Notes — a page with a dog-eared corner and text lines.
+  "note.text": {
+    stroke:
+      "M5 5.5h14a1 1 0 0 1 1 1v8.6l-4.9 4.9H6a1 1 0 0 1-1-1ZM15.2 20v-4a1 1 0 0 1 1-1h4M8 9.5h8M8 13h8M8 16.5h4",
+  },
+  // All-notes tray (the smart "All iCloud" folder icon).
+  "tray.full": {
+    stroke:
+      "M3.5 13.5 5 18a1.5 1.5 0 0 0 1.45 1.1h11.1A1.5 1.5 0 0 0 19 18l1.5-4.5M3.5 13.5l3-9A1.5 1.5 0 0 1 8 3.4h8a1.5 1.5 0 0 1 1.45 1.1l3 9M3.5 13.5H8l1 2h6l1-2h4.5",
+  },
+
+  // ── remaining kit-wide gaps (filled placeholders elsewhere in the gallery) ──
+  circle: { stroke: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" },
+  "circle.fill": { fill: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" },
+  // Generic app tile (the default sidebar/app-row glyph).
+  "app.fill": {
+    fill: "M6.5 3.5h11A3 3 0 0 1 20.5 6.5v11a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3v-11a3 3 0 0 1 3-3Z",
+  },
+  // Stacked cards (a peeking card behind the front one).
+  "square.stack": {
+    stroke:
+      "M6 9.5h12A1.5 1.5 0 0 1 19.5 11v6.5A1.5 1.5 0 0 1 18 19h-12A1.5 1.5 0 0 1 4.5 17.5V11A1.5 1.5 0 0 1 6 9.5ZM7.5 6.5h9M8.5 4h7",
+  },
+  "square.stack.fill": {
+    fill: "M5.5 9.5h13A1.5 1.5 0 0 1 20 11v6A1.5 1.5 0 0 1 18.5 18.5h-13A1.5 1.5 0 0 1 4 17v-6A1.5 1.5 0 0 1 5.5 9.5Z",
+    stroke: "M7 6.5h10M8.5 4h7",
+  },
+  // A window with a menubar strip + dock dots (Desktop & Dock settings icon).
+  "menubar.dock.rectangle": {
+    stroke:
+      "M3.5 5.5h17A1.5 1.5 0 0 1 22 7v10a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 17V7a1.5 1.5 0 0 1 1.5-1.5ZM2 9h20",
+    fill: "M9 14.3h1.6v1.6H9ZM11.4 14.3H13v1.6h-1.6ZM13.8 14.3h1.6v1.6h-1.6Z",
+  },
+  // Up-trending line chart with x/y axes.
+  "chart.line.uptrend.xyaxis": {
+    stroke:
+      "M4 4v15a1 1 0 0 0 1 1h15M7.5 15.5 11 12l2.5 2.5L20 8M16.5 8H20M20 8v3.5",
+  },
+  // iCloud — a cloud silhouette outline.
+  icloud: {
+    stroke:
+      "M7.3 18.5h9.2a4 4 0 0 0 .5-7.96 5.5 5.5 0 0 0-10.55-1.3A3.85 3.85 0 0 0 7.3 18.5Z",
+  },
+  // Pin — the tilted pushpin outline (the solid twin is "pin.fill").
+  pin: {
+    stroke:
+      "M15.8 2.6 21.4 8.2a1 1 0 0 1-.5 1.7l-3 .7-3.2 3.2.3 3.4a1 1 0 0 1-1.7.8L10 13.4l-5.3 5.3a.8.8 0 0 1-1.1-1.1L8.9 12 6.3 9.4a1 1 0 0 1 .8-1.7l3.4.3 3.2-3.2.7-3a1 1 0 0 1 1.7-.5Z",
+  },
+  // Shipping box (a 3-D carton with top flaps).
+  "shippingbox.fill": {
+    fill: "M12 2.5 20.5 7v10L12 21.5 3.5 17V7ZM12 4.7 6 8l6 3.3L18 8ZM5 9.8v6.1l6 3.2V13ZM19 9.8 13 13v6.1l6-3.2Z",
+    rule: "evenodd",
+  },
 };
 
 /** A neutral rounded-square placeholder ("generic app icon") for unmapped names. */

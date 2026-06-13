@@ -4,9 +4,10 @@
  *
  * The open note as a sheet of "paper": a centered date stamp, the bold title
  * line, then the body rendered from the note's block list (paragraphs, headings,
- * checklists with toggleable yellow circles, bulleted lists, tables). Above the
- * paper sits the format toolbar (Aa · checklist · table · list · photo · share…)
- * built from SymbolGlyph. When no note is selected it shows the empty state.
+ * checklists with toggleable yellow circles, bulleted lists, tables). On macOS
+ * the formatting controls live in the window toolbar — there is no secondary
+ * format bar above the paper — so the editor is just the scrollable sheet. When
+ * no note is selected it shows the empty state.
  *
  * Local state: checkbox toggles for the rendered checklists (so the paper feels
  * live). Carries "use client".
@@ -18,48 +19,6 @@ import styles from "./notes.module.css";
 
 export interface NoteEditorProps {
   note?: Note;
-}
-
-/** One format-toolbar icon button. */
-function FormatBtn({
-  symbol,
-  label,
-  aa,
-}: {
-  symbol?: string;
-  label: string;
-  aa?: boolean;
-}): React.ReactElement {
-  return (
-    <button
-      type="button"
-      className={`${styles.formatBtn} ${aa ? styles.formatBtnAa : ""}`}
-      aria-label={label}
-      title={label}
-    >
-      {aa ? "Aa" : <SymbolGlyph name={symbol ?? "circle"} size={15} weight="regular" />}
-    </button>
-  );
-}
-
-/** The format toolbar above the paper. */
-function FormatBar(): React.ReactElement {
-  return (
-    <div className={styles.formatBar} role="toolbar" aria-label="Formatting">
-      <FormatBtn label="Style" aa />
-      <span className={styles.formatSep} aria-hidden />
-      <FormatBtn symbol="checkmark.circle" label="Checklist" />
-      <FormatBtn symbol="square.grid.2x2" label="Table" />
-      <FormatBtn symbol="list.bullet" label="Bulleted List" />
-      <FormatBtn symbol="text.alignleft" label="Alignment" />
-      <span className={styles.formatSep} aria-hidden />
-      <FormatBtn symbol="photo" label="Insert Photo" />
-      <FormatBtn symbol="link" label="Add Link" />
-      <span className={styles.formatSpacer} aria-hidden />
-      <FormatBtn symbol="square.and.pencil" label="New Note" />
-      <FormatBtn symbol="square.and.arrow.up" label="Share" />
-    </div>
-  );
 }
 
 /** A live checklist block — circles toggle locally. */
@@ -156,10 +115,9 @@ export function NoteEditor({ note }: NoteEditorProps): React.ReactElement {
   if (!note) {
     return (
       <div className={styles.editor}>
-        <FormatBar />
         <div className={styles.empty}>
           <span className={styles.emptyGlyph}>
-            <SymbolGlyph name="doc.text" size={52} weight="regular" />
+            <SymbolGlyph name="note.text" size={52} weight="regular" />
           </span>
           <span className={styles.emptyText}>No Note Selected</span>
         </div>
@@ -169,7 +127,6 @@ export function NoteEditor({ note }: NoteEditorProps): React.ReactElement {
 
   return (
     <article className={styles.editor} aria-label={note.title}>
-      <FormatBar />
       <div className={styles.paper}>
         <div className={styles.paperInner}>
           {note.fullDate ? (

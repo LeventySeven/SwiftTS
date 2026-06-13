@@ -2,8 +2,13 @@
  * data.ts — the Apple Notes app's data model + a realistic seed dataset.
  *
  * Plain types and a default folder/note tree so `<AppleNotesApp>` renders
- * exactly like real Notes out of the box. Callers can pass their own `folders`
+ * exactly like real Notes out of the box. Callers can pass their own `accounts`
  * to the app to swap the content.
+ *
+ * Notes carry a `group` label ("Pinned", "Today", "Previous 7 Days", a month, a
+ * year…) so the list column can render the date-grouped section headers macOS
+ * Notes uses. `date` is the short stamp shown in the row; `fullDate` is the long
+ * one centered atop the editor.
  */
 import type * as React from "react";
 
@@ -28,12 +33,14 @@ export type NoteBlock =
 export interface Note {
   id: string;
   title: string;
-  /** One-line preview shown under the title in the list column. */
+  /** One-line preview shown after the date under the title in the list column. */
   snippet: string;
-  /** Display date for the list row (e.g. "Yesterday", "9:41 AM", "5/28/26"). */
+  /** Short stamp shown in the list row (e.g. "Yesterday", "9:41 AM", "5/28/26"). */
   date: string;
   /** Long date shown centered atop the editor paper. */
   fullDate?: string;
+  /** Date-group section the note sorts under in the list ("Today", "May", …). */
+  group?: string;
   pinned?: boolean;
   body: NoteBlock[];
 }
@@ -63,12 +70,13 @@ const designReview: Note = {
   snippet: "Specular rim should brighten on hover, lensing at the edges…",
   date: "9:41 AM",
   fullDate: "Today at 9:41 AM",
+  group: "Pinned",
   pinned: true,
   body: [
     {
       kind: "paragraph",
       text:
-        "Notes from the iOS 26 design review. The big shift is the move to Liquid Glass across all system chrome — bars float above content and refract what's behind them.",
+        "Notes from the macOS 26 design review. The big shift is the move to Liquid Glass across all system chrome — sidebars and toolbars float over the window and refract what's behind them.",
     },
     { kind: "heading", text: "Action Items" },
     {
@@ -97,12 +105,34 @@ const designReview: Note = {
   ],
 };
 
+const standup: Note = {
+  id: "n-standup",
+  title: "Standup Notes",
+  snippet: "Shipping the Notes replica today, music pill calibration next…",
+  date: "8:30 AM",
+  fullDate: "Today at 8:30 AM",
+  group: "Today",
+  body: [
+    { kind: "heading", text: "Today" },
+    {
+      kind: "bullets",
+      items: [
+        "Land the 1:1 Notes template",
+        "Calibrate the now-playing pill against the source",
+        "Sweep the toolbar glyph coverage",
+      ],
+    },
+    { kind: "paragraph", text: "Blocked on nothing. Demo at 4." },
+  ],
+};
+
 const groceries: Note = {
   id: "n-groceries",
   title: "Grocery List",
   snippet: "Oat milk, sourdough, espresso beans, olive oil…",
   date: "Yesterday",
   fullDate: "Yesterday at 6:12 PM",
+  group: "Yesterday",
   body: [
     { kind: "heading", text: "Weekend Shop" },
     {
@@ -120,12 +150,34 @@ const groceries: Note = {
   ],
 };
 
+const meeting: Note = {
+  id: "n-meeting",
+  title: "Q3 Planning",
+  snippet: "Ship the replication kit, calibrate against the originals…",
+  date: "Monday",
+  fullDate: "June 8, 2026 at 2:30 PM",
+  group: "Previous 7 Days",
+  body: [
+    { kind: "heading", text: "Goals" },
+    {
+      kind: "bullets",
+      items: [
+        "Ship the replication kit to internal beta",
+        "Calibrate every replica against the source API",
+        "Close the quality gap below 5%",
+      ],
+    },
+    { kind: "paragraph", text: "Owner sync every Tuesday. Demo day is the last Friday of the quarter." },
+  ],
+};
+
 const trip: Note = {
   id: "n-trip",
   title: "Kyoto Itinerary",
   snippet: "Day 1: Fushimi Inari at sunrise, then Nishiki Market…",
   date: "5/28/26",
   fullDate: "May 28, 2026 at 11:03 AM",
+  group: "Previous 30 Days",
   body: [
     { kind: "paragraph", text: "Five days in Kyoto. Trying to keep mornings for temples, afternoons loose." },
     { kind: "heading", text: "Schedule" },
@@ -145,32 +197,13 @@ const trip: Note = {
   ],
 };
 
-const meeting: Note = {
-  id: "n-meeting",
-  title: "Q3 Planning",
-  snippet: "Ship the replication kit, calibrate against the originals…",
-  date: "5/24/26",
-  fullDate: "May 24, 2026 at 2:30 PM",
-  body: [
-    { kind: "heading", text: "Goals" },
-    {
-      kind: "bullets",
-      items: [
-        "Ship the replication kit to internal beta",
-        "Calibrate every replica against the source API",
-        "Close the quality gap below 5%",
-      ],
-    },
-    { kind: "paragraph", text: "Owner sync every Tuesday. Demo day is the last Friday of the quarter." },
-  ],
-};
-
 const recipe: Note = {
   id: "n-recipe",
   title: "Focaccia",
   snippet: "500g flour, 400g water, 10g salt, 7g yeast…",
   date: "5/19/26",
   fullDate: "May 19, 2026 at 8:45 AM",
+  group: "Previous 30 Days",
   body: [
     { kind: "heading", text: "Ingredients" },
     {
@@ -195,6 +228,7 @@ const reading: Note = {
   snippet: "Designing Data-Intensive Applications, The Pragmatic…",
   date: "5/11/26",
   fullDate: "May 11, 2026 at 9:20 PM",
+  group: "May",
   body: [
     {
       kind: "checklist",
@@ -212,6 +246,8 @@ const ideas: Note = {
   title: "App Ideas",
   snippet: "A native-feeling Notes clone, a glass widget gallery…",
   date: "4/30/26",
+  fullDate: "April 30, 2026 at 10:02 PM",
+  group: "April",
   body: [
     {
       kind: "bullets",
@@ -220,16 +256,40 @@ const ideas: Note = {
   ],
 };
 
+const quickNote: Note = {
+  id: "n-quick",
+  title: "Quick Note",
+  snippet: "Calibrate the selection gold against the dark window…",
+  date: "Today",
+  fullDate: "Today at 9:58 AM",
+  group: "Today",
+  body: [
+    { kind: "paragraph", text: "Calibrate the selection gold against the dark window. White label on the fill." },
+  ],
+};
+
+/**
+ * "Quick Notes" — the pinned source-list item that sits above the account
+ * groups in the sidebar (its own little inbox).
+ */
+export const QUICK_NOTES: NotesFolder = {
+  id: "quick",
+  name: "Quick Notes",
+  symbol: "note.text",
+  notes: [quickNote],
+};
+
 /** Default account/folder tree — mirrors a fresh Notes install. */
 export const DEFAULT_ACCOUNTS: NotesAccount[] = [
   {
     id: "icloud",
     name: "iCloud",
     folders: [
-      { id: "all", name: "All iCloud", symbol: "tray.full", notes: [designReview, groceries, trip, meeting, recipe, reading] },
-      { id: "notes", name: "Notes", symbol: "folder", notes: [designReview, groceries, trip, meeting] },
-      { id: "work", name: "Work", symbol: "folder", notes: [meeting, designReview] },
+      { id: "all", name: "All iCloud", symbol: "tray.full", notes: [designReview, standup, groceries, meeting, trip, recipe, reading] },
+      { id: "notes", name: "Notes", symbol: "folder", notes: [designReview, standup, groceries, meeting, trip, recipe, reading] },
+      { id: "work", name: "Work", symbol: "folder", notes: [meeting, designReview, standup] },
       { id: "travel", name: "Travel", symbol: "folder", notes: [trip] },
+      { id: "deleted", name: "Recently Deleted", symbol: "trash", notes: [] },
     ],
   },
   {
@@ -241,6 +301,11 @@ export const DEFAULT_ACCOUNTS: NotesAccount[] = [
     ],
   },
 ];
+
+/** Every folder in the tree (Quick Notes + accounts) — for id lookup. */
+export function allFolders(accounts: NotesAccount[]): NotesFolder[] {
+  return [QUICK_NOTES, ...accounts.flatMap((a) => a.folders)];
+}
 
 /** Convenience: total note count for a folder (for the trailing count chip). */
 export function folderCount(folder: NotesFolder): number {
