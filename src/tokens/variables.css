@@ -539,7 +539,7 @@
   --sui-mac-traffic-zoom: #28c840;
   --sui-mac-traffic-inactive: #cccccc; /* all three when the window is unfocused */
   --sui-mac-traffic-size: 12px; /* the dot diameter */
-  --sui-mac-traffic-gap: 8px; /* center-to-center spacing */
+  --sui-mac-traffic-gap: 16px; /* drives the inter-dot gap via calc(gap - size) ≈ 8px edge */
 }
 
 /* =============================================================================

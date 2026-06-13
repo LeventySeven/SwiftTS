@@ -18,33 +18,41 @@
   /* Folder-glyph yellow + the signature solid selection gold. */
   --notes-yellow: #ffc107;
   --notes-folder: #ffcc00;
-  --notes-sel-fill: #ffdb4d; /* selected-note fill (light) */
+  --notes-sel-fill: #ffd84a; /* selected-note fill (light) */
   --notes-sel-text: #1c1c1e; /* label over the gold (light) */
   --notes-sel-sub: rgba(28, 28, 30, 0.66);
 
-  /* Translucent column fills so the wallpaper bleeds through the chrome. */
-  --notes-toolbar-bg: rgba(248, 248, 250, 0.62);
-  --notes-list-bg: rgba(248, 248, 250, 0.5);
-  --notes-editor-bg: rgba(255, 255, 255, 0.96);
+  /* Mostly-solid chrome with only a faint glass tint — like the real Notes
+   * over a desktop: the wallpaper peeks at the window EDGES, not through the
+   * panes. (Too-translucent panes were the "rainbow bleed" that read wrong.) */
+  --notes-sidebar-bg: rgba(236, 236, 239, 0.9);
+  --notes-toolbar-bg: rgba(243, 243, 245, 0.9);
+  --notes-list-bg: rgba(246, 246, 248, 0.88);
+  --notes-editor-bg: rgba(255, 255, 255, 0.99);
+  --notes-window-border: rgba(0, 0, 0, 0.16);
+
   --notes-cluster-bg: rgba(120, 120, 128, 0.16);
   --notes-cluster-rim: rgba(0, 0, 0, 0.06);
 
   --notes-sidebar-w: 220px;
-  --notes-list-w: 262px;
-  --notes-toolbar-h: 52px;
+  --notes-list-w: 264px;
+  --notes-toolbar-h: 53px;
 
   display: contents;
 }
 :global([data-theme="dark"]) .app {
   --notes-yellow: #ffd60a;
   --notes-folder: #ffd60a;
-  --notes-sel-fill: #a07e2c; /* muted mustard fill in dark mode */
+  --notes-sel-fill: #9d7c2b; /* muted mustard fill in dark mode */
   --notes-sel-text: #ffffff;
-  --notes-sel-sub: rgba(255, 255, 255, 0.7);
+  --notes-sel-sub: rgba(255, 255, 255, 0.72);
 
-  --notes-toolbar-bg: rgba(40, 40, 43, 0.6);
-  --notes-list-bg: rgba(34, 34, 37, 0.66);
-  --notes-editor-bg: rgba(30, 30, 32, 0.97);
+  --notes-sidebar-bg: rgba(44, 44, 47, 0.9);
+  --notes-toolbar-bg: rgba(40, 40, 43, 0.9);
+  --notes-list-bg: rgba(30, 30, 33, 0.92);
+  --notes-editor-bg: rgba(28, 28, 30, 0.99);
+  --notes-window-border: rgba(255, 255, 255, 0.12);
+
   --notes-cluster-bg: rgba(255, 255, 255, 0.1);
   --notes-cluster-rim: rgba(255, 255, 255, 0.08);
 }
@@ -58,13 +66,13 @@
   flex-direction: column;
   inline-size: 100%;
   block-size: 100%;
-  border-radius: 12px;
+  border-radius: 17px;
   overflow: hidden;
   background: transparent;
   box-shadow:
-    inset 0 0 0 0.5px var(--sui-mac-vibrancy-rim, rgba(0, 0, 0, 0.12)),
-    0 28px 80px rgba(0, 0, 0, 0.4),
-    0 8px 22px rgba(0, 0, 0, 0.24);
+    inset 0 0 0 1px var(--notes-window-border),
+    0 30px 84px rgba(0, 0, 0, 0.44),
+    0 10px 26px rgba(0, 0, 0, 0.26);
   font-family:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
     sans-serif;
@@ -83,9 +91,8 @@
   block-size: var(--notes-toolbar-h);
   flex-shrink: 0;
   background: var(--notes-toolbar-bg);
-  -webkit-backdrop-filter: blur(30px) saturate(1.4);
-  backdrop-filter: blur(30px) saturate(1.4);
-  border-block-end: 0.5px solid var(--sui-color-separator);
+  -webkit-backdrop-filter: blur(34px) saturate(1.3);
+  backdrop-filter: blur(34px) saturate(1.3);
   -webkit-app-region: drag;
   position: relative;
   z-index: 3;
@@ -263,6 +270,9 @@
   flex-direction: column;
   padding: 6px 0 0;
   overflow-y: auto;
+  background: var(--notes-sidebar-bg);
+  -webkit-backdrop-filter: blur(34px) saturate(1.2);
+  backdrop-filter: blur(34px) saturate(1.2);
   border-inline-end: 0.5px solid var(--sui-color-separator);
 }
 .sidebarScroll {
@@ -369,8 +379,8 @@
   display: flex;
   flex-direction: column;
   background: var(--notes-list-bg);
-  -webkit-backdrop-filter: blur(34px) saturate(1.1);
-  backdrop-filter: blur(34px) saturate(1.1);
+  -webkit-backdrop-filter: blur(34px) saturate(1.2);
+  backdrop-filter: blur(34px) saturate(1.2);
   border-inline-end: 0.5px solid var(--sui-color-separator);
   min-block-size: 0;
 }
@@ -382,23 +392,23 @@
 
 /* A date-group section header — "Pinned" / "March" / "2025". */
 .dateGroup {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--sui-color-label);
-  letter-spacing: -0.012em;
-  padding: 14px 6px 6px;
+  letter-spacing: -0.02em;
+  padding: 18px 7px 7px;
 }
 .dateGroup:first-child {
-  padding-block-start: 8px;
+  padding-block-start: 10px;
 }
 
 /* A note row in the list: title (semibold) + meta line (date + 1-line snippet). */
 .noteRow {
   position: relative;
-  padding: 9px 11px 11px;
-  border-radius: 9px;
+  padding: 10px 12px 13px;
+  border-radius: 10px;
   cursor: default;
-  margin-block-end: 1px;
+  margin-block-end: 2px;
 }
 .noteRow:hover:not(.noteRowSelected) {
   background: var(--sui-mac-hover-fill, rgba(0, 0, 0, 0.05));
@@ -407,7 +417,7 @@
   background: var(--notes-sel-fill);
 }
 .noteTitle {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--sui-color-label);
   line-height: 1.32;
@@ -453,7 +463,7 @@
 .noteRow:not(.noteRowSelected)::after {
   content: "";
   position: absolute;
-  inset-inline: 11px;
+  inset-inline: 12px;
   inset-block-end: 0;
   block-size: 0.5px;
   background: var(--sui-color-separator);
@@ -481,8 +491,8 @@
   display: flex;
   flex-direction: column;
   background: var(--notes-editor-bg);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
   min-inline-size: 0;
   min-block-size: 0;
 }

@@ -11,7 +11,6 @@
  */
 import * as React from "react";
 import { SymbolGlyph } from "../../../components/controls/SymbolGlyph";
-import { macVibrancyClass } from "../../../system/platform";
 import type { NotesAccount, NotesFolder } from "./data";
 import { folderCount } from "./data";
 import styles from "./notes.module.css";
@@ -68,10 +67,7 @@ export function NotesFolderList({
   onNewFolder,
 }: NotesFolderListProps): React.ReactElement {
   return (
-    <nav
-      className={`${styles.sidebar} ${macVibrancyClass("sidebar")}`}
-      aria-label="Folders"
-    >
+    <nav className={styles.sidebar} aria-label="Folders">
       <div className={styles.sidebarScroll}>
         {topItems.map((item) => {
           const selected = item.id === selectedFolderId;
